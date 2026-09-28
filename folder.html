@@ -110,6 +110,24 @@ button,input,select{font:inherit;color:inherit}
 #presets .btn, #presets button{height:26px; font-size:11.5px; border:1px solid var(--line); background:var(--well);
      border-radius:4px; cursor:pointer; padding:0 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 #presets button:hover{background:var(--hover); border-color:var(--accent)}
+#presetsPop{max-height:74vh; overflow-y:auto}
+#presets .ps-head{display:flex; align-items:center; gap:6px; margin-bottom:6px}
+#presets .ps-head b{font-size:12.5px}
+#presets .ps-head .mt{margin-left:auto}
+#presets .ps-head .icon-btn{width:22px; font-size:17px; height:22px; border:0; background:none}
+#presets .prop{margin:2px 0}
+#presets .grp{margin:8px 0 3px}
+#presets .seg button{border:0; border-right:1px solid var(--line); border-radius:0; height:22px; background:transparent}
+#presets .seg button:last-child{border-right:0}
+#presets .seg button[aria-pressed="true"]{background:var(--accent); color:#fff}
+#presets .ps-foot{display:flex; gap:6px; justify-content:flex-end; margin-top:12px}
+#presets .ps-foot .btn{padding:0 12px; height:26px}
+#presets .ps-warn{font-size:11px; color:var(--text); background:var(--well); border:1px solid var(--key);
+  border-radius:4px; padding:8px; margin:2px 0 6px; display:flex; flex-direction:column; gap:6px}
+#presets .ps-warn .btn{align-self:flex-start; padding:0 10px; height:24px}
+.tl-insp select.field{width:auto; min-width:118px; height:24px; line-height:22px}
+.tl-insp .seg{height:24px}
+.tl-track .segb.hold{height:2px; top:38px; opacity:.9}
 
 /* ---------- scène ---------- */
 .stage{grid-area:stage; position:relative; min-width:0; min-height:0; display:grid; place-items:center;
@@ -334,7 +352,7 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
 </div>
 <div class="slot empty" id="slotVerso">
   <div class="th" id="thVerso">+</div>
-  <div><div class="nm">Verso</div><div class="mt" id="metaVerso">optionnel — la face arrière</div></div>
+  <div><div class="nm">Verso · plan B</div><div class="mt" id="metaVerso">face arrière, ou plan B des transitions</div></div>
   <div class="acts"><button class="icon-btn" id="btnVerso" title="Ajouter ou changer le verso"><svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><path d="M13 5.5A5.5 5.5 0 0 0 3.2 4.3M3 10.5a5.5 5.5 0 0 0 9.8 1.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M13.6 1.8v3.9H9.7M2.4 14.2v-3.9h3.9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="icon-btn hidden" id="btnVersoDel" title="Retirer le verso"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button></div>
 </div>
 </div></section>
@@ -490,7 +508,8 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
         <button data-v="pingpong" aria-pressed="false" title="Parcourt les clés puis revient">Aller-retour</button>
         <button data-v="once" aria-pressed="false" title="S'arrête sur la dernière clé">Une fois</button>
       </div>
-      <div class="seg sm" id="easeMode" title="Interpolation">
+      <div class="seg sm" id="easeMode" title="Applique cette interpolation à toutes les clés">
+        <button data-v="auto" aria-pressed="false" title="Courbe lisse qui passe par toutes les clés, sans à-coups">Continue</button>
         <button data-v="linear" aria-pressed="false">Linéaire</button>
         <button data-v="inout" aria-pressed="true">Douce</button>
         <button data-v="out" aria-pressed="false">Sortie</button>
@@ -528,7 +547,7 @@ const clamp = (v,a,b) => v < a ? a : v > b ? b : v;
    État
    ======================================================================= */
 const DEFAULT = {rotX:0,rotY:0,rotZ:0,persp:900,pz:0,px:0,py:0,scale:100,opacity:100,shade:30,
-                 taperH:0,taperV:0,skewX:0,skewY:0,thick:0};
+                 taperH:0,taperV:0,skewX:0,skewY:0,thick:0,pivX:0,pivY:0,pivZ:0,face:0};
 let S = {...DEFAULT};
 let img = null, img2 = null, imgName = "image", pendingSlot = 0, fit2 = [1,1];
 const ST = {on:false, bord:3, bordCol:"#ffffff", type:0, zone:0, amt:70, cover:25, scale:5,
@@ -555,6 +574,10 @@ let hoverT = [0,0], hoverC = [0,0];
 let outW = 1000, outH = 1000, fitBase = 1;
 let keys = [], activeKey = -1;
 let playing = false, playT = 0, playStart = 0;
+// ce que montre l'aperçu à l'arrêt : l'instant de la timeline (après lecture ou déplacement
+// de la tête) ou la pose en cours d'édition (dès qu'un réglage de transformation bouge)
+let previewTimeline = false;
+const previewPose = () => (playing || (previewTimeline && keys.length >= 2)) ? stateAt(playT) : S;
 let downloads = null;
 
 const CONTROLS = [
@@ -568,6 +591,9 @@ const CONTROLS = [
   {k:"scale", l:"Échelle",     min:5, max:400, step:1, u:"%"},
   {k:"opacity",l:"Opacité",    min:0, max:100, step:1, u:"%"},
   {k:"shade", l:"Ombrage",     min:0, max:100, step:1, u:"%"},
+  {k:"pivX", l:"Pivot X", min:-100, max:100, step:1, u:"%"},
+  {k:"pivY", l:"Pivot Y", min:-100, max:100, step:1, u:"%"},
+  {k:"pivZ", l:"Pivot Z", min:-200, max:200, step:1, u:"%"},
   {k:"thick",  l:"Épaisseur",          min:0, max:80, step:0.5, u:"px", d:2},
   {k:"taperH", l:"Trapèze horizontal", min:-80, max:80, step:1, u:"%", d:1},
   {k:"taperV", l:"Trapèze vertical",   min:-80, max:80, step:1, u:"%", d:1},
@@ -1411,9 +1437,10 @@ function render(st){
   const view = mT(0, 0, -d);
   const hw = (img.width  * fitBase * st.scale/100) / 2;
   const hh = (img.height * fitBase * st.scale/100) / 2;
-  const model = mMul(mMul(mT(st.px, -st.py, st.pz),
-                 mMul(mMul(mRX(-st.rotX*Math.PI/180), mRY(-st.rotY*Math.PI/180)), mRZ(-st.rotZ*Math.PI/180))),
-                 mS(hw*mx, hh*my, 1));
+  const pv = [(st.pivX || 0)/100*hw, (st.pivY || 0)/100*hh, (st.pivZ || 0)/100*hw];
+  const Rm = mMul(mMul(mRX(-st.rotX*Math.PI/180), mRY(-st.rotY*Math.PI/180)), mRZ(-st.rotZ*Math.PI/180));
+  const model = mMul(mMul(mMul(mT(st.px + pv[0], -st.py + pv[1], st.pz + pv[2]), Rm),
+                 mT(-pv[0], -pv[1], -pv[2])), mS(hw*mx, hh*my, 1));
   const mvp = mMul(proj, mMul(view, model));
   gl.frontFace(mx*my < 0 ? gl.CW : gl.CCW);
 
@@ -1502,7 +1529,9 @@ function render(st){
   for(let f = 0; f < faceCount; f++){
     gl.uniform1f(loc.u_mode, f === 0 ? 0 : (f === 1 ? 1 : 2));
     gl.uniform2f(loc.u_flip, 0, 0);
-    gl.uniform1f(loc.u_back, (f === 1 && img2) ? 1 : 0);
+    // plan B : le verso passe sur la face avant, le recto au dos
+    const swapB = (st.face | 0) === 1 && !!img2;
+    gl.uniform1f(loc.u_back, f === 1 ? ((img2 && !swapB) ? 1 : 0) : (swapB ? 1 : 0));
     gl.drawArrays(gl.TRIANGLE_STRIP, f * 4, 4);
   }
 
@@ -1541,7 +1570,7 @@ let pending = false;
 function draw(){
   if(pending) return;
   pending = true;
-  requestAnimationFrame(() => { pending = false; render(playing ? stateAt(playT) : S); });
+  requestAnimationFrame(() => { pending = false; render(previewPose()); });
 }
 
 /* =======================================================================
@@ -1564,18 +1593,22 @@ function rasterize(w, h){
 const ctlEls = {};
 const ICON_PLAY = '<svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z" fill="currentColor"/></svg>', ICON_PAUSE = '<svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9.5 2.5h3v11h-3z" fill="currentColor"/></svg>';
 const LAYOUT = {
-  "#controls":    [["Rotation", ["rotX","rotY","rotZ"]], ["Position", ["px","py","pz"]],
+  "#controls":    [["Rotation", ["rotX","rotY","rotZ"]], ["Position", ["px","py","pz"]], ["Point de pivot", ["pivX","pivY","pivZ"]],
                    ["Échelle et caméra", ["scale","persp"]], ["Apparence", ["opacity","shade"]]],
   "#controlsVol": [[null, ["thick"]]],
   "#controls2":   [["Trapèze", ["taperH","taperV"]], ["Cisaillement", ["skewX","skewY"]]]
 };
-const SHORT = {rotX:"X", rotY:"Y", rotZ:"Z", px:"X", py:"Y", pz:"Z", scale:"Échelle", persp:"Perspective",
+const SHORT = {rotX:"X", rotY:"Y", rotZ:"Z", px:"X", py:"Y", pz:"Z", pivX:"X", pivY:"Y", pivZ:"Z", scale:"Échelle", persp:"Perspective",
                opacity:"Opacité", shade:"Ombrage", thick:"Épaisseur", taperH:"Horizontal", taperV:"Vertical", skewX:"X", skewY:"Y"};
 const TIPS = {pz:"Profondeur : rapproche ou éloigne l'objet de la caméra",
               persp:"Distance de la caméra en px, comme la propriété perspective en CSS",
               shade:"Assombrit la surface selon son angle",
-              thick:"Épaisseur du support, en px de rendu à l'échelle 100 %"};
-const AXC = {rotX:"var(--x)", rotY:"var(--y)", rotZ:"var(--z)", px:"var(--x)", py:"var(--y)", pz:"var(--z)"};
+              thick:"Épaisseur du support, en px de rendu à l'échelle 100 %",
+              pivX:"Centre de rotation, comme le point d'ancrage d'After Effects : -100 % bord gauche, 100 % bord droit",
+              pivY:"Centre de rotation : -100 % bord bas, 100 % bord haut",
+              pivZ:"Profondeur de l'axe, en % de la demi-largeur : négatif, l'axe passe derrière le visuel (effet cube)"};
+const AXC = {rotX:"var(--x)", rotY:"var(--y)", rotZ:"var(--z)", px:"var(--x)", py:"var(--y)", pz:"var(--z)",
+             pivX:"var(--x)", pivY:"var(--y)", pivZ:"var(--z)"};
 function buildControls(){
   const byK = {};
   CONTROLS.forEach(c => byK[c.k] = c);
@@ -1601,8 +1634,8 @@ function buildControls(){
         num.setAttribute("aria-label", nm + " (valeur)");
         rng.setAttribute("aria-label", nm);
         ctlEls[k] = {num, rng, c};
-        rng.addEventListener("input", () => { S[k] = clamp(parseFloat(rng.value), c.min, c.max); syncOne(k); stopPlay(); draw(); });
-        num.addEventListener("input", () => { const v = parseFloat(num.value); if(!isNaN(v)){ S[k] = clamp(v, c.min, c.max); rng.value = S[k]; stopPlay(); draw(); } });
+        rng.addEventListener("input", () => { S[k] = clamp(parseFloat(rng.value), c.min, c.max); syncOne(k); stopPlay(); previewTimeline = false; draw(); });
+        num.addEventListener("input", () => { const v = parseFloat(num.value); if(!isNaN(v)){ S[k] = clamp(v, c.min, c.max); rng.value = S[k]; stopPlay(); previewTimeline = false; draw(); } });
         num.addEventListener("blur", () => syncOne(k));
         H.appendChild(row);
       });
@@ -1638,6 +1671,7 @@ glc.addEventListener("pointermove", e => {
     S.rotY = clamp(drag.ry + dx*0.45, -360, 360);
     S.rotX = clamp(drag.rx + dy*0.45, -360, 360);
     syncOne("rotX"); syncOne("rotY");
+    previewTimeline = false;
   }
   draw();
 });
@@ -1648,7 +1682,7 @@ glc.addEventListener("wheel", e => {
   if(!img) return;
   e.preventDefault();
   S.scale = clamp(S.scale * (e.deltaY > 0 ? 0.96 : 1.045), 5, 400);
-  syncOne("scale"); stopPlay(); draw();
+  syncOne("scale"); stopPlay(); previewTimeline = false; draw();
 }, {passive:false});
 
 /* =======================================================================
@@ -1942,7 +1976,7 @@ function liveTick(){
   liveRaf = 0;
   hoverC[0] += (hoverT[0] - hoverC[0]) * 0.14;
   hoverC[1] += (hoverT[1] - hoverC[1]) * 0.14;
-  if(!playing) render(S);
+  if(!playing) render(previewPose());
   kickLive();
 }
 glc.addEventListener("pointermove", e => {
@@ -1982,14 +2016,56 @@ function segButtons(id, onPick){
 }
 segButtons("#loopMode", v => { loopMode = v; updateTotals(); });
 segButtons("#bgFit", v => { bgFit = v; draw(); });
-segButtons("#easeMode", v => { easeMode = v; });
+segButtons("#easeMode", v => {
+  easeMode = v;
+  keys.forEach(k => { delete k.ease; });        // comme « lissage de vitesse » sur toutes les clés
+  renderTimeline(); render(playing ? stateAt(playT) : (keys.length ? stateAt(playT) : S));
+});
 
-function ease(u){
-  if(easeMode === "linear") return u;
-  if(easeMode === "out") return 1 - Math.pow(1-u, 3);
-  return u < 0.5 ? 4*u*u*u : 1 - Math.pow(-2*u+2, 3)/2;
+const EASES = {
+  linear:  u => u,
+  inout:   u => u < 0.5 ? 4*u*u*u : 1 - Math.pow(-2*u + 2, 3)/2,
+  in:      u => u*u*u,
+  out:     u => 1 - Math.pow(1 - u, 3),
+  back:    u => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3*Math.pow(u - 1, 3) + c1*Math.pow(u - 1, 2); },
+  elastic: u => u <= 0 ? 0 : u >= 1 ? 1 : Math.pow(2, -10*u) * Math.sin((u*10 - 0.75) * (2*Math.PI/3)) + 1,
+  bounce:  u => { const n1 = 7.5625, d1 = 2.75;
+             if(u < 1/d1) return n1*u*u;
+             if(u < 2/d1){ u -= 1.5/d1; return n1*u*u + 0.75; }
+             if(u < 2.5/d1){ u -= 2.25/d1; return n1*u*u + 0.9375; }
+             u -= 2.625/d1; return n1*u*u + 0.984375; },
+  hold:    u => u >= 1 ? 1 : 0
+};
+const EASE_LABELS = [["", "Par défaut"], ["auto", "Continue"], ["linear", "Linéaire"], ["inout", "Douce"],
+  ["in", "Accélération"], ["out", "Décélération"], ["back", "Dépassement"], ["elastic", "Élastique"],
+  ["bounce", "Rebonds"], ["hold", "Maintien"]];
+function ease(u, mode){ return (EASES[mode || easeMode] || EASES.inout)(u); }
+
+// Courbe continue (Hermite, tangentes de Catmull-Rom pondérées par le temps) :
+// la vitesse ne s'annule plus à chaque clé. Elle s'annule seulement aux pauses et aux extrémités.
+// En boucle, l'écart entre dernière et première clé (un tour de 360°) est reporté sur les voisins.
+function splineAt(i, u){
+  const n = keys.length, a = keys[i], b = keys[i+1], di = segDur(i);
+  const loopOK = loopMode === "loop" && n >= 3;
+  const prev = i > 0 ? keys[i-1] : (loopOK ? keys[n-2] : null);
+  const next = i + 2 < n ? keys[i+2] : (loopOK ? keys[1] : null);
+  const dPrev = i > 0 ? segDur(i-1) : (loopOK ? segDur(n-2) : di);
+  const dNext = i + 2 < n ? segDur(i+1) : (loopOK ? segDur(0) : di);
+  const stopA = (a.hold || 0) > 0.001, stopB = (b.hold || 0) > 0.001;
+  const u2 = u*u, u3 = u2*u;
+  const h00 = 2*u3 - 3*u2 + 1, h10 = u3 - 2*u2 + u, h01 = -2*u3 + 3*u2, h11 = u3 - u2;
+  const o = {};
+  FIELDS.forEach(k => {
+    const delta = loopOK ? keys[n-1][k] - keys[0][k] : 0;
+    const pv = prev ? prev[k] - (i === 0 ? delta : 0) : null;
+    const nv = next ? next[k] + (i + 2 >= n ? delta : 0) : null;
+    const m0 = (pv === null || stopA) ? 0 : (b[k] - pv) / (dPrev + di);
+    const m1 = (nv === null || stopB) ? 0 : (nv - a[k]) / (di + dNext);
+    o[k] = h00*a[k] + h10*di*m0 + h01*b[k] + h11*di*m1;
+  });
+  return o;
 }
-const pick = o => { const r = {}; FIELDS.forEach(k => r[k] = o[k]); return r; };
+const pick = o => { const r = {}; FIELDS.forEach(k => r[k] = o[k]); r.face = o.face || 0; return r; };
 
 function sameState(a, b){ return FIELDS.every(k => Math.abs(a[k] - b[k]) < 0.001); }
 function lerpState(a, b, u){ const o = {}; FIELDS.forEach(k => o[k] = a[k] + (b[k] - a[k]) * u); return o; }
@@ -2011,7 +2087,7 @@ function timeline(){
       if(h < minH) h = minH;
       start = Math.max(prev.start + 0.001, prev.end + h);
     }
-    segs.push({a:keys[i], b:keys[i+1], start, dur, end:start + dur});
+    segs.push({i, a:keys[i], b:keys[i+1], start, dur, end:start + dur});
   }
   let total = segs.length ? segs[segs.length-1].end : 0;
   if(n > 1){
@@ -2041,15 +2117,27 @@ function stateAt(t){
     for(const sg of segs) if(time > sg.end) pose = sg.b;
     return pose;
   }
-  const poseOf = sg => lerpState(sg.a, sg.b, ease(clamp((time - sg.start) / sg.dur, 0, 1)));
+  const poseOf = sg => {
+    const u = clamp((time - sg.start) / sg.dur, 0, 1);
+    const mode = sg.a.ease || easeMode;
+    const ue = mode === "auto" ? u : ease(u, mode);
+    const o = mode === "auto" ? splineAt(sg.i, u) : lerpState(sg.a, sg.b, ue);
+    o.face = ((mode === "hold" ? u >= 1 : ue >= 0.5) ? sg.b.face : sg.a.face) || 0;
+    return o;
+  };
   let pose = poseOf(active[0]);
   for(let j = 1; j < active.length; j++){
     const sg = active[j], prev = active[j-1];
     const span = Math.max(0.0001, prev.end - sg.start);
     let w = clamp((time - sg.start) / span, 0, 1);
     w = w * w * (3 - 2 * w);
-    pose = lerpState(pose, poseOf(sg), w);
+    const q = poseOf(sg);
+    pose = lerpState(pose, q, w);
+    pose.face = q.face;
   }
+  if(pose.face === undefined) pose.face = active[active.length-1].a.face || 0;
+  pose.opacity = clamp(pose.opacity, 0, 100);
+  pose.scale = Math.max(0.5, pose.scale);
   return pose;
 }
 
@@ -2092,6 +2180,12 @@ function niceStep(total, width){
   return [0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10].find(v => v >= target) || 10;
 }
 function renderKeys(){ renderTimeline(); updateTotals(); }
+// la commande globale reflète les clés : surlignée si toutes partagent la même interpolation
+function syncEaseSeg(){
+  const segs = keys.slice(0, -1).map(k => k.ease || easeMode);
+  const one = segs.length && segs.every(e => e === segs[0]) ? segs[0] : (segs.length ? null : easeMode);
+  document.querySelectorAll("#easeMode button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === one)));
+}
 function renderTimeline(skipInspector){
   const tr = $("#tlTrack");
   const W = tr.clientWidth || 600, pad = 16;
@@ -2119,7 +2213,11 @@ function renderTimeline(skipInspector){
     add("tick" + (maj ? " maj" : ""), X(t));
     if(maj) add("tlab", X(t), undefined, d => d.textContent = (Math.round(t*100)/100).toString().replace(".", ",") + " s");
   }
-  T.segs.forEach(sg => add("segb", X(sg.start), Math.max(2, X(sg.end) - X(sg.start))));
+  T.segs.forEach(sg => {
+    const md = sg.a.ease || easeMode;
+    const lab = (EASE_LABELS.find(e => e[0] === md) || [0, md])[1];
+    add("segb" + (md === "hold" ? " hold" : ""), X(sg.start), Math.max(2, X(sg.end) - X(sg.start)), d => d.title = lab);
+  });
   for(let i = 1; i < keys.length - 1; i++){
     if((keys[i].hold || 0) < 0){
       const a0 = T.segs[i].start, b0 = T.segs[i-1].end;
@@ -2132,10 +2230,11 @@ function renderTimeline(skipInspector){
   keys.forEach((k, i) => {
     add("kf" + (i === activeKey ? " sel" : "") + (i === 0 ? " first" : "") + (tlDrag && tlDrag.i === i ? " drag" : ""),
         X(T.arrive[i]), undefined, d => { d.dataset.i = i; d.title = "Clé " + (i+1) + (i ? " — glisser pour la déplacer dans le temps" : ""); });
-    add("knum", X(T.arrive[i]), undefined, d => d.textContent = i + 1);
+    add("knum", X(T.arrive[i]), undefined, d => d.textContent = (i + 1) + (img2 && k.face ? " · B" : ""));
   });
   add("head", 0, undefined, d => d.id = "tlHead");
   tr.__X = X; tr.__total = total;
+  syncEaseSeg();
   placeHead();
   if(!skipInspector) renderInspector();
 }
@@ -2150,7 +2249,7 @@ function placeHead(){
 function selectKey(i){
   if(i < 0 || i >= keys.length) return;
   activeKey = i;
-  S = pick(keys[i]); syncAll(); stopPlay();
+  S = pick(keys[i]); syncAll(); stopPlay(); previewTimeline = false;
   if(keys.length >= 2){ const T = keyTimes(); playT = clamp(T.arrive[i] / Math.max(0.05, T.total), 0, 1); }
   renderTimeline(); draw();
 }
@@ -2176,6 +2275,12 @@ function renderInspector(){
       '<input type="number" id="kDur" min="0.05" max="20" step="0.05" value="' + (+segDur(i).toFixed(2)) + '"' + (last ? ' disabled' : '') + '> s</span>' +
     '<span class="f"><label class="scrub" for="kHold" title="Attente sur la clé. En négatif, la clé suivante démarre en avance.">Pause</label>' +
       '<input type="number" id="kHold" min="-10" max="10" step="0.05" value="' + (+(k.hold || 0).toFixed(2)) + '"> s</span>' +
+    '<span class="f"><label for="kEase" title="Interpolation vers la clé suivante">Vers la suivante</label>' +
+      '<select id="kEase" class="field"' + (last ? ' disabled' : '') + '>' +
+      EASE_LABELS.map(([v, l]) => '<option value="' + v + '"' + ((k.ease || "") === v ? ' selected' : '') + '>' + l + '</option>').join("") +
+      '</select></span>' +
+    (img2 ? '<span class="f"><label title="Visuel affiché sur la face avant à partir de cette clé">Plan</label><div class="seg sm" id="kFace">' +
+      '<button type="button" data-v="0" aria-pressed="' + !k.face + '">A</button><button type="button" data-v="1" aria-pressed="' + !!k.face + '">B</button></div></span>' : '') +
     '<span class="grow"></span>' +
     '<button class="tb ghost" id="kDel" title="Supprimer la clé (Suppr)">Supprimer la clé</button>';
   const kd = $("#kDur"), kh = $("#kHold");
@@ -2185,6 +2290,17 @@ function renderInspector(){
   kd.addEventListener("input", () => { const v = parseFloat(kd.value); if(!isNaN(v)){ keys[i].dur = clamp(v, 0.05, 20); syncDurField(); renderTimeline(true); updateTotals(); } });
   kh.addEventListener("input", () => { const v = parseFloat(kh.value); if(!isNaN(v)){ keys[i].hold = clamp(v, -10, 10); kh.classList.toggle("neg", keys[i].hold < 0); renderTimeline(true); updateTotals(); } });
   $("#kDel").addEventListener("click", () => deleteKey(i));
+  $("#kEase").addEventListener("change", e => {
+    if(e.target.value) keys[i].ease = e.target.value; else delete keys[i].ease;
+    renderTimeline(true); render(stateAt(playT));
+  });
+  const kf = $("#kFace");
+  if(kf) kf.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+    keys[i].face = parseInt(b.dataset.v);
+    kf.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    if(activeKey === i) S.face = keys[i].face;
+    renderTimeline(true); draw();
+  }));
   box.querySelectorAll("label.scrub").forEach(lb => scrubify(lb, document.getElementById(lb.htmlFor)));
 }
 function updateTotals(){
@@ -2200,6 +2316,7 @@ function scrubAt(clientX){
   const u = clamp((clientX - r.left - 16) / Math.max(1, r.width - 32), 0, 1);
   stopPlay();
   playT = u; $("#playhead").value = Math.round(u * 1000);
+  previewTimeline = true;
   render(stateAt(playT)); placeHead();
 }
 $("#tlTrack").addEventListener("pointerdown", e => {
@@ -2254,85 +2371,283 @@ $("#btnUpdKey").addEventListener("click", () => {
 });
 $("#btnClearKeys").addEventListener("click", () => { keys = []; activeKey = -1; stopPlay(); renderKeys(); });
 
-const PRESETS = [
-  {g:"move", id:"spinY",   l:"Tour Y",      m:"once",     k:b => [{rotY:0},{rotY:120},{rotY:240},{rotY:360}]},
-  {g:"move", id:"spinX",   l:"Tour X",      m:"once",     k:b => [{rotX:0},{rotX:120},{rotX:240},{rotX:360}]},
-  {g:"move", id:"turn",    l:"Tourniquet",  m:"once",     k:b => [{rotX:14,rotY:0},{rotX:14,rotY:120},{rotX:14,rotY:240},{rotX:14,rotY:360}]},
-  {g:"move", id:"quarters",l:"Quarts",      m:"once",     k:b => [{rotY:0,hold:0.5},{rotY:90,hold:0.5},{rotY:180,hold:0.5},{rotY:270,hold:0.5},{rotY:360}]},
-  {g:"move", id:"flip",    l:"Retournement",m:"once",     k:b => [{rotY:0,hold:0.7},{rotY:180,hold:0.7},{rotY:360}]},
-  {g:"move", id:"book",    l:"Livre",       m:"pingpong", k:b => [{rotY:-72,hold:0.3},{rotY:72,hold:0.3}]},
-  {g:"move", id:"sway",    l:"Balancement", m:"pingpong", k:b => [{rotY:-22,rotX:8},{rotY:22,rotX:-8}]},
-  {g:"move", id:"pendulum",l:"Pendule",     m:"pingpong", k:b => [{rotZ:b.rotZ-11},{rotZ:b.rotZ+11}]},
-  {g:"move", id:"float",   l:"Flottement",  m:"pingpong", k:b => [{py:b.py-24,rotZ:b.rotZ-2},{py:b.py+24,rotZ:b.rotZ+2}]},
-  {g:"move", id:"pulse",   l:"Pulsation",   m:"pingpong", k:b => [{scale:clamp(b.scale*0.9,5,400)},{scale:clamp(b.scale*1.08,5,400)}]},
-  {g:"move", id:"drift",   l:"Dérive",      m:"pingpong", k:b => [{px:b.px-55,rotY:-14},{px:b.px+55,rotY:14}]},
-  {g:"move", id:"tilt",    l:"Bascule",     m:"pingpong", k:b => [{rotX:-26,rotY:-14},{rotX:26,rotY:14}]},
-  {g:"move", id:"swing",   l:"Va-et-vient", m:"once",     k:b => [{rotY:0,hold:0.4},{rotY:-180,hold:0.4},{rotY:0,hold:0.4},{rotY:180,hold:0.4},{rotY:0}]},
+/* =======================================================================
+   Bibliothèque de préréglages paramétrables
+   ======================================================================= */
+const PP = {
+  dur:   (v, l) => ({k:"dur", l:l || "Durée", min:0.3, max:12, step:0.1, v, u:"s"}),
+  turns: {k:"turns", l:"Tours", min:1, max:6, step:1, v:1, u:""},
+  amp:   (v, l, u, mx) => ({k:"amp", l:l || "Amplitude", min:0, max:mx || 60, step:1, v, u:u === undefined ? "°" : u}),
+  hold:  (v, l) => ({k:"hold", l:l || "Pause", min:0, max:6, step:0.05, v, u:"s"}),
+  tin:   {k:"tin", l:"Entrée", min:0.1, max:3, step:0.05, v:0.5, u:"s"},
+  stay:  {k:"stay", l:"Maintien", min:0, max:6, step:0.1, v:1.2, u:"s"},
+  tout:  {k:"tout", l:"Sortie", min:0.1, max:3, step:0.05, v:0.35, u:"s"},
+  exit:  {k:"exit", l:"Lecture", opt:[[1, "Entrée et sortie, en boucle"], [0, "Entrée seule"]], v:1},
+  ha:    {k:"ha", l:"Maintien A", min:0, max:6, step:0.1, v:1, u:"s"},
+  tt:    {k:"tt", l:"Transition", min:0.2, max:4, step:0.05, v:0.9, u:"s"},
+  hb:    {k:"hb", l:"Maintien B", min:0, max:6, step:0.1, v:1, u:"s"},
+  back:  {k:"back", l:"Lecture", opt:[[1, "A → B → A, en boucle"], [0, "A → B, une fois"]], v:1},
+  style: {k:"style", l:"Arrivée", opt:[["back", "Dépassement"], ["elastic", "Élastique"], ["inout", "Douce"]], v:"back"},
+  side:  {k:"side", l:"Direction", opt:[["l", "←"], ["r", "→"], ["u", "↑"], ["d", "↓"]], v:"l"}
+};
+const ioMode = o => o.exit ? "loop" : "once";
+const trMode = o => o.back ? "pingpong" : "once";
+function ioKeys(o, from, easeIn, mid, to, easeOut){
+  const K = [{...from, ease:easeIn, dur:o.tin}, {...(mid || {}), hold:o.stay, ease:easeOut, dur:o.tout}];
+  if(o.exit) K.push({...to});
+  return K;
+}
+// transition en quatre temps : A tient, A sort, bascule invisible vers B, B entre et tient
+function trKeys(o, pinA, outA, inB, easeOut, easeIn, pin){
+  const P = pin || {};
+  return [
+    {...P, face:0, hold:o.ha, ease:easeOut, dur:o.tt/2},
+    {...P, ...outA, face:0, ease:"hold", dur:0.02},
+    {...P, ...inB, face:1, ease:easeIn, dur:o.tt/2},
+    {...P, ...pinA, face:1, hold:o.hb}
+  ];
+}
+const sideVec = sd => sd === "l" ? [-1, 0] : sd === "r" ? [1, 0] : sd === "u" ? [0, -1] : [0, 1];
 
-  {g:"pop", id:"fade",   l:"Fondu",      m:"loop", k:b => [
-      {opacity:0}, {opacity:100, hold:0.9}, {opacity:0}]},
-  {g:"pop", id:"pop",    l:"Pop",        m:"loop", k:b => [
-      {scale:clamp(b.scale*0.7,5,400), opacity:0},
-      {scale:clamp(b.scale*1.06,5,400), opacity:100},
-      {scale:b.scale, opacity:100, hold:0.9},
-      {scale:clamp(b.scale*0.82,5,400), opacity:0}]},
-  {g:"pop", id:"stamp",  l:"Tampon",     m:"loop", k:b => [
-      {scale:clamp(b.scale*1.7,5,400), rotZ:b.rotZ-7, opacity:0},
-      {scale:clamp(b.scale*0.97,5,400), rotZ:b.rotZ, opacity:100},
-      {scale:b.scale, rotZ:b.rotZ, opacity:100, hold:0.9},
-      {scale:clamp(b.scale*1.25,5,400), opacity:0}]},
-  {g:"pop", id:"cardIn", l:"Carte",      m:"loop", k:b => [
-      {rotY:-92, opacity:0}, {rotY:0, opacity:100, hold:0.9}, {rotY:92, opacity:0}]},
-  {g:"pop", id:"tiltIn", l:"Bascule 3D", m:"loop", k:b => [
-      {rotX:-72, py:b.py-40, opacity:0},
-      {rotX:0, py:b.py, opacity:100, hold:0.9},
-      {rotX:72, py:b.py-40, opacity:0}]},
-  {g:"pop", id:"slide",  l:"Glissé",     m:"loop", k:b => [
-      {py:b.py+130, opacity:0}, {py:b.py, opacity:100, hold:0.9}, {py:b.py-130, opacity:0}]},
-  {g:"pop", id:"depth",  l:"Surgi",      m:"loop", k:b => [
-      {pz:b.pz-450, opacity:0, rotY:-24},
-      {pz:b.pz, opacity:100, rotY:0, hold:0.9},
-      {pz:b.pz+320, opacity:0, rotY:18}]},
-  {g:"pop", id:"drop",   l:"Chute",      m:"loop", k:b => [
-      {py:b.py-170, rotX:-38, opacity:0},
-      {py:b.py+14, rotX:6, opacity:100},
-      {py:b.py, rotX:0, opacity:100, hold:0.9},
-      {py:b.py+150, rotX:22, opacity:0}]},
-  {g:"pop", id:"reveal", l:"Dévoilement",m:"loop", k:b => [
-      {rotY:-88, px:b.px-70, opacity:0},
-      {rotY:0, px:b.px, opacity:100, hold:0.9},
-      {rotY:60, px:b.px+70, opacity:0}]},
-  {g:"pop", id:"zoomOut",l:"Zoom arrière",m:"loop", k:b => [
-      {scale:clamp(b.scale*1.45,5,400), opacity:0},
-      {scale:b.scale, opacity:100, hold:0.9},
-      {scale:clamp(b.scale*0.65,5,400), opacity:0}]}
+const PRE = [
+  /* ---------- rotations ---------- */
+  {g:"rot", id:"spinY", l:"Tour Y", m:"loop",
+   p:[PP.turns, {k:"dir", l:"Sens", opt:[[1, "Vers la droite"], [-1, "Vers la gauche"]], v:1},
+      {k:"tilt", l:"Inclinaison", min:-45, max:45, step:1, v:0, u:"°"}, PP.dur(3, "Un tour")],
+   b:(B, o) => [{rotY:B.rotY, rotX:B.rotX + o.tilt, ease:"linear", dur:o.dur*o.turns},
+                {rotY:B.rotY + 360*o.turns*o.dir, rotX:B.rotX + o.tilt}]},
+  {g:"rot", id:"spinX", l:"Tour X", m:"loop",
+   p:[PP.turns, {k:"dir", l:"Sens", opt:[[1, "Vers l'avant"], [-1, "Vers l'arrière"]], v:1},
+      {k:"tilt", l:"Inclinaison", min:-45, max:45, step:1, v:0, u:"°"}, PP.dur(3, "Un tour")],
+   b:(B, o) => [{rotX:B.rotX, rotY:B.rotY + o.tilt, ease:"linear", dur:o.dur*o.turns},
+                {rotX:B.rotX + 360*o.turns*o.dir, rotY:B.rotY + o.tilt}]},
+  {g:"rot", id:"spinZ", l:"Tour Z", m:"loop",
+   p:[PP.turns, {k:"dir", l:"Sens", opt:[[1, "Horaire"], [-1, "Anti-horaire"]], v:1},
+      {k:"tilt", l:"Inclinaison", min:-60, max:60, step:1, v:24, u:"°"}, PP.dur(4, "Un tour")],
+   b:(B, o) => [{rotZ:B.rotZ, rotX:B.rotX + o.tilt, ease:"linear", dur:o.dur*o.turns},
+                {rotZ:B.rotZ + 360*o.turns*o.dir, rotX:B.rotX + o.tilt}]},
+  {g:"rot", id:"coin", l:"Pièce", m:"loop",
+   p:[PP.turns, PP.amp(16, "Oscillation"), PP.dur(2.4, "Un tour")],
+   b:(B, o) => { const K = [], n = 4*o.turns;
+     for(let j = 0; j <= n; j++) K.push({rotY:B.rotY + 90*j, rotX:B.rotX + o.amp*Math.cos(j*Math.PI/2), ease:"auto", dur:o.dur/4});
+     return K; }},
+  {g:"rot", id:"stops", l:"Tour à arrêts", m:"loop",
+   p:[{k:"n", l:"Arrêts", opt:[[2, "2"], [3, "3"], [4, "4"], [6, "6"]], v:4}, PP.style, PP.hold(0.5), PP.dur(0.7, "Rotation")],
+   b:(B, o) => { const K = [];
+     for(let j = 0; j <= o.n; j++) K.push({rotY:B.rotY + 360/o.n*j, hold:j < o.n ? o.hold : 0, ease:o.style, dur:o.dur});
+     return K; }},
+  {g:"rot", id:"flip", l:"Retournement", m:"loop",
+   p:[{k:"axis", l:"Axe", opt:[["Y", "Vertical"], ["X", "Horizontal"]], v:"Y"}, PP.style, PP.hold(0.8), PP.dur(0.8, "Retournement")],
+   b:(B, o) => { const f = o.axis === "Y" ? "rotY" : "rotX";
+     return [0, 1, 2].map(j => ({[f]:B[f] + 180*j, hold:j < 2 ? o.hold : 0, ease:o.style, dur:o.dur})); }},
+  {g:"rot", id:"tumble", l:"Culbute", m:"loop",
+   p:[PP.turns, PP.dur(5, "Un cycle")],
+   b:(B, o) => [{ease:"linear", dur:o.dur*o.turns},
+                {rotX:B.rotX + 360*o.turns, rotY:B.rotY + 720*o.turns, rotZ:B.rotZ + 360*o.turns}]},
+
+  /* ---------- mouvements continus ---------- */
+  {g:"idle", id:"float", l:"Flottement", m:"loop",
+   p:[PP.amp(18, "Hauteur", "px", 80), {k:"tilt", l:"Inclinaison", min:0, max:25, step:1, v:6, u:"°"}, PP.dur(3.2, "Cycle")],
+   b:(B, o) => { const A = o.amp, T = o.tilt;
+     return [[-A, T*0.5, 0, -T*0.3], [0, 0, T, 0], [A, -T*0.5, 0, T*0.3], [0, 0, -T, 0], [-A, T*0.5, 0, -T*0.3]]
+       .map(q => ({py:B.py + q[0], rotX:B.rotX + q[1], rotY:B.rotY + q[2], rotZ:B.rotZ + q[3], ease:"auto", dur:o.dur/4})); }},
+  {g:"idle", id:"levitate", l:"Lévitation", m:"loop",
+   p:[PP.amp(16, "Hauteur", "px", 80), PP.dur(6, "Un tour")],
+   b:(B, o) => { const K = [];
+     for(let j = 0; j <= 8; j++) K.push({rotY:B.rotY + 45*j, py:B.py - o.amp*Math.sin(j*Math.PI/2),
+       rotX:B.rotX + 6*Math.cos(j*Math.PI/4), ease:"auto", dur:o.dur/8});
+     return K; }},
+  {g:"idle", id:"sway", l:"Balancement", m:"loop",
+   p:[PP.amp(18), PP.dur(3, "Cycle")],
+   b:(B, o) => { const A = o.amp;
+     return [[0, 0, 0], [A, -A*0.25, A*0.12], [0, 0, 0], [-A, A*0.25, -A*0.12], [0, 0, 0]]
+       .map(q => ({rotY:B.rotY + q[0], rotX:B.rotX + q[1], rotZ:B.rotZ + q[2], ease:"auto", dur:o.dur/4})); }},
+  {g:"idle", id:"wobble", l:"Oscillation", m:"loop",
+   p:[PP.amp(12), PP.dur(2.2, "Cycle")],
+   b:(B, o) => { const A = o.amp;
+     return [[A, 0], [0, A], [-A, 0], [0, -A], [A, 0]]
+       .map(q => ({rotX:B.rotX + q[0], rotY:B.rotY + q[1], ease:"auto", dur:o.dur/4})); }},
+  {g:"idle", id:"tilt", l:"Bascule", m:"pingpong",
+   p:[PP.amp(22), PP.hold(0.15, "Pause"), PP.dur(1.6, "Aller")],
+   b:(B, o) => [{rotX:B.rotX + o.amp*0.6, rotY:B.rotY - o.amp, hold:o.hold, ease:"auto", dur:o.dur},
+                {rotX:B.rotX - o.amp*0.6, rotY:B.rotY + o.amp, pz:B.pz + 20, hold:o.hold}]},
+  {g:"idle", id:"pendulum", l:"Pendule", m:"loop",
+   p:[PP.amp(14), PP.dur(2.4, "Cycle")],
+   b:(B, o) => { const A = o.amp;
+     return [[0, 0], [A, 5], [0, 0], [-A, -5], [0, 0]]
+       .map(q => ({rotZ:B.rotZ + q[0], rotY:B.rotY + q[1], pivX:0, pivY:100, ease:"auto", dur:o.dur/4})); }},
+  {g:"idle", id:"breathe", l:"Respiration", m:"loop",
+   p:[PP.amp(6, "Amplitude", "%", 30), PP.dur(2.6, "Cycle")],
+   b:(B, o) => [{ease:"auto", dur:o.dur/2}, {scale:B.scale*(1 + o.amp/100), pz:B.pz + 12, ease:"auto", dur:o.dur/2}, {}]},
+  {g:"idle", id:"heartbeat", l:"Battement", m:"loop",
+   p:[PP.amp(12, "Force", "%", 40), PP.hold(0.7, "Repos")],
+   b:(B, o) => { const s0 = B.scale, a = o.amp/100;
+     return [{hold:o.hold, ease:"out", dur:0.11}, {scale:s0*(1 + a), ease:"inout", dur:0.14},
+             {scale:s0*(1 + a*0.15), ease:"out", dur:0.1}, {scale:s0*(1 + a*0.6), ease:"inout", dur:0.22}, {scale:s0}]; }},
+  {g:"idle", id:"jelly", l:"Gelée", m:"loop",
+   p:[PP.amp(14, "Force", "%", 40), PP.hold(0.8, "Repos")],
+   b:(B, o) => { const A = o.amp, s0 = B.scale;
+     return [{hold:o.hold, ease:"out", dur:0.12}, {skewX:B.skewX + A, scale:s0*0.95, ease:"auto", dur:0.16},
+             {skewX:B.skewX - A*0.6, scale:s0*1.03, ease:"auto", dur:0.16}, {skewX:B.skewX + A*0.3, ease:"auto", dur:0.16},
+             {skewX:B.skewX - A*0.12, ease:"auto", dur:0.16}, {}]; }},
+
+  /* ---------- entrées et sorties ---------- */
+  {g:"io", id:"pop", l:"Pop", m:ioMode, p:[PP.tin, PP.stay, PP.tout, PP.exit],
+   b:(B, o) => ioKeys(o, {scale:B.scale*0.02, opacity:0}, "back", {}, {scale:B.scale*0.02, opacity:0}, "in")},
+  {g:"io", id:"elastic", l:"Élastique", m:ioMode, p:[{...PP.tin, v:0.9}, PP.stay, PP.tout, PP.exit],
+   b:(B, o) => ioKeys(o, {scale:B.scale*0.02, opacity:0}, "elastic", {}, {scale:B.scale*0.02, opacity:0}, "in")},
+  {g:"io", id:"dropIn", l:"Chute", m:ioMode, p:[{...PP.tin, v:0.8}, PP.stay, PP.tout, PP.exit],
+   b:(B, o) => ioKeys(o, {py:B.py - outH*1.1, rotX:B.rotX - 20}, "bounce", {}, {py:B.py - outH*1.1, opacity:0}, "in")},
+  {g:"io", id:"flipIn", l:"Carte", m:ioMode, p:[PP.tin, PP.stay, PP.tout, PP.exit],
+   b:(B, o) => ioKeys(o, {rotY:B.rotY - 100, opacity:0}, "back", {}, {rotY:B.rotY + 100, opacity:0}, "in")},
+  {g:"io", id:"slideIn", l:"Glissé", m:ioMode, p:[PP.side, PP.tin, PP.stay, PP.tout, PP.exit],
+   b:(B, o) => { const [vx, vy] = sideVec(o.side), dx = outW*0.75, dy = outH*0.75;
+     return ioKeys(o, {px:B.px - vx*dx, py:B.py - vy*dy, rotY:B.rotY - vx*20, rotX:B.rotX + vy*20, opacity:0}, "back", {},
+                      {px:B.px + vx*dx, py:B.py + vy*dy, rotY:B.rotY + vx*20, rotX:B.rotX - vy*20, opacity:0}, "in"); }},
+  {g:"io", id:"stamp", l:"Tampon", m:ioMode, p:[{...PP.tin, v:0.2}, PP.stay, PP.tout, PP.exit],
+   b:(B, o) => { const s0 = B.scale;
+     const K = [{scale:s0*1.9, rotZ:B.rotZ - 8, opacity:0, ease:"in", dur:o.tin},
+                {scale:s0*0.96, rotZ:B.rotZ + 1.5, ease:"out", dur:0.08},
+                {hold:o.stay, ease:"in", dur:o.tout}];
+     if(o.exit) K.push({scale:s0*1.15, opacity:0});
+     return K; }},
+  {g:"io", id:"reveal", l:"Dévoilement", m:ioMode, p:[{...PP.tin, v:0.7}, PP.stay, PP.tout, PP.exit],
+   b:(B, o) => ioKeys(o, {rotY:B.rotY - 95, pivX:-100, opacity:0}, "back", {pivX:-100}, {rotY:B.rotY - 95, pivX:-100, opacity:0}, "in")},
+  {g:"io", id:"unfold", l:"Déplié", m:ioMode, p:[{...PP.tin, v:0.7}, PP.stay, PP.tout, PP.exit],
+   b:(B, o) => ioKeys(o, {rotX:B.rotX - 95, pivY:100, opacity:0}, "back", {pivY:100}, {rotX:B.rotX - 95, pivY:100, opacity:0}, "in")},
+  {g:"io", id:"zoom", l:"Zoom", m:ioMode, p:[PP.tin, PP.stay, PP.tout, PP.exit],
+   b:(B, o) => ioKeys(o, {scale:B.scale*0.4, opacity:0}, "out", {}, {scale:B.scale*1.8, opacity:0}, "in")},
+  {g:"io", id:"spinIn", l:"Vrille", m:ioMode, p:[{...PP.tin, v:0.7}, PP.stay, PP.tout, PP.exit],
+   b:(B, o) => ioKeys(o, {rotZ:B.rotZ - 200, scale:B.scale*0.02, opacity:0}, "back", {},
+                         {rotZ:B.rotZ + 200, scale:B.scale*0.02, opacity:0}, "in")},
+  {g:"io", id:"fadeIn", l:"Fondu", m:ioMode, p:[PP.tin, PP.stay, PP.tout, PP.exit],
+   b:(B, o) => ioKeys(o, {opacity:0, pz:B.pz - 80}, "out", {}, {opacity:0, pz:B.pz + 80}, "in")},
+
+  /* ---------- transitions : recto = plan A, verso = plan B ---------- */
+  {g:"tr", id:"tFlip", l:"Retournement", m:trMode,
+   p:[{k:"axis", l:"Axe", opt:[["Y", "Vertical"], ["X", "Horizontal"]], v:"Y"}, PP.ha, PP.tt, PP.hb, PP.back],
+   b:(B, o) => { const f = o.axis === "Y" ? "rotY" : "rotX";
+     return [{face:0, hold:o.ha, ease:"back", dur:o.tt}, {[f]:B[f] + 180, face:0, hold:o.hb}]; }},
+  {g:"tr", id:"tCube", l:"Cube", m:trMode,
+   p:[{k:"dir", l:"Sens", opt:[[-1, "Vers la gauche"], [1, "Vers la droite"]], v:-1}, PP.ha, PP.tt, PP.hb, PP.back],
+   b:(B, o) => trKeys(o, {rotY:B.rotY}, {rotY:B.rotY - 90*o.dir}, {rotY:B.rotY + 90*o.dir}, "in", "out", {pivZ:-100})},
+  {g:"tr", id:"tDoor", l:"Volet", m:trMode,
+   p:[{k:"side", l:"Charnière", opt:[["l", "Gauche"], ["r", "Droite"], ["u", "Haut"], ["d", "Bas"]], v:"l"}, PP.ha, PP.tt, PP.hb, PP.back],
+   b:(B, o) => {
+     const cfg = {l:["rotY", -90, {pivX:-100}], r:["rotY", 90, {pivX:100}], u:["rotX", -90, {pivY:100}], d:["rotX", 90, {pivY:-100}]}[o.side];
+     const [f, ang, pin] = cfg;
+     return trKeys(o, {[f]:B[f]}, {[f]:B[f] + ang}, {[f]:B[f] + ang}, "in", "back", pin); }},
+  {g:"tr", id:"tZoom", l:"Zoom traversant", m:trMode, p:[PP.ha, PP.tt, PP.hb, PP.back],
+   b:(B, o) => trKeys(o, {scale:B.scale, opacity:B.opacity}, {scale:B.scale*2.6, opacity:0}, {scale:B.scale*0.3, opacity:0}, "in", "out")},
+  {g:"tr", id:"tSlide", l:"Glissement", m:trMode, p:[PP.side, PP.ha, PP.tt, PP.hb, PP.back],
+   b:(B, o) => { const [vx, vy] = sideVec(o.side), dx = outW*1.2, dy = outH*1.2;   // sortie complète du cadre
+     return trKeys(o, {px:B.px, py:B.py, rotY:B.rotY, rotX:B.rotX},
+       {px:B.px + vx*dx, py:B.py + vy*dy, rotY:B.rotY + vx*16, rotX:B.rotX - vy*16},
+       {px:B.px - vx*dx, py:B.py - vy*dy, rotY:B.rotY - vx*16, rotX:B.rotX + vy*16}, "in", "back"); }},
+  {g:"tr", id:"tSpin", l:"Tourbillon", m:trMode, p:[PP.ha, PP.tt, PP.hb, PP.back],
+   b:(B, o) => trKeys(o, {rotZ:B.rotZ, scale:B.scale, opacity:B.opacity},
+     {rotZ:B.rotZ + 180, scale:B.scale*0.02, opacity:0}, {rotZ:B.rotZ - 180, scale:B.scale*0.02, opacity:0}, "in", "back")},
+  {g:"tr", id:"tFade", l:"Fondu", m:trMode, p:[PP.ha, PP.tt, PP.hb, PP.back],
+   b:(B, o) => trKeys(o, {opacity:B.opacity}, {opacity:0}, {opacity:0}, "inout", "inout")}
 ];
+const PGROUPS = [["rot", "Rotations"], ["idle", "Mouvements continus"], ["io", "Entrées et sorties"], ["tr", "Transitions A → B"]];
+
+/* ---- fenêtre de réglages ---- */
+let presetParams = {};
+try { presetParams = JSON.parse(localStorage.getItem("perspective-presets-v1") || "{}"); } catch(e){}
+let presetBase = null, applyTimer = null;
+function paramsOf(p){
+  const o = {};
+  p.p.forEach(q => o[q.k] = q.v);
+  return Object.assign(o, presetParams[p.id] || {});
+}
+function applyPreset(p, o){
+  const base = presetBase || pick(S);
+  const K = p.b(base, o);
+  const n = K.length;
+  keys = K.map(k => {
+    const key = {...base, hold:0, face:0, ...k};
+    if(key.dur === undefined) key.dur = (o.dur || 2) / Math.max(1, n - 1);
+    return key;
+  });
+  loopMode = typeof p.m === "function" ? p.m(o) : p.m;
+  setSeg("#loopMode", loopMode);
+  activeKey = 0; playT = 0;
+  syncDurField(); renderKeys();
+  startPlay();
+}
 function buildPresets(){
   const host = $("#presets");
   host.innerHTML = "";
-  [["Mouvements","move"],["Apparitions et disparitions","pop"]].forEach(([title, g]) => {
+  presetBase = null;
+  PGROUPS.forEach(([g, title]) => {
     const h = document.createElement("div");
     h.className = "ptitle"; h.textContent = title;
     host.appendChild(h);
     const grid = document.createElement("div");
     grid.className = "pgrid";
-    PRESETS.filter(p => p.g === g).forEach(p => {
+    PRE.filter(p => p.g === g).forEach(p => {
       const b = document.createElement("button");
-      b.className = "btn tiny";
-      b.textContent = p.l;
-      b.addEventListener("click", () => {
-        const base = pick(S);
-        keys = p.k(base).map(k => ({...base, hold:0, ...k}));
-        spreadDurations(duration);
-        activeKey = 0;
-        loopMode = p.m; setSeg("#loopMode", p.m);
-        renderKeys();
-        startPlay();
-      });
+      b.type = "button"; b.textContent = p.l; b.dataset.id = p.id;
+      b.addEventListener("click", e => { e.stopPropagation(); openPreset(p); });
       grid.appendChild(b);
     });
     host.appendChild(grid);
   });
+}
+function openPreset(p){
+  const host = $("#presets");
+  if(!presetBase) presetBase = pick(S);
+  const o = paramsOf(p);
+  const gname = (PGROUPS.find(g => g[0] === p.g) || [])[1] || "";
+  let html = '<div class="ps-head"><button type="button" class="icon-btn" id="psBack" title="Retour à la liste">‹</button>' +
+             '<b>' + p.l + '</b><span class="mt">' + gname + '</span></div>';
+  if(p.g === "tr" && !img2){
+    html += '<div class="ps-warn">Les transitions passent du recto (plan A) au verso (plan B). ' +
+            'Charge un second visuel pour voir le passage.<button type="button" class="btn" id="psLoadB">Charger le plan B</button></div>';
+  }
+  p.p.forEach(q => {
+    if(q.opt){
+      html += '<div class="grp">' + q.l + '</div><div class="seg" data-k="' + q.k + '">' +
+        q.opt.map(([v, lab]) => '<button type="button" data-v="' + v + '" aria-pressed="' + (String(v) === String(o[q.k])) + '">' + lab + '</button>').join("") +
+        '</div>';
+    } else {
+      html += '<div class="prop"><label class="scrub" for="ps_' + q.k + '">' + q.l + '</label>' +
+        '<input type="range" data-k="' + q.k + '" min="' + q.min + '" max="' + q.max + '" step="' + q.step + '" value="' + o[q.k] + '">' +
+        '<span class="num"><input type="number" id="ps_' + q.k + '" data-k="' + q.k + '" min="' + q.min + '" max="' + q.max +
+        '" step="' + q.step + '" value="' + o[q.k] + '" data-default="' + q.v + '"><i>' + q.u + '</i></span></div>';
+    }
+  });
+  html += '<div class="ps-foot"><button type="button" class="btn" id="psReset">Valeurs par défaut</button>' +
+          '<button type="button" class="btn primary" id="psOk">Terminé</button></div>';
+  host.innerHTML = html;
+
+  const commit = () => {
+    presetParams[p.id] = {...o};
+    try { localStorage.setItem("perspective-presets-v1", JSON.stringify(presetParams)); } catch(e){}
+    clearTimeout(applyTimer);
+    applyTimer = setTimeout(() => applyPreset(p, o), 90);
+  };
+  host.querySelectorAll(".seg[data-k]").forEach(seg => seg.querySelectorAll("button").forEach(b => b.addEventListener("click", e => {
+    e.stopPropagation();
+    seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    const q = p.p.find(x => x.k === seg.dataset.k);
+    o[q.k] = typeof q.v === "number" ? parseFloat(b.dataset.v) : b.dataset.v;
+    commit();
+  })));
+  host.querySelectorAll(".prop").forEach(row => {
+    const rng = row.querySelector("input[type=range]"), num = row.querySelector("input[type=number]"), k = rng.dataset.k;
+    const q = p.p.find(x => x.k === k);
+    rng.addEventListener("input", () => { o[k] = parseFloat(rng.value); num.value = o[k]; commit(); });
+    num.addEventListener("input", () => { const v = parseFloat(num.value); if(!isNaN(v)){ o[k] = clamp(v, q.min, q.max); rng.value = o[k]; commit(); } });
+    scrubify(row.querySelector("label"), num);
+  });
+  $("#psBack").addEventListener("click", e => { e.stopPropagation(); buildPresets(); });
+  $("#psOk").addEventListener("click", e => { e.stopPropagation(); presetBase = null; closePresets(); });
+  $("#psReset").addEventListener("click", e => { e.stopPropagation(); delete presetParams[p.id]; openPreset(p); applyPreset(p, paramsOf(p)); });
+  const lb = $("#psLoadB");
+  if(lb) lb.addEventListener("click", e => { e.stopPropagation(); pendingSlot = 1; $("#file").click(); });
+  applyPreset(p, o);
 }
 function setSeg(id, v){
   $(id).querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
@@ -2361,6 +2676,7 @@ function startPlay(){
 function stopPlay(){
   if(!playing) return;
   playing = false; $("#btnPlay").innerHTML = ICON_PLAY;
+  previewTimeline = true;
   kickLive();
 }
 function tick(now){
@@ -2537,7 +2853,7 @@ $("#btnPng").addEventListener("click", async () => {
   if(!img) return;
   stopPlay();
   exporting = true;
-  render(S);
+  render(previewPose());
   rasterize(outW, outH);
   exporting = false;
   const blob = await new Promise(r => flat.toBlob(r, "image/png"));
@@ -2783,7 +3099,7 @@ function popover(btnSel, popSel){
 }
 popover("#btnExport", "#exportPop");
 const closePresets = popover("#btnPresets", "#presetsPop");
-$("#presets").addEventListener("click", e => { if(e.target.closest("button")) closePresets(); });
+$("#btnPresets").addEventListener("click", () => { if(!$("#presetsPop").hidden) buildPresets(); });
 $("#btnGif").addEventListener("click", () => {
   exportBusy = true;
   const wait = setInterval(() => { if(!$("#btnGif").disabled){ exportBusy = false; clearInterval(wait); } }, 300);
@@ -2808,7 +3124,7 @@ function refreshSlots(){
   $("#nmRecto").textContent = img ? imgName : "Recto";
   $("#imgInfo").textContent = img ? img.width + " × " + img.height + " px" : "aucune image";
   paintSlot("#slotVerso", "#thVerso", !!img2, 1);
-  $("#metaVerso").textContent = img2 ? img2.width + " × " + img2.height + " px" : "optionnel — la face arrière";
+  $("#metaVerso").textContent = img2 ? img2.width + " × " + img2.height + " px" : "face arrière, ou plan B des transitions";
   $("#btnVersoDel").classList.toggle("hidden", !img2);
   paintSlot("#slotBg", "#thBg", !!bgImg, 2);
   $("#metaBg").textContent = bgImg ? bgImg.width + " × " + bgImg.height + " px" : "décor fixe derrière l'objet";
