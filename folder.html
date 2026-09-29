@@ -460,6 +460,27 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
 </div>
 <div class="note">Même cadrage que le recto. Combiné à la zone : « Tout » + masque = foil là où le masque le dit.</div>
 </div></section>
+<section class="sec open" data-sec="versofx"><header><button class="tog" type="button"><i class="tri"></i>Verso · plan B</button><div class="hd-act"></div></header><div class="body">
+<div class="mt" id="versoFxNote">Aucun verso chargé : la face arrière reprend le recto et sa finition.</div>
+<div id="versoFxOpts" class="hidden">
+<div class="seg" id="versoMode">
+  <button type="button" data-v="same" aria-pressed="true" title="Mêmes réglages et même masque qu'au recto">Comme le recto</button>
+  <button type="button" data-v="own" aria-pressed="false" title="Mêmes réglages, avec un masque dessiné pour le verso">Masque propre</button>
+  <button type="button" data-v="none" aria-pressed="false" title="Le verso est imprimé à plat, sans film ni relief">Sans finition</button>
+</div>
+<div id="mask2Opts" class="hidden">
+<div style="height:5px"></div>
+<div class="slot empty" id="slotMask2">
+  <div class="th" id="thMask2">+</div>
+  <div><div class="nm">Masque du verso</div><div class="mt" id="mask2Info">aucun — film sur tout le verso</div></div>
+  <div class="acts"><button class="icon-btn" id="mask2Btn" title="Charger ou changer le masque du verso"><svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><path d="M13 5.5A5.5 5.5 0 0 0 3.2 4.3M3 10.5a5.5 5.5 0 0 0 9.8 1.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M13.6 1.8v3.9H9.7M2.4 14.2v-3.9h3.9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="icon-btn hidden" id="mask2Del" title="Retirer le masque du verso"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button></div>
+</div>
+<div class="note">Même cadrage que l'image du verso. La lecture — inverser, bords nets, mode — reprend les réglages du volet Masque.</div>
+</div>
+<div class="note" id="versoSameNote">Le masque du recto est repris tel quel : il suppose le même cadrage des deux côtés.</div>
+</div>
+</div></section>
+
 </div>
       </div>
       <div class="pane" data-pane="scene">
@@ -569,6 +590,9 @@ const PALS = [
   {n:"Couleur de base",   c:null}
 ];
 const MK = {img:null, tex:null, name:"", mode:0, inv:false, hard:false, show:false, gloss:false};
+// finition du verso : « same » comme le recto, « own » masque propre, « none » impression simple
+const VRS = {mode:"same"};
+const MK2 = {img:null, tex:null, name:""};
 // état d'animation de l'effet : phase bouclée, survol lissé
 let fxPhaseOverride = null, exporting = false;
 let hoverT = [0,0], hoverC = [0,0];
@@ -658,7 +682,8 @@ uniform vec2 u_bordUV, u_hover;
 uniform vec3 u_bordCol, u_foilCol, u_tx, u_ty, u_light;
 uniform vec3 u_p0, u_p1, u_p2, u_p3;
 // masque de foil
-uniform sampler2D u_maskTex;
+uniform sampler2D u_maskTex, u_mask2Tex;
+uniform float u_maskSrc;           // 0 : masque du recto, lu dans le cadre commun ; 1 : masque propre du verso
 uniform float u_mask, u_maskMode, u_maskInv, u_maskHard, u_maskShow, u_maskGloss;
 // relief d'encre
 uniform float u_ink, u_inkSoft, u_inkTone, u_inkGloss, u_inkShadow;
@@ -693,7 +718,13 @@ vec3 pal(float t){
 // lecture du masque. Texture prémultipliée : rgb + (1 - a) revient à poser le masque sur du blanc,
 // donc un pixel transparent se lit « pas de foil ».
 float maskAt(vec2 p, float b){
-  vec4 m = texture2D(u_maskTex, p, b);
+  vec4 m;
+  if(u_maskSrc > 0.5){
+    vec2 q = (p - 0.5) / u_fit2 + 0.5;         // le masque propre suit le cadrage du verso
+    m = (q.x < 0.0 || q.x > 1.0 || q.y < 0.0 || q.y > 1.0) ? vec4(0.0) : texture2D(u_mask2Tex, q, b);
+  } else {
+    m = texture2D(u_maskTex, p, b);
+  }
   float v;
   if(u_maskMode < 0.5){                  // tout sauf le blanc : noir, rouge, toute couleur
     vec3 c = m.rgb + (1.0 - m.a);
@@ -720,7 +751,13 @@ float foilAt(vec2 p, float b){
 // hauteur de l'encre : présente dans le dessin, absente sous le foil,
 // plus épaisse dans les teintes denses si on le demande. Lue floutée via les mipmaps.
 float inkH(vec2 p){
-  vec4 a = texture2D(u_tex, p, u_inkSoft);
+  vec4 a;
+  if(u_back > 0.5){                            // chaque face lit l'encre de sa propre image
+    vec2 q = (p - 0.5) / u_fit2 + 0.5;
+    a = (q.x < 0.0 || q.x > 1.0 || q.y < 0.0 || q.y > 1.0) ? vec4(0.0) : texture2D(u_tex2, q, u_inkSoft);
+  } else {
+    a = texture2D(u_tex, p, u_inkSoft);
+  }
   vec3 c = a.a > 0.003 ? a.rgb / a.a : vec3(0.0);
   float dens = mix(1.0, 0.25 + 0.75*(1.0 - lum(c)), u_inkTone);
   return a.a * dens * (1.0 - foilAt(p, u_inkSoft));
@@ -788,7 +825,7 @@ void main(){
 
     float zmask = (u_zone < 0.5) ? alpha : (u_zone < 1.5 ? aArt : max(alpha - aArt, 0.0));
     float mk = 1.0;
-    if(u_mask > 0.5 && u_back < 0.5) mk = maskAt(clamp(uv, 0.0, 1.0), 0.0);
+    if(u_mask > 0.5) mk = maskAt(clamp(uv, 0.0, 1.0), 0.0);
     zmask *= mk;
 
     // on ne calcule le film que là où il se pose
@@ -966,7 +1003,7 @@ void main(){
     // relief d'encre : l'encre forme un léger dépôt là où il n'y a pas de foil.
     // On en tire une normale de surface qui modèle les bords, porte une petite ombre
     // sur le support et accroche un reflet.
-    if(u_ink > 0.001 && u_back < 0.5){
+    if(u_ink > 0.001){
       vec2 e = u_texel * exp2(u_inkSoft) * 1.2;
       float h0 = inkH(uv);
       float hl = inkH(uv - vec2(e.x, 0.0)), hr = inkH(uv + vec2(e.x, 0.0));
@@ -1032,7 +1069,7 @@ function initGL(){
    "u_stick","u_type","u_amt","u_scale","u_ang","u_con","u_zone","u_gloss","u_grain","u_aspect","u_bordUV","u_bordCol","u_foilCol","u_tx","u_ty","u_light",
    "u_sat","u_spread","u_cover","u_glare","u_time","u_hover","u_p0","u_p1","u_p2","u_p3",
    "u_maskTex","u_mask","u_maskMode","u_maskInv","u_maskHard","u_maskShow","u_maskGloss",
-   "u_ink","u_inkSoft","u_inkTone","u_inkGloss","u_inkShadow","u_texel"]
+   "u_ink","u_inkSoft","u_inkTone","u_inkGloss","u_inkShadow","u_texel","u_mask2Tex","u_maskSrc"]
     .forEach(n => loc[n] = gl.getUniformLocation(prog, n));
   buf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -1350,6 +1387,11 @@ function makeTexture(source, w, h){
   return t;
 }
 function uploadTexture(source, w, h, slot){
+  if(slot === 4){
+    if(MK2.tex) gl.deleteTexture(MK2.tex);
+    MK2.tex = makeTexture(source, w, h);
+    return;
+  }
   if(slot === 3){
     if(MK.tex) gl.deleteTexture(MK.tex);
     MK.tex = makeTexture(source, w, h);
@@ -1496,7 +1538,11 @@ function render(st){
     gl.uniform1i(loc.u_maskTex, 3);
     gl.activeTexture(gl.TEXTURE3);
     gl.bindTexture(gl.TEXTURE_2D, MK.tex || tex);
+    gl.uniform1i(loc.u_mask2Tex, 4);
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D, MK2.tex || tex);
     gl.uniform1f(loc.u_mask, MK.tex ? 1 : 0);
+    gl.uniform1f(loc.u_maskSrc, 0);
     gl.uniform1f(loc.u_maskMode, MK.mode);
     gl.uniform1f(loc.u_maskInv, MK.inv ? 1 : 0);
     gl.uniform1f(loc.u_maskHard, MK.hard ? 1 : 0);
@@ -1532,7 +1578,23 @@ function render(st){
     gl.uniform2f(loc.u_flip, 0, 0);
     // plan B : le verso passe sur la face avant, le recto au dos
     const swapB = (st.face | 0) === 1 && !!img2;
-    gl.uniform1f(loc.u_back, f === 1 ? ((img2 && !swapB) ? 1 : 0) : (swapB ? 1 : 0));
+    const showsVerso = f === 1 ? (!!img2 && !swapB) : swapB;
+    gl.uniform1f(loc.u_back, showsVerso ? 1 : 0);
+    // la face qui porte le verso suit sa propre règle de finition
+    if(f < 2){
+      const fxOn = ST.on && (!showsVerso || VRS.mode !== "none");
+      gl.uniform1f(loc.u_stick, fxOn ? 1 : 0);
+      let useMask = 0, src = 0;
+      if(!showsVerso) useMask = MK.tex ? 1 : 0;
+      else if(VRS.mode === "same") useMask = MK.tex ? 1 : 0;
+      else if(VRS.mode === "own"){ useMask = MK2.tex ? 1 : 0; src = 1; }
+      gl.uniform1f(loc.u_mask, useMask);
+      gl.uniform1f(loc.u_maskSrc, src);
+      if(ST.on){
+        const ref = showsVerso ? img2 : img;
+        gl.uniform2f(loc.u_texel, 1/ref.width, 1/ref.height);
+      }
+    }
     gl.drawArrays(gl.TRIANGLE_STRIP, f * 4, 4);
   }
 
@@ -1696,6 +1758,7 @@ function loadFile(f, slot){
   const target = slot === undefined ? pendingSlot : slot;
   if(target === 0) imgName = (f.name || "image").replace(/\.[^.]+$/, "");
   if(target === 3) MK.name = f.name || "masque";
+  if(target === 4) MK2.name = f.name || "masque verso";
   const url = URL.createObjectURL(f);
   const im = new Image();
   im.onload = () => { im.__svg = isSvg; useImage(im, target); URL.revokeObjectURL(url); refreshSlots(); };
@@ -1732,6 +1795,15 @@ function useImage(im, slot){
   const {src, w, h} = fitDown(im);
   setThumb(slot === 1 && !img ? 0 : slot, src, w, h);
 
+  if(slot === 4){
+    MK2.img = {width:w, height:h};
+    uploadTexture(src, w, h, 4);
+    pendingSlot = 0;
+    VRS.mode = "own";
+    updateVersoUI();
+    draw();
+    return;
+  }
   if(slot === 3){
     MK.img = {width:w, height:h};
     uploadTexture(src, w, h, 3);
@@ -1962,6 +2034,29 @@ $("#maskInv").addEventListener("change", e => { MK.inv = e.target.checked; draw(
 $("#maskHard").addEventListener("change", e => { MK.hard = e.target.checked; draw(); });
 $("#maskGloss").addEventListener("change", e => { MK.gloss = e.target.checked; draw(); });
 $("#maskShow").addEventListener("change", e => { MK.show = e.target.checked; draw(); });
+
+/* ---------- finition du verso ---------- */
+function updateVersoUI(){
+  const has = !!img2;
+  $("#versoFxNote").classList.toggle("hidden", has);
+  $("#versoFxOpts").classList.toggle("hidden", !has);
+  setSeg("#versoMode", VRS.mode);
+  $("#mask2Opts").classList.toggle("hidden", VRS.mode !== "own");
+  $("#versoSameNote").classList.toggle("hidden", VRS.mode !== "same" || !MK.tex);
+  $("#mask2Del").classList.toggle("hidden", !MK2.tex);
+  $("#mask2Info").textContent = MK2.tex ? MK2.name : "aucun — film sur tout le verso";
+  $("#maskOpts").classList.toggle("hidden", !(MK.tex || (MK2.tex && VRS.mode === "own")));
+}
+segButtons("#versoMode", v => { VRS.mode = v; updateVersoUI(); draw(); });
+$("#mask2Btn").addEventListener("click", () => { pendingSlot = 4; $("#file").click(); });
+$("#mask2Del").addEventListener("click", () => {
+  if(MK2.tex) gl.deleteTexture(MK2.tex);
+  MK2.tex = null; MK2.img = null; MK2.name = "";
+  refreshSlots(); draw();
+});
+$("#slotMask2").addEventListener("click", e => {
+  if(!e.target.closest("button") && $("#slotMask2").classList.contains("empty")) $("#mask2Btn").click();
+});
 
 /* ---------- boucle de rendu vivante ---------- */
 // les paillettes et la galaxie scintillent d'elles-mêmes ; la lumière peut balayer ;
@@ -3130,6 +3225,8 @@ function refreshSlots(){
   paintSlot("#slotBg", "#thBg", !!bgImg, 2);
   $("#metaBg").textContent = bgImg ? bgImg.width + " × " + bgImg.height + " px" : "décor fixe derrière l'objet";
   paintSlot("#slotMask", "#thMask", !!MK.tex, 3);
+  paintSlot("#slotMask2", "#thMask2", !!MK2.tex, 4);
+  updateVersoUI();
 }
 [["#slotRecto","#btnOpen3"], ["#slotVerso","#btnVerso"], ["#slotBg","#bgImgBtn"], ["#slotMask","#maskBtn"]].forEach(([sl, bt]) =>
   $(sl).addEventListener("click", e => { if(!e.target.closest("button") && $(sl).classList.contains("empty")) $(bt).click(); }));
@@ -3182,3 +3279,4 @@ if(!gl){
 </script>
 </body>
 </html>
+
