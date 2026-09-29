@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Toolbox</title>
+<script src="gate.js"></script>
+<style>
+  :root { --bg:#fff; --fg:#111; --card:#f3f3f3; --line:#ddd; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111; --fg:#f2f2f2; --card:#1c1c1c; --line:#333; } }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:32px 20px; background:var(--bg); color:var(--fg); font-family:system-ui,sans-serif; }
+  h1 { margin:0 0 24px; font-size:28px; }
+  .grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
+  a.tool { display:block; padding:18px; background:var(--card); border:1px solid var(--line); border-radius:14px; color:inherit; text-decoration:none; }
+  a.tool:hover { border-color:var(--fg); }
+  a.tool b { display:block; font-size:17px; margin-bottom:6px; }
+  a.tool span { font-size:14px; opacity:.7; }
+</style>
+</head>
+<body>
+<h1>Toolbox</h1>
+<div class="grid" id="grid"></div>
+<script>
+  // Ajoute tes outils ici : un objet par outil
+  var TOOLS = [
+    { name: "Exemple d'outil", file: "tools/exemple.html", desc: "Description courte" }
+  ];
+  document.getElementById('grid').innerHTML = TOOLS.map(function (t) {
+    return '<a class="tool" href="' + t.file + '"><b>' + t.name + '</b><span>' + t.desc + '</span></a>';
+  }).join('');
+</script>
+</body>
+</html>
