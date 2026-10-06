@@ -25,7 +25,9 @@
 <script>
   // Ajoute tes outils ici : un objet par outil
   var TOOLS = [
-    { name: "Outils GIF et Perspective", file: "folder.html", desc: "cf titre lol" }
+    { name: "Outils GIF et Perspective", file: "folder.html", desc: "cf titre lol" },
+    { name: "Motion · animation de logos", file: "motion-logo.html", desc: "" },
+    
   ];
   document.getElementById('grid').innerHTML = TOOLS.map(function (t) {
     return '<a class="tool" href="' + t.file + '"><b>' + t.name + '</b><span>' + t.desc + '</span></a>';
