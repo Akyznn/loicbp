@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="utf-8">
@@ -149,6 +149,11 @@ button,input,select{font:inherit;color:inherit}
 .dropzone p{margin:0 0 14px; font-size:12px; color:rgba(255,255,255,.72)}
 .dropzone .btn{background:#fff; color:#1c1c1c; border-color:#fff; padding:0 14px}
 .stage.dragging .dropzone{border-color:#fff; background:rgba(0,0,0,.3)}
+#toast{position:absolute; left:50%; top:14px; transform:translate(-50%, -8px); max-width:min(460px, calc(100% - 24px));
+  padding:9px 13px; border-radius:6px; background:rgba(20,20,20,.88); color:#eee; font-size:12px; line-height:1.5;
+  box-shadow:0 6px 20px rgba(0,0,0,.35); opacity:0; pointer-events:none; transition:opacity .18s, transform .18s; z-index:20}
+#toast.on{opacity:1; transform:translate(-50%, 0)}
+#toast b{color:#fff}
 .hint{position:absolute; left:12px; bottom:10px; font-size:10.5px; color:rgba(255,255,255,.62); pointer-events:none}
 @media (max-width:820px){ .hint{display:none} }
 
@@ -226,6 +231,11 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
 .sizes{display:flex; gap:4px}
 .sizes button{flex:1; height:22px; border:1px solid var(--line); background:var(--well); border-radius:3px; cursor:pointer; font-size:11px}
 .sizes button:hover{border-color:var(--accent)}
+.bgr-prev{margin-top:6px; border:1px solid var(--line); border-radius:4px; overflow:hidden; background-color:#fff;
+  background-image:linear-gradient(45deg,#d4d4d4 25%,transparent 25%,transparent 75%,#d4d4d4 75%),
+                   linear-gradient(45deg,#d4d4d4 25%,transparent 25%,transparent 75%,#d4d4d4 75%);
+  background-size:12px 12px; background-position:0 0,6px 6px}
+.bgr-prev canvas{display:block; width:100%; height:auto; cursor:crosshair}
 .wh{display:grid; grid-template-columns:1fr auto 1fr auto; gap:6px; align-items:center}
 .wh span{color:var(--faint)}
 .note{font-size:10.5px; color:var(--dim); margin:2px 0 0}
@@ -300,7 +310,6 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
 .warn{font-size:11px; background:var(--well); border:1px solid var(--line); border-radius:4px; padding:7px 9px}
 @media (prefers-reduced-motion:reduce){ *{transition:none !important} }
 </style>
-<script src="../gate.js"></script>
 </head>
 <body>
 <div class="app">
@@ -330,7 +339,7 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
   <main class="stage" id="stage">
     <div class="dropzone" id="dropzone">
       <h2>Dépose un PNG ou un SVG</h2>
-      <p>La transparence est conservée. Deux fichiers d'un coup pour un recto-verso, ou colle une image (Cmd/Ctrl + V).</p>
+      <p>La transparence est conservée. Deux fichiers d'un coup pour un recto-verso. Tu peux aussi coller depuis Illustrator, Figma ou Photoshop (Cmd/Ctrl + V ; avec Maj, vers le verso).</p>
       <button class="btn" id="btnOpen2">Choisir un fichier</button>
     </div>
     <div class="frame empty" id="frame"></div>
@@ -361,7 +370,22 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
 <div id="controls"></div>
 <label class="chk"><input type="checkbox" id="noFlip" checked> Jamais à l'envers <span class="q" title="Quand la face arrière apparaît, l'objet entier bascule pour que le visuel reste lisible. Sans effet si un verso est chargé : il s'affiche toujours à l'endroit.">?</span></label>
 </div></section>
-<section class="sec" data-sec="volume"><header><button class="tog" type="button"><i class="tri"></i>Volume</button><div class="hd-act"><button class="icon-btn" id="btnResetVol" title="Réinitialiser l'épaisseur"><svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 6.2A5.2 5.2 0 1 1 3 9.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2.6 2.6v3.8h3.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></header><div class="body">
+<section class="sec" data-sec="volume"><header><button class="tog" type="button"><i class="tri"></i>Détourage et volume</button><div class="hd-act"><button class="icon-btn" id="btnResetVol" title="Réinitialiser l'épaisseur"><svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 6.2A5.2 5.2 0 1 1 3 9.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2.6 2.6v3.8h3.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></header><div class="body">
+<label class="chk"><input type="checkbox" id="bgrOn"> Retirer le fond <span class="q" title="Détoure un fond uni — blanc le plus souvent. Les bords sont démélangés du fond pour ne garder aucun liseré.">?</span></label>
+<div id="bgrOpts" class="hidden">
+<div class="line"><label for="bgrColor">Couleur du fond</label><button type="button" class="tb" id="bgrAuto" style="height:22px;padding:0 8px;font-size:11px" title="Détecter la couleur sur le pourtour de l'image">Auto</button><input type="color" id="bgrColor" value="#ffffff"></div>
+<div class="seg" id="bgrMode">
+  <button type="button" data-v="edge" aria-pressed="true" title="Seul le fond relié au bord de l'image disparaît : les zones de même couleur à l'intérieur du dessin restent">Relié aux bords</button>
+  <button type="button" data-v="all" aria-pressed="false" title="Toutes les zones de la couleur du fond disparaissent, y compris à l'intérieur du dessin">Toute la couleur</button>
+</div>
+<div style="height:4px"></div>
+<div class="prop"><label class="scrub" for="bgrTol" title="Écart de couleur accepté autour du fond. À monter pour un JPEG bruité ou un fond légèrement teinté.">Tolérance</label><input type="range" id="bgrTolR" min="1" max="60" step="1" value="14" aria-label="Tolérance"><span class="num"><input type="number" id="bgrTol" min="1" max="60" step="1" value="14"><i>%</i></span></div>
+<div class="prop"><label class="scrub" for="bgrEdge" title="Largeur de la frange démélangée du fond. 0 : découpe franche.">Bords</label><input type="range" id="bgrEdgeR" min="0" max="4" step="1" value="2" aria-label="Bords"><span class="num"><input type="number" id="bgrEdge" min="0" max="4" step="1" value="2"><i>px</i></span></div>
+<div class="seg sm hidden" id="bgrSlot" style="margin-top:3px"><button type="button" data-v="0" aria-pressed="true">Recto</button><button type="button" data-v="1" aria-pressed="false">Verso</button></div>
+<div class="bgr-prev"><canvas id="bgrPrev" width="560" height="560" title="Clic : retirer une zone · Alt + clic : la rétablir · Maj + clic : prendre la couleur du fond"></canvas></div>
+<div class="line" style="min-height:20px"><span class="mt" style="flex:1">Clic : retirer · Alt : rétablir · Maj : couleur du fond</span><button type="button" class="tb ghost" id="bgrUndo" style="height:22px;padding:0 8px;font-size:11px" title="Annuler le dernier clic">Annuler</button><button type="button" class="tb ghost" id="bgrClear" style="height:22px;padding:0 8px;font-size:11px" title="Retirer tous les clics">Tout effacer</button></div>
+</div>
+<div style="height:1px;background:var(--line-soft);margin:6px -10px 4px"></div>
 <div id="controlsVol"></div>
 <div class="line"><label for="edgeColor">Couleur de la tranche</label><input type="color" id="edgeColor" value="#e2e0da"></div>
 <label class="chk"><input type="checkbox" id="shapeMode"> Tranche selon la forme du PNG <span class="q" title="La tranche suit le contour de la transparence au lieu du rectangle de l'image.">?</span></label>
@@ -1761,9 +1785,253 @@ function loadFile(f, slot){
   if(target === 4) MK2.name = f.name || "masque verso";
   const url = URL.createObjectURL(f);
   const im = new Image();
-  im.onload = () => { im.__svg = isSvg; useImage(im, target); URL.revokeObjectURL(url); refreshSlots(); };
+  im.onload = () => {
+    im.__svg = isSvg;
+    const small = !isSvg && target !== 2 && Math.max(im.naturalWidth || 0, im.naturalHeight || 0) < 1100;
+    const go = () => {
+      useImage(im, target); URL.revokeObjectURL(url); refreshSlots();
+      const slot = target === 1 && !img2 ? 0 : target, u = UPINFO[slot];
+      if(u && (slot === 0 || slot === 1)){
+        toast("<b>Image de " + u.w0 + " × " + u.h0 + " px</b> : agrandie ×" + u.F + ", contours reconstruits." +
+              "<br>Pour une netteté parfaite, préfère le vectoriel : dans Illustrator, Préférences › Gestion du presse-papiers › <b>Code SVG</b>.", 8000);
+      }
+    };
+    if(small){ toast("Reconstruction des contours…", 5000); setTimeout(go, 40); } else go();
+  };
   im.onerror = () => { URL.revokeObjectURL(url); alert("Ce fichier n'a pas pu être lu comme une image."); };
   im.src = url;
+}
+/* Agrandissement à contours reconstruits, pour les logos en basse définition.
+   Un bord de logo sépare deux couleurs franches : on les estime par pixel source (moyenne des
+   trois extrêmes de son voisinage 3×3, insensible aux rebonds d'antialiasing), on mesure où se
+   situe le pixel entre elles, puis on interpole ces champs (B-spline pondérée par la force du
+   bord) et on redessine une transition nette sur la courbe ainsi lissée. Ailleurs : bicubique. */
+function smoothUpscalePixels(px, w, h, target){
+  const F = Math.min(8, Math.round((target || 1600) / Math.max(w, h)));
+  if(F < 2) return null;
+  const N = w*h, a = new Float32Array(N*4);
+  for(let i = 0; i < N; i++){
+    const al = px[i*4+3]/255;
+    a[i*4] = px[i*4]/255*al; a[i*4+1] = px[i*4+1]/255*al; a[i*4+2] = px[i*4+2]/255*al; a[i*4+3] = al;
+  }
+  const sm = (e0, e1, x) => { const t = Math.min(1, Math.max(0, (x - e0)/(e1 - e0))); return t*t*(3 - 2*t); };
+  // champs B-spline : wE·t, wE·A (4), wE·B (4), wE
+  const NB = 10, fb = new Float32Array(N*NB);
+  const key = new Float32Array(9), id = new Int32Array(9);
+  for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){
+    let n = 0;
+    for(let dy = -1; dy <= 1; dy++){
+      const yy = y + dy < 0 ? 0 : y + dy >= h ? h - 1 : y + dy;
+      for(let dx = -1; dx <= 1; dx++){
+        const xx = x + dx < 0 ? 0 : x + dx >= w ? w - 1 : x + dx, j = (yy*w + xx)*4;
+        key[n] = a[j]*0.3 + a[j+1]*0.59 + a[j+2]*0.11 + a[j+3]*0.5; id[n] = j; n++;
+      }
+    }
+    for(let i = 1; i < 9; i++){                     // tri par insertion des 9 voisins
+      const k = key[i], v = id[i]; let j = i - 1;
+      while(j >= 0 && key[j] > k){ key[j+1] = key[j]; id[j+1] = id[j]; j--; }
+      key[j+1] = k; id[j+1] = v;
+    }
+    const p = (y*w + x)*4, q = (y*w + x)*NB;
+    let L2 = 0, dot = 0;
+    for(let c = 0; c < 4; c++){
+      const Ac = (a[id[0]+c] + a[id[1]+c] + a[id[2]+c]) / 3, Bc = (a[id[6]+c] + a[id[7]+c] + a[id[8]+c]) / 3;
+      fb[q+1+c] = Ac; fb[q+5+c] = Bc;
+      const d = Bc - Ac; L2 += d*d; dot += (a[p+c] - Ac)*d;
+    }
+    const t = L2 > 1e-6 ? Math.min(1, Math.max(0, dot/L2)) : 0.5;
+    const wE = sm(0.08, 0.2, Math.sqrt(L2)) + 1e-4;
+    fb[q] = wE*t;
+    for(let c = 1; c < 9; c++) fb[q+c] *= wE;
+    fb[q+9] = wE;
+  }
+  // noyaux par coordonnée de sortie : Catmull-Rom (couleur) et B-spline (bord)
+  const kern = (n, size) => {
+    const base = new Int32Array(n*4), cr = new Float32Array(n*4), bs = new Float32Array(n*4);
+    for(let o = 0; o < n; o++){
+      const s = (o + 0.5)/F - 0.5, i0 = Math.floor(s), t = s - i0, t2 = t*t, t3 = t2*t;
+      const c = [(-t3 + 2*t2 - t)/2, (3*t3 - 5*t2 + 2)/2, (-3*t3 + 4*t2 + t)/2, (t3 - t2)/2];
+      const b = [(1 - t)*(1 - t)*(1 - t)/6, (3*t3 - 6*t2 + 4)/6, (-3*t3 + 3*t2 + 3*t + 1)/6, t3/6];
+      for(let k = 0; k < 4; k++){
+        const ii = i0 + k - 1; base[o*4+k] = ii < 0 ? 0 : ii >= size ? size - 1 : ii;
+        cr[o*4+k] = c[k]; bs[o*4+k] = b[k];
+      }
+    }
+    return {base, cr, bs};
+  };
+  const W2 = w*F, H2 = h*F, KX = kern(W2, w), KY = kern(H2, h);
+  // passe horizontale
+  const hc = new Float32Array(W2*h*4), hb = new Float32Array(W2*h*NB);
+  for(let y = 0; y < h; y++) for(let o = 0; o < W2; o++){
+    const dc = (y*W2 + o)*4, db = (y*W2 + o)*NB;
+    for(let k = 0; k < 4; k++){
+      const sx = KX.base[o*4+k], wc = KX.cr[o*4+k], wb = KX.bs[o*4+k];
+      const sc = (y*w + sx)*4, sb = (y*w + sx)*NB;
+      for(let c = 0; c < 4; c++) hc[dc+c] += wc*a[sc+c];
+      for(let c = 0; c < NB; c++) hb[db+c] += wb*fb[sb+c];
+    }
+  }
+  // passe verticale et recomposition (accumulateurs locaux : pas d'allocation par pixel)
+  const out = new Uint8ClampedArray(W2*H2*4), s = 0.7/F*2, e0 = 0.5 - s, ie = 1/(2*s);
+  for(let oy = 0; oy < H2; oy++){
+    const k0 = oy*4;
+    const r0 = KY.base[k0]*W2, r1 = KY.base[k0+1]*W2, r2 = KY.base[k0+2]*W2, r3 = KY.base[k0+3]*W2;
+    const c0 = KY.cr[k0], c1 = KY.cr[k0+1], c2 = KY.cr[k0+2], c3 = KY.cr[k0+3];
+    const b0 = KY.bs[k0], b1 = KY.bs[k0+1], b2 = KY.bs[k0+2], b3 = KY.bs[k0+3];
+    for(let ox = 0; ox < W2; ox++){
+      const i0 = (r0 + ox), i1 = (r1 + ox), i2 = (r2 + ox), i3 = (r3 + ox);
+      const j0 = i0*NB, j1 = i1*NB, j2 = i2*NB, j3 = i3*NB;
+      const Wt = b0*hb[j0+9] + b1*hb[j1+9] + b2*hb[j2+9] + b3*hb[j3+9];
+      const iW = 1/Math.max(Wt, 1e-6);
+      const T = (b0*hb[j0] + b1*hb[j1] + b2*hb[j2] + b3*hb[j3])*iW;
+      let st = (T - e0)*ie; st = st < 0 ? 0 : st > 1 ? 1 : st; st = st*st*(3 - 2*st);
+      let mx = (Wt - 0.25)/0.3; mx = mx < 0 ? 0 : mx > 1 ? 1 : mx; mx = mx*mx*(3 - 2*mx);
+      const o = (oy*W2 + ox)*4;
+      let R0 = 0, R1 = 0, R2 = 0, R3 = 0;
+      for(let c = 0; c < 4; c++){
+        let v = c0*hc[i0*4+c] + c1*hc[i1*4+c] + c2*hc[i2*4+c] + c3*hc[i3*4+c];
+        v = v < 0 ? 0 : v > 1 ? 1 : v;
+        if(mx > 0){
+          const Ac = (b0*hb[j0+1+c] + b1*hb[j1+1+c] + b2*hb[j2+1+c] + b3*hb[j3+1+c])*iW;
+          const Bc = (b0*hb[j0+5+c] + b1*hb[j1+5+c] + b2*hb[j2+5+c] + b3*hb[j3+5+c])*iW;
+          v += (Ac + st*(Bc - Ac) - v)*mx;
+        }
+        if(c === 0) R0 = v; else if(c === 1) R1 = v; else if(c === 2) R2 = v; else R3 = v;
+      }
+      const al = R3 < 0 ? 0 : R3 > 1 ? 1 : R3;
+      if(al > 1e-4){ const k = 255/al; out[o] = R0*k; out[o+1] = R1*k; out[o+2] = R2*k; }
+      out[o+3] = al*255;
+    }
+  }
+  return {data:out, width:W2, height:H2, factor:F};
+}
+
+/* Détourage d'un fond uni (blanc par défaut), façon baguette magique soignée.
+   1. Couleur du fond : médiane du pourtour opaque (ou couleur imposée).
+   2. Zone retirée : pixels proches du fond reliés au bord (ou tous, en mode global),
+      puis zones ajoutées ou rétablies au clic, chacune par remplissage depuis le point cliqué.
+   3. Bords : chaque pixel de la frange est « démélangé » — on retrouve sa couleur de premier plan
+      (le pixel le plus éloigné du fond dans son voisinage) et la part de fond qu'il contenait,
+      ce qui évite tout liseré clair. */
+function detectBgColor(d, w, h){
+  const r = [], g = [], b = []; let tot = 0;
+  const take = (x, y) => { const i = (y*w + x)*4; tot++; if(d[i+3] < 128) return; r.push(d[i]); g.push(d[i+1]); b.push(d[i+2]); };
+  for(let x = 0; x < w; x++){ take(x, 0); take(x, h-1); }
+  for(let y = 1; y < h-1; y++){ take(0, y); take(w-1, y); }
+  if(r.length < tot*0.2) return [255, 255, 255];
+  const med = a => { a.sort((p, q) => p - q); return a[a.length >> 1]; };
+  return [med(r), med(g), med(b)];
+}
+function removeBgPixels(d, w, h, opt){
+  const N = w*h, T = opt.tol, bg = opt.bg || detectBgColor(d, w, h);
+  const dist = (i, ref) => {
+    if(d[i*4+3] < 16) return 0;                           // déjà transparent : compte comme du fond
+    const r = d[i*4] - ref[0], g = d[i*4+1] - ref[1], b = d[i*4+2] - ref[2];
+    return Math.sqrt(r*r + g*g + b*b) / 441.67;
+  };
+  const removed = new Uint8Array(N), q = new Int32Array(N), seen = new Uint8Array(N);
+  function fill(starts, ref, value){
+    seen.fill(0); let head = 0, tail = 0;
+    for(const s of starts) if(!seen[s] && dist(s, ref) < T){ seen[s] = 1; q[tail++] = s; }
+    while(head < tail){
+      const p = q[head++], x = p % w;
+      removed[p] = value;
+      if(x > 0 && !seen[p-1] && dist(p-1, ref) < T){ seen[p-1] = 1; q[tail++] = p-1; }
+      if(x < w-1 && !seen[p+1] && dist(p+1, ref) < T){ seen[p+1] = 1; q[tail++] = p+1; }
+      if(p >= w && !seen[p-w] && dist(p-w, ref) < T){ seen[p-w] = 1; q[tail++] = p-w; }
+      if(p < N-w && !seen[p+w] && dist(p+w, ref) < T){ seen[p+w] = 1; q[tail++] = p+w; }
+    }
+  }
+  if(opt.mode === "all"){
+    for(let i = 0; i < N; i++) if(dist(i, bg) < T) removed[i] = 1;
+  } else {
+    const border = [];
+    for(let x = 0; x < w; x++){ border.push(x, (h-1)*w + x); }
+    for(let y = 1; y < h-1; y++){ border.push(y*w, y*w + w - 1); }
+    fill(border, bg, 1);
+  }
+  for(const s of (opt.seeds || [])){                      // clics : retirer ou rétablir une zone
+    const ref = [d[s.p*4], d[s.p*4+1], d[s.p*4+2]];
+    fill([s.p], ref, s.keep ? 0 : 1);
+  }
+  // frange : pixels conservés à moins de r px d'un pixel retiré
+  const r = Math.max(0, Math.round(opt.edge)), band = new Uint8Array(N);
+  if(r > 0){
+    for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){
+      const p = y*w + x; if(!removed[p]) continue;
+      // seuls les pixels retirés qui touchent le dessin élargissent la frange
+      if((x === 0 || removed[p-1]) && (x === w-1 || removed[p+1]) && (y === 0 || removed[p-w]) && (y === h-1 || removed[p+w])) continue;
+      for(let dy = -r; dy <= r; dy++){ const yy = y + dy; if(yy < 0 || yy >= h) continue;
+        for(let dx = -r; dx <= r; dx++){ const xx = x + dx; if(xx < 0 || xx >= w) continue;
+          const n = yy*w + xx; if(!removed[n]) band[n] = 1; } }
+    }
+  }
+  const out = new Uint8ClampedArray(d);
+  const R = r + 2;
+  for(let p = 0; p < N; p++){
+    if(removed[p]){ out[p*4+3] = 0; continue; }
+    if(!band[p]) continue;
+    // couleur de premier plan : le pixel conservé, hors frange, le plus éloigné du fond alentour
+    const x = p % w, y = (p / w) | 0;
+    let best = -1, bd = -1;
+    for(let dy = -R; dy <= R; dy++){ const yy = y + dy; if(yy < 0 || yy >= h) continue;
+      for(let dx = -R; dx <= R; dx++){ const xx = x + dx; if(xx < 0 || xx >= w) continue;
+        const n = yy*w + xx; if(removed[n] || band[n]) continue;
+        const dn = dist(n, bg); if(dn > bd){ bd = dn; best = n; } } }
+    const c = [d[p*4], d[p*4+1], d[p*4+2]];
+    let a;
+    if(best >= 0 && bd > T){
+      const F = [d[best*4], d[best*4+1], d[best*4+2]];
+      let num = 0, den = 0;
+      for(let k = 0; k < 3; k++){ const fk = F[k] - bg[k]; num += (c[k] - bg[k])*fk; den += fk*fk; }
+      a = den > 1 ? Math.min(1, Math.max(0, num/den)) : 1;
+    } else {
+      const dd = dist(p, bg); a = Math.min(1, Math.max(0, (dd - T)/0.3));
+    }
+    if(a < 0.02){ out[p*4+3] = 0; continue; }
+    for(let k = 0; k < 3; k++) out[p*4+k] = (c[k] - (1 - a)*bg[k]) / a;   // démélange
+    out[p*4+3] = d[p*4+3] * a;
+  }
+  return {data:out, bg};
+}
+
+/* ---------- détourage ---------- */
+const BGR = {on:false, mode:"edge", tol:14, edge:2, auto:true, color:[255,255,255]};
+const ORIG = {}, PROC = {}, SEEDS = {0:[], 1:[]}, BGDET = {};
+let BGSEL = 0;
+const hexRGB = h => { const n = parseInt(h.slice(1), 16); return [(n>>16)&255, (n>>8)&255, n&255]; };
+const rgbHex = c => "#" + c.map(v => Math.round(v).toString(16).padStart(2, "0")).join("");
+function processBg(slot){
+  const O = ORIG[slot];
+  if(!O) return null;
+  if(!BGR.on) return O.src;
+  try {
+    const c = document.createElement("canvas"); c.width = O.w; c.height = O.h;
+    const x = c.getContext("2d", {willReadFrequently:true});
+    if(!O.px){ x.drawImage(O.src, 0, 0, O.w, O.h); O.px = x.getImageData(0, 0, O.w, O.h).data; }
+    const im = new ImageData(new Uint8ClampedArray(O.px), O.w, O.h);
+    const r = removeBgPixels(im.data, O.w, O.h, {mode:BGR.mode, tol:BGR.tol/100, edge:BGR.edge,
+                                                 bg:BGR.auto ? null : BGR.color, seeds:SEEDS[slot]});
+    BGDET[slot] = r.bg;
+    x.putImageData(new ImageData(r.data, O.w, O.h), 0, 0);
+    return c;
+  } catch(err){ return O.src; }
+}
+// sources bitmap en basse définition (copie d'écran d'Illustrator, petit PNG…) :
+// on les agrandit à l'import avec des contours reconstruits, pour que tout le reste
+// — rendu, découpe, relief, tranche — travaille sur des bords nets
+const UPINFO = {};
+function upscaleSource(src, w, h){
+  try {
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const x = c.getContext("2d", {willReadFrequently:true});
+    x.drawImage(src, 0, 0, w, h);
+    const r = smoothUpscalePixels(x.getImageData(0, 0, w, h).data, w, h, 1600);
+    if(!r) return null;
+    const o = document.createElement("canvas"); o.width = r.width; o.height = r.height;
+    o.getContext("2d").putImageData(new ImageData(r.data, r.width, r.height), 0, 0);
+    return {canvas:o, width:r.width, height:r.height, factor:r.factor};
+  } catch(err){ return null; }
 }
 function fitDown(im){
   const maxTex = gl ? Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE), 4096) : 2048;
@@ -1792,8 +2060,19 @@ function fitDown(im){
   return {src, w, h};
 }
 function useImage(im, slot){
-  const {src, w, h} = fitDown(im);
-  setThumb(slot === 1 && !img ? 0 : slot, src, w, h);
+  if(slot === 1 && !img) return useImage(im, 0);           // un verso sans recto devient le recto
+  let {src, w, h} = fitDown(im);
+  UPINFO[slot] = null;
+  if(!im.__svg && slot !== 2 && Math.max(w, h) < 1100){
+    const up = upscaleSource(src, w, h);
+    if(up){ UPINFO[slot] = {w0:w, h0:h, F:up.factor}; src = up.canvas; w = up.width; h = up.height; }
+  }
+  if(slot === 0 || slot === 1){
+    ORIG[slot] = {src, w, h}; SEEDS[slot] = [];
+    const pr = processBg(slot);
+    if(pr){ src = pr; PROC[slot] = pr; }
+  }
+  setThumb(slot, src, w, h);
 
   if(slot === 4){
     MK2.img = {width:w, height:h};
@@ -1839,6 +2118,9 @@ function useImage(im, slot){
   uploadTexture(src, w, h, 0);
 
   outW = outH = clamp(Math.round(Math.max(w, h) * 1.25), 240, 1600);
+  // perspective proportionnelle au format : même rendu quelle que soit la définition de la source
+  DEFAULT.persp = clamp(Math.round(Math.max(outW, outH) * 0.9 / 10) * 10, 300, 4000);
+  if(ctlEls.persp) ctlEls.persp.num.dataset.default = String(DEFAULT.persp);
   $("#outW").value = outW; $("#outH").value = outH;
   resizeGL(); computeFit(); computeFit2(); computeContour();
   S = {...DEFAULT};
@@ -1892,10 +2174,97 @@ stage.addEventListener("drop", e => {
     loadFile(fs[0], e.shiftKey ? 1 : 0);
   }
 });
+/* ---------- coller depuis Illustrator, Figma, Photoshop… ----------
+   Illustrator ne dépose pas d'image dans le presse-papiers : seulement du PDF et son format maison,
+   illisibles par un navigateur, plus — si l'option est cochée — le code SVG de la sélection, en texte.
+   On lit ce texte en priorité : c'est du vectoriel, donc net à toute taille. */
+function svgFromText(txt){
+  if(!txt) return null;
+  const i = txt.search(/<svg[\s>]/i), j = txt.toLowerCase().lastIndexOf("</svg>");
+  if(i < 0 || j < i) return null;
+  let code = txt.slice(i, j + 6);
+  const parse = c => { try { const d = new DOMParser().parseFromString(c, "image/svg+xml");
+    return d.getElementsByTagName("parsererror").length ? null : d; } catch(err){ return null; } };
+  let doc = parse(code);
+  if(!doc && !/\sxmlns\s*=/.test(code.slice(0, code.indexOf(">")))){
+    code = code.replace(/<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+    doc = parse(code);
+  }
+  if(!doc) return null;
+  const svg = doc.documentElement;
+  if(!svg || svg.localName.toLowerCase() !== "svg") return null;
+  if(!svg.getAttribute("xmlns")) svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  if(/xlink:/.test(code) && !svg.getAttribute("xmlns:xlink")) svg.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+  // Illustrator n'écrit souvent qu'un viewBox, ou des tailles en mm : on fixe une taille en px
+  const px = v => (v && /^\s*[\d.]+\s*(px)?\s*$/.test(v)) ? parseFloat(v) : null;
+  let w = px(svg.getAttribute("width")), h = px(svg.getAttribute("height"));
+  const vb = (svg.getAttribute("viewBox") || "").trim().split(/[\s,]+/).map(Number);
+  if(vb.length === 4 && vb.every(isFinite) && vb[2] > 0 && vb[3] > 0){ if(!w || !h){ w = vb[2]; h = vb[3]; } }
+  else if(w && h) svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+  else { w = h = 1000; }
+  const k = 1000 / Math.max(w, h);
+  svg.setAttribute("width", String(Math.round(w*k)));
+  svg.setAttribute("height", String(Math.round(h*k)));
+  return new XMLSerializer().serializeToString(svg);
+}
+function dataUrlToFile(url, name){
+  const m = url.match(/^data:([^;,]+)(;base64)?,(.*)$/);
+  if(!m) return null;
+  const raw = m[2] ? atob(m[3]) : decodeURIComponent(m[3]);
+  const bytes = new Uint8Array(raw.length);
+  for(let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  return new File([bytes], name, {type:m[1]});
+}
+let toastTimer = null;
+function toast(html, ms){
+  let t = document.getElementById("toast");
+  if(!t){ t = document.createElement("div"); t.id = "toast"; t.setAttribute("role", "status"); $("#stage").appendChild(t); }
+  t.innerHTML = html; t.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("on"), ms || 3200);
+}
+// Ctrl/Cmd + Maj + V envoie le collage vers le verso
+let pasteToVerso = false;
+document.addEventListener("keydown", e => {
+  if((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "v" || e.key === "V")){
+    pasteToVerso = true; setTimeout(() => { pasteToVerso = false; }, 1500);
+  }
+}, true);
 window.addEventListener("paste", e => {
-  const items = e.clipboardData && e.clipboardData.items;
-  if(!items) return;
-  for(const it of items) if(it.type.startsWith("image/")) { loadFile(it.getAsFile(), img ? pendingSlot : 0); break; }
+  const cd = e.clipboardData;
+  if(!cd) return;
+  const tag = e.target && e.target.tagName;
+  const inField = tag === "INPUT" || tag === "TEXTAREA";
+  const target = pasteToVerso && img ? 1 : 0;
+  pasteToVerso = false;
+  const where = target === 1 ? "au verso" : "au recto";
+  const txt = cd.getData("text/plain") || "", html = cd.getData("text/html") || "";
+  // 1. code SVG : Illustrator (« Code SVG »), Figma (« Copier en SVG »), Inkscape…
+  const svg = svgFromText(txt) || svgFromText(html);
+  if(svg){
+    e.preventDefault();
+    loadFile(new File([svg], "presse-papiers.svg", {type:"image/svg+xml"}), target);
+    toast("Vectoriel collé " + where + ".");
+    return;
+  }
+  // 2. image : Photoshop, Figma (« Copier en PNG »), captures…
+  for(const it of (cd.items || [])){
+    if(it.kind === "file" && it.type && it.type.startsWith("image/")){
+      const f = it.getAsFile();
+      if(f){ e.preventDefault(); loadFile(f, target); toast("Image collée " + where + "."); return; }
+    }
+  }
+  // 3. image intégrée dans du HTML
+  const m = html.match(/<img[^>]+src=["'](data:image\/[^"']+)["']/i);
+  if(m){
+    const f = dataUrlToFile(m[1], "presse-papiers.png");
+    if(f){ e.preventDefault(); loadFile(f, target); toast("Image collée " + where + "."); return; }
+  }
+  // rien d'exploitable : on n'interfère pas avec un collage de texte dans un champ
+  if(!inField){
+    toast("<b>Rien d'exploitable dans le presse-papiers.</b><br>Illustrator : Préférences › Gestion du presse-papiers › coche <b>Code SVG</b>, puis recopie." +
+          "<br>Figma : clic droit › Copier/Coller en tant que › <b>Copier en SVG</b> ou <b>en PNG</b>.", 9000);
+  }
 });
 
 /* =======================================================================
@@ -1929,6 +2298,92 @@ $("#btnResetDeform").addEventListener("click", () => {
   stopPlay(); draw();
 });
 $("#edgeColor").addEventListener("input", draw);
+
+/* ---------- détourage : recalcul, aperçu cliquable ---------- */
+function drawBgPreview(){
+  const cv = $("#bgrPrev");
+  if(!cv || !BGR.on) return;
+  const O = ORIG[BGSEL], ctx = cv.getContext("2d");
+  if(!O){ ctx.clearRect(0, 0, cv.width, cv.height); return; }
+  const k = Math.min(560 / O.w, 560 / O.h), W = Math.max(8, Math.round(O.w*k)), H = Math.max(8, Math.round(O.h*k));
+  if(cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; }
+  cv.style.width = (W / 560 * 100) + "%";
+  cv.style.margin = "0 auto";
+  ctx.clearRect(0, 0, W, H);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(PROC[BGSEL] || O.src, 0, 0, W, H);
+}
+function reapplyBg(list){
+  for(const slot of list){
+    const O = ORIG[slot];
+    if(!O || (slot === 0 && !img) || (slot === 1 && !img2)) continue;
+    const src = processBg(slot);
+    PROC[slot] = src;
+    uploadTexture(src, O.w, O.h, slot);
+    if(slot === 0){ srcImg = src; computeContour(); }
+    setThumb(slot, src, O.w, O.h);
+  }
+  if(BGR.auto && BGDET[BGSEL]) $("#bgrColor").value = rgbHex(BGDET[BGSEL]);
+  $("#bgrAuto").classList.toggle("primary", BGR.auto);
+  refreshSlots(); draw();
+}
+$("#bgrOn").addEventListener("change", e => {
+  BGR.on = e.target.checked;
+  $("#bgrOpts").classList.toggle("hidden", !BGR.on);
+  reapplyBg([0, 1]);
+});
+segButtons("#bgrMode", v => { BGR.mode = v; reapplyBg([0, 1]); });
+let bgrTimer = null;
+const bgrLater = (list) => { clearTimeout(bgrTimer); bgrTimer = setTimeout(() => reapplyBg(list || [0, 1]), 160); };
+bindPair("#bgrTol", "#bgrTolR", 1, v => { BGR.tol = clamp(v, 1, 60); bgrLater(); });
+bindPair("#bgrEdge", "#bgrEdgeR", 1, v => { BGR.edge = clamp(Math.round(v), 0, 4); bgrLater(); });
+$("#bgrColor").addEventListener("input", e => { BGR.auto = false; BGR.color = hexRGB(e.target.value); bgrLater(); });
+$("#bgrAuto").addEventListener("click", () => { BGR.auto = true; reapplyBg([0, 1]); });
+$("#bgrClear").addEventListener("click", () => { SEEDS[BGSEL] = []; reapplyBg([BGSEL]); });
+segButtons("#bgrSlot", v => {
+  BGSEL = parseInt(v); drawBgPreview();
+  if(BGR.auto && BGDET[BGSEL]) $("#bgrColor").value = rgbHex(BGDET[BGSEL]);
+});
+$("#bgrPrev").addEventListener("click", e => {
+  const O = ORIG[BGSEL];
+  if(!O || !BGR.on) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  const x = clamp(Math.floor((e.clientX - r.left) / r.width * O.w), 0, O.w - 1);
+  const y = clamp(Math.floor((e.clientY - r.top) / r.height * O.h), 0, O.h - 1);
+  if(e.shiftKey){
+    // pipette : la couleur d'origine sous le clic devient la couleur du fond
+    const c = document.createElement("canvas"); c.width = c.height = 1;
+    const cx = c.getContext("2d", {willReadFrequently:true});
+    cx.drawImage(O.src, x, y, 1, 1, 0, 0, 1, 1);
+    const d = cx.getImageData(0, 0, 1, 1).data;
+    BGR.auto = false; BGR.color = [d[0], d[1], d[2]];
+    $("#bgrColor").value = rgbHex(BGR.color);
+    reapplyBg([0, 1]);
+  } else {
+    let seed = y*O.w + x;
+    if(!e.altKey && O.px){
+      // un pixel de l'aperçu couvre plusieurs pixels de l'image : on cherche dans cette empreinte
+      // le point le plus proche de la couleur du fond, pour viser l'intérieur d'une petite lettre
+      const bgc = BGR.auto ? (BGDET[BGSEL] || [255, 255, 255]) : BGR.color, T = BGR.tol/100;
+      const foot = Math.ceil(O.w / r.width) + 1;
+      let best = -1, bd = Infinity;
+      for(let dy = -foot; dy <= foot; dy++){
+        const yy = y + dy; if(yy < 0 || yy >= O.h) continue;
+        for(let dx = -foot; dx <= foot; dx++){
+          const xx = x + dx; if(xx < 0 || xx >= O.w) continue;
+          const i = (yy*O.w + xx)*4;
+          const dr = O.px[i] - bgc[0], dg = O.px[i+1] - bgc[1], db = O.px[i+2] - bgc[2];
+          const dd = Math.sqrt(dr*dr + dg*dg + db*db)/441.67 + Math.hypot(dx, dy)*0.002;
+          if(dd < bd){ bd = dd; best = yy*O.w + xx; }
+        }
+      }
+      if(best >= 0 && bd < T) seed = best;
+    }
+    SEEDS[BGSEL].push({p:seed, keep:e.altKey});
+    reapplyBg([BGSEL]);
+  }
+});
+$("#bgrUndo").addEventListener("click", () => { if(SEEDS[BGSEL].length){ SEEDS[BGSEL].pop(); reapplyBg([BGSEL]); } });
 
 /* ---------- finition sticker ---------- */
 function rgb2hsl(r,g,b){
@@ -3218,14 +3673,19 @@ function paintSlot(slotSel, thSel, has, key){
 function refreshSlots(){
   paintSlot("#slotRecto", "#thRecto", !!img, 0);
   $("#nmRecto").textContent = img ? imgName : "Recto";
-  $("#imgInfo").textContent = img ? img.width + " × " + img.height + " px" : "aucune image";
+  $("#imgInfo").textContent = !img ? "aucune image" :
+    UPINFO[0] ? UPINFO[0].w0 + " × " + UPINFO[0].h0 + " px · contours reconstruits ×" + UPINFO[0].F : img.width + " × " + img.height + " px";
   paintSlot("#slotVerso", "#thVerso", !!img2, 1);
-  $("#metaVerso").textContent = img2 ? img2.width + " × " + img2.height + " px" : "face arrière, ou plan B des transitions";
+  $("#metaVerso").textContent = !img2 ? "face arrière, ou plan B des transitions" :
+    UPINFO[1] ? UPINFO[1].w0 + " × " + UPINFO[1].h0 + " px · contours reconstruits ×" + UPINFO[1].F : img2.width + " × " + img2.height + " px";
   $("#btnVersoDel").classList.toggle("hidden", !img2);
   paintSlot("#slotBg", "#thBg", !!bgImg, 2);
   $("#metaBg").textContent = bgImg ? bgImg.width + " × " + bgImg.height + " px" : "décor fixe derrière l'objet";
   paintSlot("#slotMask", "#thMask", !!MK.tex, 3);
   paintSlot("#slotMask2", "#thMask2", !!MK2.tex, 4);
+  $("#bgrSlot").classList.toggle("hidden", !img2);
+  if(!img2 && BGSEL === 1){ BGSEL = 0; setSeg("#bgrSlot", "0"); }
+  drawBgPreview();
   updateVersoUI();
 }
 [["#slotRecto","#btnOpen3"], ["#slotVerso","#btnVerso"], ["#slotBg","#bgImgBtn"], ["#slotMask","#maskBtn"]].forEach(([sl, bt]) =>
@@ -3277,6 +3737,5 @@ if(!gl){
 })();
 })();
 </script>
-<!-- toolbox-back --><a href="../toolbox.html" aria-label="Retour toolbox" style="position:fixed;top:max(12px,env(safe-area-inset-top));left:12px;z-index:2147483647;padding:8px 14px;border-radius:999px;background:rgba(20,20,20,.8);color:#fff;font:600 14px system-ui,sans-serif;text-decoration:none;backdrop-filter:blur(6px)">← Toolbox</a>
 </body>
 </html>
