@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TRAME — image → ASCII · symboles · pixels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E7EBE1;
+  --bar:#D8E1D0;
+  --line:#B4C0AE;
+  --line-soft:#C6D0C0;
+  --ink:#16201B;
+  --ink-2:#5C6B61;
+  --reg:#BE1E2D;
+  --plate:#8F958C;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+  --pad:14px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--plate);color:var(--ink);
+  font-family:var(--sans);font-size:13px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--reg);outline-offset:2px}
+
+/* ---------- shell ---------- */
+.app{min-height:100%;display:flex;flex-direction:column}
+header{
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  padding:12px 18px;background:var(--ink);color:var(--paper);
+  border-bottom:3px solid var(--reg);
+}
+.mark{
+  width:22px;height:22px;flex:none;border-radius:50%;
+  border:1.5px solid var(--paper);position:relative;
+}
+.mark::before,.mark::after{content:"";position:absolute;background:var(--paper)}
+.mark::before{left:-5px;right:-5px;top:50%;height:1px}
+.mark::after{top:-5px;bottom:-5px;left:50%;width:1px}
+h1{
+  margin:0;font-family:var(--mono);font-weight:600;font-size:16px;
+  letter-spacing:.24em;text-transform:uppercase;
+}
+.tagline{font-family:var(--mono);font-size:11px;color:#9FAB9F;letter-spacing:.04em}
+header .spacer{margin-left:auto}
+.hbtn{
+  background:transparent;border:1px solid #4A554D;color:var(--paper);
+  padding:6px 12px;border-radius:2px;cursor:pointer;
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+}
+.hbtn:hover{border-color:var(--paper)}
+.hbtn.key{background:var(--reg);border-color:var(--reg)}
+
+.main{flex:1;display:grid;grid-template-columns:320px 1fr;min-height:0}
+
+/* ---------- panneau (papier listing) ---------- */
+.panel{
+  background:var(--paper);border-right:1px solid var(--line);
+  overflow:auto;position:relative;padding-left:20px;
+}
+.panel::before{ /* perforations du papier continu */
+  content:"";position:absolute;left:0;top:0;bottom:0;width:20px;
+  background:
+    repeating-linear-gradient(to bottom,transparent 0 8px,var(--plate) 8px 14px,transparent 14px 32px);
+  border-right:1px dashed var(--line);
+  background-clip:padding-box;
+}
+.grp{border-bottom:1px solid var(--line)}
+.grp>h2{
+  margin:0;padding:9px var(--pad) 7px;
+  font-family:var(--mono);font-size:10px;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2);
+  display:flex;align-items:center;gap:8px;
+}
+.grp>h2::after{content:"";flex:1;height:1px;background:var(--line-soft)}
+.ctl{
+  display:grid;grid-template-columns:1fr 62px;align-items:center;gap:4px 10px;
+  padding:6px var(--pad);
+}
+.ctl:nth-of-type(even){background:var(--bar)} /* zébrures listing */
+.ctl>label{font-size:12px}
+.ctl .val{
+  font-family:var(--mono);font-size:11px;text-align:right;color:var(--ink-2);
+  font-variant-numeric:tabular-nums;
+}
+.ctl input[type=range]{grid-column:1/-1;width:100%;margin:0;accent-color:var(--reg);height:18px}
+.ctl.wide{grid-template-columns:1fr}
+.ctl select,.ctl input[type=text],.ctl input[type=number]{
+  grid-column:1/-1;width:100%;background:#fff;border:1px solid var(--line);
+  border-radius:2px;padding:5px 7px;font-family:var(--mono);font-size:12px;
+}
+.ctl.inline{grid-template-columns:auto 1fr;gap:8px}
+.ctl.inline input[type=checkbox]{grid-column:auto;width:15px;height:15px;accent-color:var(--reg);margin:0}
+.ctl.inline label{grid-column:auto}
+.swatches{display:flex;gap:8px;padding:8px var(--pad)}
+.sw{flex:1;display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.sw input[type=color]{
+  width:30px;height:26px;padding:0;border:1px solid var(--line);border-radius:2px;background:none;cursor:pointer;
+}
+.seg{display:flex;gap:0;padding:8px var(--pad) 10px}
+.seg button{
+  flex:1;background:#fff;border:1px solid var(--line);border-right-width:0;
+  padding:8px 4px;cursor:pointer;font-family:var(--mono);font-size:11px;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);
+}
+.seg button:first-child{border-radius:2px 0 0 2px}
+.seg button:last-child{border-right-width:1px;border-radius:0 2px 2px 0}
+.seg button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.ramp{
+  margin:0 var(--pad) 10px;padding:7px 8px;background:#fff;border:1px solid var(--line);
+  font-family:var(--mono);font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.hint{padding:0 var(--pad) 10px;font-size:11px;color:var(--ink-2)}
+.thumb{
+  display:flex;gap:10px;align-items:center;padding:8px var(--pad) 12px;
+}
+.thumb .box{
+  width:56px;height:56px;flex:none;border:1px solid var(--line);background:#fff;
+  display:grid;place-items:center;overflow:hidden;
+}
+.thumb img{max-width:100%;max-height:100%;display:block}
+.thumb .meta{font-family:var(--mono);font-size:11px;color:var(--ink-2);word-break:break-all}
+.filebtns{display:flex;gap:6px;padding:0 var(--pad) 10px}
+.filebtns button{
+  flex:1;background:var(--ink);color:var(--paper);border:1px solid var(--ink);border-radius:2px;
+  padding:8px;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+}
+.filebtns button.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+.filebtns button:hover{border-color:var(--reg)}
+[hidden]{display:none!important}
+
+/* ---------- scène ---------- */
+.stage{display:flex;flex-direction:column;min-width:0;min-height:0}
+.bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:9px 14px;background:#7E857C;border-bottom:1px solid #6B7269;color:#F0F2ED;
+}
+.bar .lab{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;opacity:.75}
+.bar select{background:#6E756C;border:1px solid #5E655D;border-radius:2px;padding:4px 6px;font-family:var(--mono);font-size:11px;color:#F0F2ED}
+.bar .spacer{margin-left:auto}
+.bar button{
+  background:#6E756C;border:1px solid #5E655D;color:#F0F2ED;border-radius:2px;
+  padding:6px 11px;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+}
+.bar button:hover{border-color:#F0F2ED}
+.bar button.key{background:var(--reg);border-color:var(--reg)}
+.view{
+  flex:1;min-height:0;overflow:auto;padding:26px;
+  background-image:radial-gradient(#82887F 1px,transparent 1px);
+  background-size:16px 16px;
+  display:grid;place-items:center;
+}
+#out{
+  display:block;box-shadow:0 1px 0 rgba(255,255,255,.25),0 12px 34px rgba(0,0,0,.3);
+  image-rendering:pixelated;max-width:100%;height:auto;
+}
+#out.fit{max-width:100%}
+.empty{
+  text-align:center;color:#EDEFEA;font-family:var(--mono);font-size:12px;letter-spacing:.06em;
+  border:1px dashed rgba(255,255,255,.5);padding:38px 26px;max-width:420px;line-height:1.9;
+}
+.empty b{display:block;font-size:13px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px}
+.foot{
+  padding:7px 14px;background:var(--ink);color:#93A093;
+  font-family:var(--mono);font-size:11px;letter-spacing:.04em;
+  display:flex;gap:16px;flex-wrap:wrap;
+}
+.foot .k{color:var(--paper)}
+.drop{
+  position:fixed;inset:0;background:rgba(22,32,27,.82);color:var(--paper);
+  display:grid;place-items:center;font-family:var(--mono);letter-spacing:.2em;
+  text-transform:uppercase;font-size:14px;z-index:50;
+}
+.toast{
+  position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+  background:var(--ink);color:var(--paper);border-left:3px solid var(--reg);
+  padding:10px 16px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;z-index:60;
+}
+@media (max-width:860px){
+  .main{grid-template-columns:1fr;grid-template-rows:auto auto}
+  .panel{border-right:0;border-bottom:1px solid var(--line);max-height:none}
+  .view{padding:14px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<script src="../gate.js"></script>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="mark" aria-hidden="true"></div>
+    <div>
+      <h1>Trame</h1>
+      <div class="tagline">image → ascii · symboles · pixels</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="hbtn key" id="btnPick">Importer une image</button>
+    <button class="hbtn" id="btnDemo">Image de démo</button>
+    <input type="file" id="file" accept="image/*" hidden>
+  </header>
+
+  <div class="main">
+    <!-- ================= PANNEAU ================= -->
+    <aside class="panel">
+
+      <section class="grp">
+        <h2>Source</h2>
+        <div class="thumb">
+          <div class="box"><img id="thumb" alt=""><span id="thumbEmpty" style="font-family:var(--mono);font-size:18px;color:var(--line)">⊕</span></div>
+          <div class="meta" id="srcMeta">Aucune image</div>
+        </div>
+        <div class="filebtns">
+          <button id="btnPick2">Choisir un fichier</button>
+          <button class="ghost" id="btnDemo2">Démo</button>
+        </div>
+        <p class="hint">Glissez une image dans la fenêtre, ou collez-la avec ⌘V / Ctrl+V.</p>
+      </section>
+
+      <section class="grp">
+        <h2>Rendu</h2>
+        <div class="seg" id="modeSeg">
+          <button data-mode="ascii" aria-pressed="true">ASCII</button>
+          <button data-mode="symbol" aria-pressed="false">Symboles</button>
+          <button data-mode="pixel" aria-pressed="false">Pixels</button>
+        </div>
+        <div class="ramp" id="rampView">&nbsp;</div>
+      </section>
+
+      <section class="grp">
+        <h2>Grille</h2>
+        <div class="ctl"><label for="cols">Colonnes</label><span class="val" id="colsV">120</span>
+          <input type="range" id="cols" min="16" max="400" step="1" value="120"></div>
+        <div class="ctl" data-only="text"><label for="fsize">Corps du glyphe</label><span class="val" id="fsizeV">10 px</span>
+          <input type="range" id="fsize" min="5" max="28" step="1" value="10"></div>
+        <div class="ctl" data-only="text"><label for="lheight">Interligne</label><span class="val" id="lheightV">1.00</span>
+          <input type="range" id="lheight" min="0.7" max="1.8" step="0.02" value="1"></div>
+        <div class="ctl" data-only="pixel"><label for="psize">Taille du pixel</label><span class="val" id="psizeV">8 px</span>
+          <input type="range" id="psize" min="1" max="40" step="1" value="8"></div>
+        <div class="ctl" data-only="pixel"><label for="pgap">Écart de grille</label><span class="val" id="pgapV">0 px</span>
+          <input type="range" id="pgap" min="0" max="6" step="1" value="0"></div>
+      </section>
+
+      <section class="grp">
+        <h2>Image</h2>
+        <div class="ctl"><label for="bright">Luminosité</label><span class="val" id="brightV">0.00</span>
+          <input type="range" id="bright" min="-0.5" max="0.5" step="0.01" value="0"></div>
+        <div class="ctl"><label for="contrast">Contraste</label><span class="val" id="contrastV">1.00</span>
+          <input type="range" id="contrast" min="0.2" max="3" step="0.02" value="1"></div>
+        <div class="ctl"><label for="gamma">Gamma</label><span class="val" id="gammaV">1.00</span>
+          <input type="range" id="gamma" min="0.3" max="3" step="0.02" value="1"></div>
+        <div class="ctl"><label for="sat">Saturation</label><span class="val" id="satV">1.00</span>
+          <input type="range" id="sat" min="0" max="2" step="0.02" value="1"></div>
+        <div class="ctl inline"><input type="checkbox" id="invert"><label for="invert">Inverser les valeurs</label></div>
+      </section>
+
+      <section class="grp" data-only="text">
+        <h2>Caractères</h2>
+        <div class="ctl wide"><label for="charset">Jeu</label>
+          <select id="charset"></select></div>
+        <div class="ctl wide" id="customWrap" hidden><label for="custom">Jeu personnalisé (du vide au plein)</label>
+          <input type="text" id="custom" value=" .:-=+*#%@" spellcheck="false"></div>
+        <div class="ctl wide"><label for="font">Police de sortie</label>
+          <select id="font">
+            <option value='"IBM Plex Mono",monospace'>IBM Plex Mono</option>
+            <option value='ui-monospace,SFMono-Regular,Menlo,monospace'>Système (SF Mono / Menlo)</option>
+            <option value='"Courier New",monospace'>Courier New</option>
+            <option value='Consolas,"DejaVu Sans Mono",monospace'>Consolas / DejaVu</option>
+            <option value='monospace'>Monospace générique</option>
+          </select></div>
+      </section>
+
+      <section class="grp" data-only="text">
+        <h2>Contours</h2>
+        <div class="ctl inline"><input type="checkbox" id="edge"><label for="edge">Détecter les contours</label></div>
+        <div class="ctl"><label for="ethr">Seuil</label><span class="val" id="ethrV">0.18</span>
+          <input type="range" id="ethr" min="0.02" max="0.9" step="0.01" value="0.18"></div>
+        <div class="ctl wide"><label for="eset">Jeu de contours</label>
+          <select id="eset">
+            <option value="-/|\">- / | \ (ASCII)</option>
+            <option value="─╱│╲">─ ╱ │ ╲ (traits fins)</option>
+            <option value="═╳║╳">═ ╳ ║ (double)</option>
+            <option value="_<|>">_ &lt; | &gt;</option>
+            <option value="▂◤▐◥">▂ ◤ ▐ ◥ (blocs)</option>
+          </select></div>
+        <div class="ctl inline"><input type="checkbox" id="efill" checked><label for="efill">Garder les aplats</label></div>
+      </section>
+
+      <section class="grp">
+        <h2>Couleurs</h2>
+        <div class="ctl wide" data-only="text"><label for="cmode">Traitement</label>
+          <select id="cmode">
+            <option value="mono">Monochrome</option>
+            <option value="src">Couleurs d'origine</option>
+            <option value="duo">Duotone par valeur</option>
+          </select></div>
+        <div class="ctl wide" data-only="pixel"><label for="palette">Palette</label>
+          <select id="palette">
+            <option value="src">Couleurs d'origine</option>
+            <option value="gray">Niveaux de gris</option>
+            <option value="duo">Duotone (encre / fond)</option>
+            <option value="riso">Risographie</option>
+            <option value="gameboy">Game Boy</option>
+            <option value="cga">CGA 4 couleurs</option>
+            <option value="c64">Commodore 64</option>
+            <option value="bw">Noir et blanc 1 bit</option>
+          </select></div>
+        <div class="ctl" data-only="pixel"><label for="levels">Niveaux par canal</label><span class="val" id="levelsV">8</span>
+          <input type="range" id="levels" min="2" max="16" step="1" value="8"></div>
+        <div class="ctl wide" data-only="pixel"><label for="dither">Tramage</label>
+          <select id="dither">
+            <option value="none">Aucun</option>
+            <option value="bayer">Ordonné (Bayer 4×4)</option>
+            <option value="fs">Diffusion (Floyd–Steinberg)</option>
+          </select></div>
+        <div class="swatches">
+          <label class="sw">Encre <input type="color" id="fg" value="#16201b"></label>
+          <label class="sw">Fond <input type="color" id="bg" value="#e7ebe1"></label>
+        </div>
+        <div class="ctl inline"><input type="checkbox" id="transp"><label for="transp">Fond transparent à l'export</label></div>
+      </section>
+    </aside>
+
+    <!-- ================= SCÈNE ================= -->
+    <div class="stage">
+      <div class="bar">
+        <span class="lab">Aperçu</span>
+        <select id="zoom">
+          <option value="fit">Ajuster</option>
+          <option value="0.5">50 %</option>
+          <option value="1" selected>100 %</option>
+          <option value="2">200 %</option>
+          <option value="4">400 %</option>
+        </select>
+        <span class="spacer"></span>
+        <span class="lab">Export</span>
+        <button id="btnCopy">Copier le texte</button>
+        <button id="btnTxt">.txt</button>
+        <select id="pngScale" title="Échelle PNG">
+          <option value="1">×1</option><option value="2" selected>×2</option>
+          <option value="3">×3</option><option value="4">×4</option>
+        </select>
+        <button class="key" id="btnPng">.png</button>
+        <button id="btnSvg">.svg</button>
+      </div>
+      <div class="view" id="view">
+        <canvas id="out" hidden></canvas>
+        <div class="empty" id="empty">
+          <b>Aucune image</b>
+          Importez, glissez ou collez une image.<br>
+          Ou chargez l'image de démo pour explorer les réglages.
+        </div>
+      </div>
+      <div class="foot">
+        <span>Grille <span class="k" id="stGrid">—</span></span>
+        <span>Cellules <span class="k" id="stCells">—</span></span>
+        <span>Sortie <span class="k" id="stPx">—</span></span>
+        <span id="stWarn" style="color:#E8A0A0"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------------- jeux de caractères ---------------- */
+const CHARSETS = [
+  ["Classique",        " .:-=+*#%@"],
+  ["Détaillé (70)",    " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"],
+  ["Minimal",          " .+#"],
+  ["Blocs pleins",     " ░▒▓█"],
+  ["Blocs partiels",   " ▁▂▃▄▅▆▇█"],
+  ["Barres verticales"," ▏▎▍▌▋▊▉█"],
+  ["Points",           " ˙·•●"],
+  ["Binaire",          " 01"],
+  ["Obliques",         " ./|\\#"],
+  ["Chevrons",         " ·:/\\<>≶#"],
+  ["Géométrique",      " ▫◦◘◙■"],
+  ["Typographique",    " ,;i+lyfIH#"],
+  ["Mathématique",     " ·−+×÷≡≣▩"],
+  ["Personnalisé",     ""]
+];
+const SYMBOL_DEFAULT = 9; // "Chevrons"
+
+const PALETTES = {
+  riso:    ["#F7F4E8","#FFD400","#FF4A3D","#0F4C81","#00A19A","#1A1A1A"],
+  gameboy: ["#081820","#346856","#88C070","#E0F8D0"],
+  cga:     ["#000000","#55FFFF","#FF55FF","#FFFFFF"],
+  c64:     ["#000000","#FFFFFF","#883932","#67B6BD","#8B3F96","#55A049","#40318D","#BFCE72",
+            "#8B5429","#574200","#B86962","#505050","#787878","#94E089","#7869C4","#9F9F9F"],
+  bw:      ["#000000","#FFFFFF"]
+};
+const BAYER = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+
+/* ---------------- état ---------------- */
+const S = { mode:"ascii", img:null, name:"", grid:null, pix:null, lines:[], cw:0, ch:0 };
+const $ = id => document.getElementById(id);
+const els = {};
+["file","btnPick","btnPick2","btnDemo","btnDemo2","thumb","thumbEmpty","srcMeta","modeSeg","rampView",
+ "cols","fsize","lheight","psize","pgap","bright","contrast","gamma","sat","invert","charset","custom",
+ "customWrap","font","edge","ethr","eset","efill","cmode","palette","levels","dither","fg","bg","transp",
+ "zoom","btnCopy","btnTxt","btnPng","btnSvg","pngScale","out","empty","view","stGrid","stCells","stPx","stWarn"]
+ .forEach(k => els[k] = $(k));
+
+CHARSETS.forEach(([n],i) => {
+  const o = document.createElement("option"); o.value = i; o.textContent = n; els.charset.appendChild(o);
+});
+els.charset.value = 0;
+
+/* ---------------- utilitaires ---------------- */
+const clamp = (v,a=0,b=1) => v < a ? a : v > b ? b : v;
+const hex2rgb = h => {
+  h = h.replace("#","");
+  if (h.length === 3) h = h.split("").map(c => c+c).join("");
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+};
+const rgb2hex = c => "#" + c.map(v => Math.round(clamp(v,0,255)).toString(16).padStart(2,"0")).join("");
+const lumOf = ([r,g,b]) => (0.2126*r + 0.7152*g + 0.0722*b) / 255;
+const nf = n => n.toLocaleString("fr-FR");
+
+function toast(msg){
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = msg; document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+function download(blob, filename){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function baseName(){
+  return (S.name || "trame").replace(/\.[^.]+$/,"").replace(/[^\w\-]+/g,"_").slice(0,40) || "trame";
+}
+
+/* ---------------- chargement d'image ---------------- */
+function setImage(img, name){
+  S.img = img; S.name = name || "image";
+  els.thumb.src = img.src || ""; els.thumb.hidden = false; els.thumbEmpty.hidden = true;
+  els.srcMeta.textContent = `${S.name} · ${img.naturalWidth || img.width}×${img.naturalHeight || img.height} px`;
+  els.empty.hidden = true; els.out.hidden = false;
+  schedule();
+}
+function loadFile(f){
+  if (!f || !f.type.startsWith("image/")) { toast("Format d'image non reconnu"); return; }
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = () => setImage(img, f.name);
+  img.onerror = () => toast("Impossible de lire ce fichier");
+  img.src = url;
+}
+function demoImage(){
+  const c = document.createElement("canvas"); c.width = 900; c.height = 900;
+  const x = c.getContext("2d");
+  const bgGrad = x.createLinearGradient(0,0,900,900);
+  bgGrad.addColorStop(0,"#0d1b2a"); bgGrad.addColorStop(1,"#4a2c3d");
+  x.fillStyle = bgGrad; x.fillRect(0,0,900,900);
+  // sol
+  const floor = x.createLinearGradient(0,600,0,900);
+  floor.addColorStop(0,"#2a1e2b"); floor.addColorStop(1,"#0a0a0d");
+  x.fillStyle = floor; x.fillRect(0,600,900,300);
+  // sphère éclairée
+  const g = x.createRadialGradient(360,330,20,470,450,400);
+  g.addColorStop(0,"#fff6e0"); g.addColorStop(.35,"#f2b23c");
+  g.addColorStop(.75,"#8c3a2a"); g.addColorStop(1,"#160c14");
+  x.beginPath(); x.arc(450,430,260,0,Math.PI*2); x.fillStyle = g; x.fill();
+  // reflet au sol
+  x.globalAlpha = .35; x.beginPath(); x.ellipse(450,730,250,40,0,0,Math.PI*2);
+  x.fillStyle = "#f2b23c"; x.fill(); x.globalAlpha = 1;
+  // barres de mire
+  for (let i=0;i<8;i++){
+    x.fillStyle = `rgba(255,255,255,${0.06 + i*0.11})`;
+    x.fillRect(40 + i*46, 60, 34, 60);
+  }
+  const img = new Image();
+  img.onload = () => setImage(img, "demo.png");
+  img.src = c.toDataURL();
+}
+
+/* ---------------- échantillonnage ---------------- */
+const tmp = document.createElement("canvas");
+const tctx = tmp.getContext("2d", { willReadFrequently:true });
+
+function downscale(img, w, h){
+  // réduction progressive par moitiés pour une moyenne correcte
+  let sw = img.naturalWidth || img.width, sh = img.naturalHeight || img.height;
+  let src = img, cur = null;
+  while (sw > w*2 && sh > h*2){
+    const nw = Math.max(w, Math.floor(sw/2)), nh = Math.max(h, Math.floor(sh/2));
+    const c = document.createElement("canvas"); c.width = nw; c.height = nh;
+    const cx = c.getContext("2d"); cx.imageSmoothingQuality = "high";
+    cx.drawImage(src, 0, 0, nw, nh);
+    src = c; cur = c; sw = nw; sh = nh;
+  }
+  tmp.width = w; tmp.height = h;
+  tctx.clearRect(0,0,w,h);
+  tctx.imageSmoothingEnabled = true; tctx.imageSmoothingQuality = "high";
+  tctx.drawImage(src, 0, 0, w, h);
+  return tctx.getImageData(0,0,w,h).data;
+}
+
+function measureCell(){
+  const fs = +els.fsize.value, lh = +els.lheight.value;
+  tctx.font = `${fs}px ${els.font.value}`;
+  const cw = tctx.measureText("M").width || fs*0.6;
+  return { cw, ch: fs*lh };
+}
+
+function sample(){
+  if (!S.img) return null;
+  const cols = +els.cols.value;
+  const iw = S.img.naturalWidth || S.img.width, ih = S.img.naturalHeight || S.img.height;
+  let rows, cw = 0, ch = 0;
+  if (S.mode === "pixel"){
+    rows = Math.max(1, Math.round(cols * ih/iw));
+  } else {
+    const m = measureCell(); cw = m.cw; ch = m.ch;
+    rows = Math.max(1, Math.round(cols * (ih/iw) * (cw/ch)));
+  }
+  S.cw = cw; S.ch = ch;
+
+  const data = downscale(S.img, cols, rows);
+  const n = cols*rows;
+  const lum = new Float32Array(n), rgb = new Float32Array(n*3);
+  const br = +els.bright.value, ct = +els.contrast.value, gm = +els.gamma.value;
+  const sat = +els.sat.value, inv = els.invert.checked;
+
+  for (let i=0;i<n;i++){
+    let r = data[i*4]/255, g = data[i*4+1]/255, b = data[i*4+2]/255;
+    const a = data[i*4+3]/255;
+    if (a < 1){ r = r*a + (1-a); g = g*a + (1-a); b = b*a + (1-a); } // composite sur blanc
+    const f = v => {
+      v = v + br; v = (v - .5)*ct + .5;
+      return Math.pow(clamp(v), gm);
+    };
+    r = f(r); g = f(g); b = f(b);
+    const y = 0.2126*r + 0.7152*g + 0.0722*b;
+    r = clamp(y + (r-y)*sat); g = clamp(y + (g-y)*sat); b = clamp(y + (b-y)*sat);
+    if (inv){ r = 1-r; g = 1-g; b = 1-b; }
+    rgb[i*3] = r; rgb[i*3+1] = g; rgb[i*3+2] = b;
+    lum[i] = clamp(0.2126*r + 0.7152*g + 0.0722*b);
+  }
+  return { cols, rows, lum, rgb };
+}
+
+/* ---------------- caractères ---------------- */
+function activeRamp(){
+  const i = +els.charset.value;
+  const set = (CHARSETS[i][1] || "") || els.custom.value;
+  return (i === CHARSETS.length-1 ? els.custom.value : set) || " .:-=+*#%@";
+}
+
+function buildLines(g){
+  const ramp = activeRamp(), N = ramp.length - 1;
+  const bgL = lumOf(hex2rgb(els.bg.value)), fgL = lumOf(hex2rgb(els.fg.value));
+  const inkFollows = bgL <= fgL; // fond sombre → encre claire → densité ∝ luminance
+  const useEdge = els.edge.checked, thr = +els.ethr.value, keep = els.efill.checked;
+  const eset = els.eset.value;
+  const { cols, rows, lum } = g;
+  const at = (x,y) => lum[Math.min(rows-1,Math.max(0,y))*cols + Math.min(cols-1,Math.max(0,x))];
+  const lines = [];
+
+  for (let y=0;y<rows;y++){
+    let s = "";
+    for (let x=0;x<cols;x++){
+      const l = lum[y*cols+x];
+      const d = inkFollows ? l : 1-l;
+      let ch = ramp[Math.round(clamp(d)*N)];
+      if (useEdge){
+        const gx = -at(x-1,y-1) - 2*at(x-1,y) - at(x-1,y+1) + at(x+1,y-1) + 2*at(x+1,y) + at(x+1,y+1);
+        const gy = -at(x-1,y-1) - 2*at(x,y-1) - at(x+1,y-1) + at(x-1,y+1) + 2*at(x,y+1) + at(x+1,y+1);
+        const mag = Math.hypot(gx,gy) / 4;
+        if (mag > thr){
+          let a = Math.atan2(-gy, gx) * 180/Math.PI + 90; // orientation du contour
+          a = ((a % 180) + 180) % 180;
+          const bucket = a < 22.5 ? 0 : a < 67.5 ? 1 : a < 112.5 ? 2 : a < 157.5 ? 3 : 0;
+          ch = eset[bucket] || eset[0];
+        } else if (!keep){
+          ch = " ";
+        }
+      }
+      s += ch;
+    }
+    lines.push(s);
+  }
+  return lines;
+}
+
+/* ---------------- pixels (palette + tramage) ---------------- */
+function paletteList(){
+  const p = els.palette.value;
+  if (p === "src" || p === "gray") return null;
+  if (p === "duo") return [hex2rgb(els.bg.value), hex2rgb(els.fg.value)];
+  return PALETTES[p].map(hex2rgb);
+}
+function nearest(pal, r,g,b){
+  let bi = 0, bd = Infinity;
+  for (let i=0;i<pal.length;i++){
+    const dr = r-pal[i][0], dg = g-pal[i][1], db = b-pal[i][2];
+    const d = dr*dr*0.299 + dg*dg*0.587 + db*db*0.114;
+    if (d < bd){ bd = d; bi = i; }
+  }
+  return pal[bi];
+}
+function buildPixels(g){
+  const { cols, rows, rgb, lum } = g;
+  const pal = paletteList(), gray = els.palette.value === "gray";
+  const L = +els.levels.value, dith = els.dither.value;
+  const out = new Uint8Array(cols*rows*3);
+  const err = dith === "fs" ? new Float32Array(cols*rows*3) : null;
+  const step = 255 / (L-1);
+
+  for (let y=0;y<rows;y++){
+    for (let x=0;x<cols;x++){
+      const i = y*cols + x, j = i*3;
+      let r, g0, b;
+      if (gray){ const v = lum[i]*255; r = g0 = b = v; }
+      else { r = rgb[j]*255; g0 = rgb[j+1]*255; b = rgb[j+2]*255; }
+      if (err){ r += err[j]; g0 += err[j+1]; b += err[j+2]; }
+      if (dith === "bayer"){
+        const amp = pal ? 42 : step*0.9;
+        const o = (BAYER[y&3][x&3]/16 - 0.5) * amp;
+        r += o; g0 += o; b += o;
+      }
+      let nr, ng, nb;
+      if (pal){ const c = nearest(pal, r, g0, b); nr = c[0]; ng = c[1]; nb = c[2]; }
+      else {
+        nr = Math.round(clamp(r,0,255)/step)*step;
+        ng = Math.round(clamp(g0,0,255)/step)*step;
+        nb = Math.round(clamp(b,0,255)/step)*step;
+      }
+      out[j] = clamp(nr,0,255); out[j+1] = clamp(ng,0,255); out[j+2] = clamp(nb,0,255);
+      if (err){
+        const e = [r-nr, g0-ng, b-nb];
+        const push = (xx,yy,f) => {
+          if (xx<0 || xx>=cols || yy>=rows) return;
+          const k = (yy*cols+xx)*3;
+          err[k] += e[0]*f; err[k+1] += e[1]*f; err[k+2] += e[2]*f;
+        };
+        push(x+1,y,7/16); push(x-1,y+1,3/16); push(x,y+1,5/16); push(x+1,y+1,1/16);
+      }
+    }
+  }
+  return out;
+}
+
+/* ---------------- rendu ---------------- */
+function renderTo(canvas, scale, forExport){
+  const g = S.grid; if (!g) return;
+  const ctx = canvas.getContext("2d");
+  const bg = els.bg.value, fg = els.fg.value;
+  const transparent = els.transp.checked && forExport;
+
+  if (S.mode === "pixel"){
+    const px = Math.max(1, Math.round(+els.psize.value * scale));
+    const gap = Math.round(+els.pgap.value * scale);
+    canvas.width = g.cols*px; canvas.height = g.rows*px;
+    if (!transparent){ ctx.fillStyle = bg; ctx.fillRect(0,0,canvas.width,canvas.height); }
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+    const p = S.pix;
+    const size = Math.max(1, px-gap);
+    for (let y=0;y<g.rows;y++){
+      for (let x=0;x<g.cols;x++){
+        const j = (y*g.cols+x)*3;
+        ctx.fillStyle = `rgb(${p[j]},${p[j+1]},${p[j+2]})`;
+        ctx.fillRect(x*px, y*px, size, size);
+      }
+    }
+    return;
+  }
+
+  const fs = +els.fsize.value * scale, lh = +els.lheight.value;
+  ctx.font = `${fs}px ${els.font.value}`;
+  const cw = ctx.measureText("M").width || fs*0.6, ch = fs*lh;
+  canvas.width = Math.max(1, Math.round(g.cols*cw));
+  canvas.height = Math.max(1, Math.round(g.rows*ch));
+  if (!transparent){ ctx.fillStyle = bg; ctx.fillRect(0,0,canvas.width,canvas.height); }
+  else ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.font = `${fs}px ${els.font.value}`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const cmode = els.cmode.value;
+  const fgc = hex2rgb(fg), bgc = hex2rgb(bg);
+  ctx.fillStyle = fg;
+
+  for (let y=0;y<g.rows;y++){
+    const line = S.lines[y];
+    for (let x=0;x<g.cols;x++){
+      const c = line[x];
+      if (c === " ") continue;
+      if (cmode === "src"){
+        const j = (y*g.cols+x)*3;
+        ctx.fillStyle = `rgb(${Math.round(g.rgb[j]*255)},${Math.round(g.rgb[j+1]*255)},${Math.round(g.rgb[j+2]*255)})`;
+      } else if (cmode === "duo"){
+        const t = g.lum[y*g.cols+x];
+        ctx.fillStyle = rgb2hex([0,1,2].map(k => bgc[k] + (fgc[k]-bgc[k])*t));
+      }
+      ctx.fillText(c, (x+0.5)*cw, (y+0.5)*ch);
+    }
+  }
+}
+
+let raf = 0;
+function schedule(){ cancelAnimationFrame(raf); raf = requestAnimationFrame(compute); }
+
+function compute(){
+  syncVisibility();
+  if (!S.img) return;
+  S.grid = sample();
+  if (!S.grid) return;
+  if (S.mode === "pixel"){ S.pix = buildPixels(S.grid); S.lines = []; }
+  else { S.lines = buildLines(S.grid); S.pix = null; }
+  renderTo(els.out, 1);
+  applyZoom();
+  const cells = S.grid.cols*S.grid.rows;
+  els.stGrid.textContent = `${S.grid.cols} × ${S.grid.rows}`;
+  els.stCells.textContent = nf(cells);
+  els.stPx.textContent = `${els.out.width} × ${els.out.height} px`;
+  els.stWarn.textContent = cells > 60000 ? "Grille dense : l'export SVG sera lourd." : "";
+}
+
+function applyZoom(){
+  const z = els.zoom.value;
+  if (z === "fit"){ els.out.classList.add("fit"); els.out.style.width = ""; }
+  else { els.out.classList.remove("fit"); els.out.style.width = (els.out.width * +z) + "px"; }
+}
+
+/* ---------------- visibilité conditionnelle ---------------- */
+function syncVisibility(){
+  const isPixel = S.mode === "pixel";
+  document.querySelectorAll("[data-only]").forEach(el => {
+    const only = el.dataset.only;
+    el.hidden = (only === "pixel") !== isPixel;
+  });
+  els.customWrap.hidden = isPixel || +els.charset.value !== CHARSETS.length-1;
+  const p = els.palette.value;
+  document.querySelector('label[for=levels]').parentElement.hidden =
+    !isPixel || !(p === "src" || p === "gray");
+  els.btnCopy.disabled = els.btnTxt.disabled = isPixel;
+  els.btnCopy.style.opacity = els.btnTxt.style.opacity = isPixel ? .4 : 1;
+  els.rampView.textContent = isPixel ? "Palette : " + els.palette.selectedOptions[0].textContent
+                                     : activeRamp();
+}
+
+/* ---------------- exports ---------------- */
+function textOut(){ return S.lines.join("\n"); }
+
+els.btnCopy.onclick = async () => {
+  if (!S.lines.length) return;
+  try { await navigator.clipboard.writeText(textOut()); toast("Texte copié"); }
+  catch { toast("Copie refusée par le navigateur"); }
+};
+els.btnTxt.onclick = () => {
+  if (!S.lines.length) return;
+  download(new Blob([textOut()], {type:"text/plain;charset=utf-8"}), baseName()+"-trame.txt");
+};
+els.btnPng.onclick = () => {
+  if (!S.grid) { toast("Importez d'abord une image"); return; }
+  const c = document.createElement("canvas");
+  renderTo(c, +els.pngScale.value, true);
+  c.toBlob(b => download(b, `${baseName()}-trame@${els.pngScale.value}x.png`), "image/png");
+};
+els.btnSvg.onclick = () => {
+  if (!S.grid) { toast("Importez d'abord une image"); return; }
+  download(new Blob([buildSvg()], {type:"image/svg+xml"}), baseName()+"-trame.svg");
+};
+
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function buildSvg(){
+  const g = S.grid, bg = els.bg.value, transparent = els.transp.checked;
+  let w, h, body = "";
+
+  if (S.mode === "pixel"){
+    const px = +els.psize.value, gap = +els.pgap.value, size = Math.max(1, px-gap);
+    w = g.cols*px; h = g.rows*px;
+    const p = S.pix;
+    for (let y=0;y<g.rows;y++){
+      let x = 0;
+      while (x < g.cols){
+        const j = (y*g.cols+x)*3;
+        const col = rgb2hex([p[j],p[j+1],p[j+2]]);
+        let run = 1;
+        if (gap === 0){ // fusion des cases identiques pour alléger le fichier
+          while (x+run < g.cols){
+            const k = (y*g.cols+x+run)*3;
+            if (rgb2hex([p[k],p[k+1],p[k+2]]) !== col) break;
+            run++;
+          }
+        }
+        body += `<rect x="${x*px}" y="${y*px}" width="${run*px - (gap?gap:0)}" height="${size}" fill="${col}"/>`;
+        x += run;
+      }
+    }
+  } else {
+    const fs = +els.fsize.value, lh = +els.lheight.value;
+    const m = measureCell(), cw = m.cw, ch = fs*lh;
+    w = Math.round(g.cols*cw); h = Math.round(g.rows*ch);
+    const cmode = els.cmode.value, fgc = hex2rgb(els.fg.value), bgc = hex2rgb(els.bg.value);
+    const fam = els.font.value.replace(/"/g,"'");
+    body += `<g font-family="${fam}" font-size="${fs}" text-anchor="middle" dominant-baseline="central">`;
+    for (let y=0;y<g.rows;y++){
+      const line = S.lines[y], cy = ((y+0.5)*ch).toFixed(2);
+      if (cmode === "mono"){
+        // une ligne = un objet texte : fichier léger et éditable dans Illustrator
+        let seg = "";
+        for (let x=0;x<g.cols;x++){
+          const c = line[x]; if (c === " ") continue;
+          seg += `<tspan x="${((x+0.5)*cw).toFixed(2)}">${esc(c)}</tspan>`;
+        }
+        if (seg) body += `<text y="${cy}" fill="${els.fg.value}" xml:space="preserve">${seg}</text>`;
+      } else {
+        for (let x=0;x<g.cols;x++){
+          const c = line[x]; if (c === " ") continue;
+          let fill;
+          if (cmode === "src"){
+            const j = (y*g.cols+x)*3;
+            fill = rgb2hex([g.rgb[j]*255, g.rgb[j+1]*255, g.rgb[j+2]*255]);
+          } else {
+            const t = g.lum[y*g.cols+x];
+            fill = rgb2hex([0,1,2].map(k => bgc[k] + (fgc[k]-bgc[k])*t));
+          }
+          body += `<text x="${((x+0.5)*cw).toFixed(2)}" y="${cy}" fill="${fill}">${esc(c)}</text>`;
+        }
+      }
+    }
+    body += `</g>`;
+  }
+  const rect = transparent ? "" : `<rect width="${w}" height="${h}" fill="${bg}"/>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${rect}${body}</svg>`;
+}
+
+/* ---------------- liaisons ---------------- */
+const fmt = {
+  cols: v => v, fsize: v => v+" px", psize: v => v+" px", pgap: v => v+" px",
+  lheight: v => (+v).toFixed(2), bright: v => (+v).toFixed(2), contrast: v => (+v).toFixed(2),
+  gamma: v => (+v).toFixed(2), sat: v => (+v).toFixed(2), ethr: v => (+v).toFixed(2), levels: v => v
+};
+Object.keys(fmt).forEach(id => {
+  const inp = els[id], out = $(id+"V");
+  const upd = () => { if (out) out.textContent = fmt[id](inp.value); };
+  inp.addEventListener("input", () => { upd(); schedule(); });
+  upd();
+});
+["charset","custom","font","invert","edge","eset","efill","cmode","palette","dither","fg","bg","transp"]
+  .forEach(id => els[id].addEventListener("input", schedule));
+
+els.modeSeg.addEventListener("click", e => {
+  const b = e.target.closest("button[data-mode]"); if (!b) return;
+  S.mode = b.dataset.mode;
+  [...els.modeSeg.children].forEach(x => x.setAttribute("aria-pressed", x === b));
+  if (S.mode === "symbol" && +els.charset.value < CHARSETS.length-1) els.charset.value = SYMBOL_DEFAULT;
+  if (S.mode === "ascii" && +els.charset.value === SYMBOL_DEFAULT) els.charset.value = 0;
+  schedule();
+});
+els.zoom.addEventListener("change", applyZoom);
+
+const pick = () => els.file.click();
+els.btnPick.onclick = els.btnPick2.onclick = pick;
+els.btnDemo.onclick = els.btnDemo2.onclick = demoImage;
+els.file.onchange = e => { if (e.target.files[0]) loadFile(e.target.files[0]); els.file.value = ""; };
+
+/* glisser-déposer + coller */
+let overlay = null, depth = 0;
+window.addEventListener("dragenter", e => {
+  e.preventDefault(); depth++;
+  if (!overlay){ overlay = document.createElement("div"); overlay.className = "drop";
+    overlay.textContent = "Déposez l'image"; document.body.appendChild(overlay); }
+});
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("dragleave", () => { if (--depth <= 0 && overlay){ overlay.remove(); overlay = null; depth = 0; } });
+window.addEventListener("drop", e => {
+  e.preventDefault(); depth = 0;
+  if (overlay){ overlay.remove(); overlay = null; }
+  const f = e.dataTransfer.files[0]; if (f) loadFile(f);
+});
+window.addEventListener("paste", e => {
+  const it = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/"));
+  if (it) loadFile(it.getAsFile());
+});
+
+syncVisibility();
+})();
+</script>
+<!-- toolbox-back --><a href="../toolbox.html" aria-label="Retour toolbox" style="position:fixed;top:max(12px,env(safe-area-inset-top));left:12px;z-index:2147483647;padding:8px 14px;border-radius:999px;background:rgba(20,20,20,.8);color:#fff;font:600 14px system-ui,sans-serif;text-decoration:none;backdrop-filter:blur(6px)">← Toolbox</a>
+</body>
+</html>
