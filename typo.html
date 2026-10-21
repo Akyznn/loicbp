@@ -1,0 +1,2842 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atelier typo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #F1F2F4; --surface: #FFFFFF; --sunk: #E6E8EC; --ink: #1E2027; --muted: #646A78; --line: #D3D6DD;
+  --blue: #2440F0; --blue-soft: #E3E7FF; --guide: #D3246F; --guide-soft: rgba(211,36,111,.35);
+  --warn: #9A5B00; --warn-bg: #FFF2DB; --ok: #1F7A4D;
+  --glyph: #1E2027; --ghost: #A9AEBA; --on-blue: #FFFFFF;
+  --font: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #15171B; --surface: #1D2026; --sunk: #262A31; --ink: #E9EBEF; --muted: #9AA0AD; --line: #343943;
+    --blue: #7D92FF; --blue-soft: #262E52; --guide: #FF5E9C; --guide-soft: rgba(255,94,156,.4);
+    --warn: #FFC56B; --warn-bg: #3A2C12; --ok: #5FD39A; --glyph: #E9EBEF; --ghost: #5A606C; --on-blue: #0D1236;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #15171B; --surface: #1D2026; --sunk: #262A31; --ink: #E9EBEF; --muted: #9AA0AD; --line: #343943;
+  --blue: #7D92FF; --blue-soft: #262E52; --guide: #FF5E9C; --guide-soft: rgba(255,94,156,.4);
+  --warn: #FFC56B; --warn-bg: #3A2C12; --ok: #5FD39A; --glyph: #E9EBEF; --ghost: #5A606C; --on-blue: #0D1236;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.45 var(--font); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+input[type=range] { accent-color: var(--blue); }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+
+/* Barre du haut */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 12px; padding: 10px 20px; flex-wrap: wrap; }
+.brand { font-weight: 600; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; }
+.brand svg { width: 22px; height: 22px; }
+.proj { display: flex; align-items: center; gap: 6px; }
+select, input[type=text], input[type=number] { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 0; }
+input[type=number] { width: 84px; }
+.status { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.status i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); display: inline-block; }
+.status.ok i { background: var(--ok); } .status.busy i { background: var(--blue); } .status.local i { background: var(--warn); }
+.spacer { flex: 1; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 7px 12px; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: var(--on-blue); font-weight: 500; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.quiet { border-color: transparent; background: transparent; color: var(--muted); }
+.btn.quiet:hover { color: var(--ink); }
+.btn.danger { color: var(--guide); }
+.btn:disabled { opacity: .5; cursor: default; }
+
+/* Bandeau d'aperçu : la typo en construction est l'élément central */
+.preview { background: var(--surface); border-bottom: 1px solid var(--line); padding: 14px 20px 10px; }
+.preview-stage { overflow-x: auto; min-height: 96px; display: flex; align-items: center; }
+.preview-stage svg { display: block; max-width: none; }
+.preview-stage .empty { color: var(--muted); font-size: 14px; }
+.preview-ctrl { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+.preview-ctrl input[type=text] { flex: 1 1 260px; }
+.preview-ctrl label { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+
+/* Onglets */
+.tabs { display: flex; gap: 2px; padding: 0 20px; border-bottom: 1px solid var(--line); background: var(--paper); overflow-x: auto; }
+.tabs button { background: none; border: none; padding: 12px 14px 10px; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; }
+.tabs button[aria-selected=true] { color: var(--ink); border-bottom-color: var(--blue); font-weight: 500; }
+main { padding: 20px; }
+.panel[hidden] { display: none; }
+
+/* Glyphes */
+.work { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 440px); gap: 20px; align-items: start; }
+.group { margin-bottom: 22px; }
+.group h3 { font-size: 14px; font-weight: 500; color: var(--muted); margin: 0 0 8px; display: flex; gap: 8px; align-items: baseline; }
+.group h3 small { font-size: 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; }
+.cell { position: relative; aspect-ratio: 4 / 5; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0; overflow: hidden; }
+.cell .lab { position: absolute; top: 4px; left: 6px; font-size: 11px; color: var(--muted); line-height: 1; }
+.cell svg { position: absolute; inset: 14px 4px 4px; width: calc(100% - 8px); height: calc(100% - 18px); }
+.cell .big { position: absolute; inset: 0; display: grid; place-items: center; font-size: 26px; color: var(--ghost); }
+.cell.empty { background: transparent; border-style: dashed; }
+.cell.composed svg path { fill: var(--muted); }
+.cell.warn::after { content: ""; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); }
+.cell[aria-pressed=true] { border-color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); }
+.cell svg path { fill: var(--glyph); }
+
+.editor { position: sticky; top: 76px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+.ed-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+.ed-head .ch { font-size: 30px; line-height: 1; font-weight: 500; }
+.ed-head .meta { font-size: 13px; color: var(--muted); }
+.canvas { background: var(--paper); border-radius: 6px; position: relative; outline: none; }
+.canvas.drop { box-shadow: inset 0 0 0 2px var(--blue); }
+.canvas svg { display: block; width: 100%; height: auto; }
+.canvas .hint { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); font-size: 14px; }
+.canvas .hint kbd { font: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; color: var(--ink); }
+.badge { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--blue-soft); color: var(--blue); }
+.badge.alt { background: var(--sunk); color: var(--muted); }
+.notes { margin: 10px 0 0; padding: 0; list-style: none; }
+.notes li { font-size: 13px; background: var(--warn-bg); color: var(--warn); padding: 6px 10px; border-radius: 6px; margin-top: 6px; }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; margin-top: 14px; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.field input, .field select { width: 100%; color: var(--ink); }
+.field.full { grid-column: 1 / -1; }
+.spacing-test { margin-top: 14px; background: var(--paper); border-radius: 6px; padding: 8px; overflow-x: auto; }
+.spacing-test svg { display: block; }
+.ed-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--ink); }
+.check input { margin-top: 3px; }
+
+/* Crénage */
+.kern-wrap { max-width: 900px; }
+.kern-add { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.kern-add input { width: 52px; text-align: center; font-size: 18px; }
+.kern-list { display: flex; flex-direction: column; gap: 6px; }
+.kern-row { display: grid; grid-template-columns: 150px 1fr 84px auto; gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; }
+.kern-row svg { display: block; height: 52px; width: auto; }
+.kern-row input[type=range] { width: 100%; accent-color: var(--blue); }
+.kern-test { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin-bottom: 16px; overflow-x: auto; }
+
+/* Réglages, aide */
+.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; max-width: 1100px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+.card h2 { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
+.card p { margin: 0 0 12px; color: var(--muted); font-size: 14px; max-width: 62ch; }
+.card .fields { margin-top: 8px; }
+.card .stack { display: flex; flex-direction: column; gap: 10px; }
+.help { max-width: 70ch; }
+.help h2 { font-size: 20px; margin: 24px 0 8px; }
+.help h2:first-child { margin-top: 0; }
+.help ol { padding-left: 1.3em; } .help li { margin: 6px 0; }
+.help p { margin: 8px 0; }
+.help code { background: var(--sunk); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--paper);
+  padding: 10px 16px; border-radius: 8px; font-size: 14px; z-index: 20; max-width: calc(100% - 40px); opacity: 0; pointer-events: none; transition: opacity .2s; }
+.toast.show { opacity: 1; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* Projets, annuler */
+.projbtn { display: flex; align-items: center; gap: 6px; max-width: 260px; }
+.projbtn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.projbtn svg { width: 12px; height: 12px; flex: none; }
+.undo { display: flex; gap: 2px; }
+.btn.icon { padding: 6px 8px; line-height: 0; }
+.btn.icon svg { width: 18px; height: 18px; }
+.dlg { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0; width: min(760px, calc(100% - 24px)); max-height: calc(100% - 48px); }
+.dlg::backdrop { background: rgba(10, 12, 18, .45); }
+.dlg-head { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; padding: 16px 20px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); }
+.dlg-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.dlg-body { padding: 16px 20px 20px; }
+.dlg-body h3 { font-size: 16px; font-weight: 600; margin: 24px 0 4px; }
+.dlist { display: flex; flex-direction: column; gap: 6px; }
+.drow { display: flex; align-items: center; gap: 12px; justify-content: space-between; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+.drow.current { border-color: var(--blue); }
+.dname { font-weight: 500; }
+.dmeta { font-size: 13px; color: var(--muted); margin: 0; }
+.dlg-body > .dmeta { margin: 0 0 12px; max-width: 64ch; }
+.dacts { display: flex; gap: 6px; flex-wrap: wrap; }
+.vsave { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.vsave input { flex: 1 1 220px; }
+/* Import groupé */
+.gbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.dlg.wide { width: min(1000px, calc(100% - 24px)); }
+.dlg-foot { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding: 12px 20px; display: flex; gap: 12px; align-items: center; justify-content: flex-end; }
+.bdrop { border: 1.5px dashed var(--line); border-radius: 8px; padding: 22px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; outline: none; }
+.bdrop:focus-visible, .bdrop.drop { border-color: var(--blue); background: var(--blue-soft); }
+.bdrop.compact { padding: 12px 16px; }
+.bdrop.compact .dmeta { display: none; }
+.bseq { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 12px; }
+.bseq input { font-size: 18px; letter-spacing: .12em; }
+.bcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 8px; margin-top: 12px; }
+.bcard { border: 1px solid var(--line); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px; background: var(--surface); cursor: grab; }
+.bcard svg { width: 100%; height: 76px; background: var(--paper); border-radius: 4px; }
+.bcard svg path { fill: var(--glyph); }
+.bcard input { text-align: center; font-size: 20px; padding: 2px; width: 100%; }
+.bcard.skipped { opacity: .55; }
+.bcard.dragging { opacity: .4; }
+.bcard.over { border-color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); }
+.bstat { font-size: 12px; color: var(--muted); text-align: center; }
+.bstat.warn { color: var(--warn); }
+.bacts { display: flex; justify-content: center; flex-wrap: wrap; gap: 2px; }
+.bacts .btn { white-space: nowrap; }
+.btn.tiny { padding: 2px 6px; font-size: 12px; }
+.bhelp { margin-top: 10px; }
+/* Ajouter des glyphes */
+.sets { display: flex; flex-direction: column; gap: 6px; }
+.setrow { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+.setrow.on { border-color: var(--blue); }
+.setrow input { margin-top: 4px; }
+.setchars { font-size: 17px; letter-spacing: .04em; color: var(--muted); word-break: break-all; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 99px; padding: 2px 4px 2px 12px; }
+.chip span { font-size: 17px; }
+.chip small { color: var(--muted); font-size: 11px; }
+.cell.addcell { border-style: dashed; background: transparent; }
+.cell.addcell .big { color: var(--blue); font-size: 30px; }
+.cell.addcell:hover { border-color: var(--blue); }
+.cell .lab { max-width: calc(100% - 12px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Exporter */
+.xname { display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; align-items: end; flex: 1 1 100%; }
+.xname input { width: 100%; }
+.xrow .dmeta#expFileName, .xrow .xwin { flex: 1 1 100%; margin: 0; }
+.xwin { background: var(--sunk); padding: 8px 10px; border-radius: 6px; }
+@media (max-width: 600px) { .xname { grid-template-columns: 1fr; } }
+.xlist { display: flex; flex-direction: column; gap: 10px; }
+.xrow { display: flex; gap: 16px; align-items: center; justify-content: space-between; border: 1px solid var(--line); border-radius: 6px; padding: 14px; flex-wrap: wrap; }
+.xrow > div:first-child { flex: 1 1 300px; }
+.xrow h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+.xrow.wide { align-items: flex-start; }
+.gridopts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; align-items: end; flex: 1 1 100%; }
+.gridopts .check, .gridopts .btn { grid-column: span 1; }
+/* Curseurs */
+.sliders { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+.sfield-top { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.sfield-top label { flex: 1; }
+.sfield-top input[type=number] { width: 78px; color: var(--ink); }
+.sfield input[type=range] { width: 100%; margin: 6px 0 0; }
+.sfield.inherit .sfield-top input::placeholder { color: var(--muted); }
+.btn.reset { padding: 2px 6px; font-size: 12px; }
+.btn[hidden] { display: none; }
+.field.with-range input[type=range] { width: 100%; margin: 2px 0 0; padding: 0; border: 0; background: none; }
+kbd.k { font: inherit; font-size: 12px; background: var(--sunk); border-radius: 4px; padding: 0 5px; }
+
+@media (max-width: 860px) {
+  .work { grid-template-columns: 1fr; }
+  .editor { position: static; order: -1; }
+  .kern-row { grid-template-columns: 1fr 84px auto; }
+  .kern-row .slider { grid-column: 1 / -1; grid-row: 2; }
+  main, .top, .preview { padding-left: 14px; padding-right: 14px; }
+  .tabs { padding: 0 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+<script src="../gate.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M7 17 L12 6 L17 17 M9.2 12.6 H14.8" fill="none" stroke="var(--blue)" stroke-width="2"/><path d="M3 17 H21" stroke="var(--guide)" stroke-width="1"/></svg>Atelier typo</div>
+  <button class="btn projbtn" id="projBtn" title="Projets et versions"><span id="projName">Ma typo</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+  <div class="undo">
+    <button class="btn icon" id="undoBtn" disabled aria-label="Annuler"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5 3 9l4 4M3.5 9H12a5 5 0 0 1 0 10h-2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -2)"/></svg></button>
+    <button class="btn icon" id="redoBtn" disabled aria-label="Rétablir"><svg viewBox="0 0 20 20" aria-hidden="true"><g transform="matrix(-1 0 0 1 20 -2)"><path d="M7 5 3 9l4 4M3.5 9H12a5 5 0 0 1 0 10h-2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></g></svg></button>
+  </div>
+  <div class="status" id="status"><i></i><span>Chargement…</span></div>
+  <div class="spacer"></div>
+  <button class="btn primary" id="exportBtn">Exporter</button>
+</header>
+
+<section class="preview" aria-label="Aperçu">
+  <div class="preview-stage" id="previewStage"></div>
+  <div class="preview-ctrl">
+    <label class="sr" for="previewText">Texte d’aperçu</label>
+    <input type="text" id="previewText" value="Hamburgefonstiv 0123">
+    <label>Corps <input type="range" id="previewSize" min="24" max="200" value="72"></label>
+    <label><input type="checkbox" id="previewGuides"> Lignes</label>
+  </div>
+</section>
+
+<nav class="tabs" role="tablist">
+  <button role="tab" data-tab="glyphs" aria-selected="true">Glyphes</button>
+  <button role="tab" data-tab="kern" aria-selected="false">Crénage</button>
+  <button role="tab" data-tab="settings" aria-selected="false">Réglages</button>
+  <button role="tab" data-tab="help" aria-selected="false">Mode d’emploi</button>
+</nav>
+
+<main>
+  <section class="panel" id="tab-glyphs">
+    <div class="gbar">
+      <button class="btn" id="batchBtn">Importer plusieurs glyphes</button>
+      <button class="btn" id="addBtn">Ajouter des glyphes</button>
+      <span class="dmeta">ou colle directement une sélection de plusieurs lettres, ou dépose des fichiers .svg sur la grille.</span>
+    </div>
+    <div class="work">
+      <div id="groups"></div>
+      <aside class="editor" id="editor" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section class="panel kern-wrap" id="tab-kern" hidden>
+    <div class="kern-test" id="kernTest"></div>
+    <div class="kern-add">
+      <label class="sr" for="kA">Premier caractère</label><input type="text" id="kA" maxlength="2" placeholder="A">
+      <label class="sr" for="kB">Second caractère</label><input type="text" id="kB" maxlength="2" placeholder="V">
+      <button class="btn" id="kAdd">Ajouter la paire</button>
+      <button class="btn quiet" id="kCommon">Ajouter les paires courantes</button>
+    </div>
+    <div class="kern-list" id="kernList"></div>
+  </section>
+
+  <section class="panel" id="tab-settings" hidden>
+    <div class="settings">
+      <div class="card">
+        <h2>Nom de la typo</h2>
+        <p>Ces informations apparaissent dans le menu des polices d’Illustrator, InDesign et Figma.</p>
+        <div class="fields">
+          <label class="field full">Nom de la police (famille)<input type="text" data-set="family"></label>
+          <label class="field">Style<input type="text" data-set="style"></label>
+          <label class="field">Version<input type="text" data-set="version"></label>
+          <label class="field full">Créateur·rice<input type="text" data-set="designer"></label>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Métriques</h2>
+        <p>En unités de fonte, sur un cadratin de 1000. La ligne de base est à 0.</p>
+        <div class="fields">
+          <label class="field">Ascendante<input type="number" data-set="metrics.asc" data-range="400,1400,10"></label>
+          <label class="field">Descendante<input type="number" data-set="metrics.desc" data-range="-600,0,10"></label>
+          <label class="field">Hauteur de capitale<input type="number" data-set="metrics.cap" data-range="300,1200,10"></label>
+          <label class="field">Hauteur d’x<input type="number" data-set="metrics.x" data-range="200,900,10"></label>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Espacement par défaut</h2>
+        <p>Les approches s’ajoutent de chaque côté du dessin. Chaque glyphe peut les surcharger.</p>
+        <div class="fields">
+          <label class="field">Approche gauche<input type="number" data-set="spacing.lsb" data-range="-100,300"></label>
+          <label class="field">Approche droite<input type="number" data-set="spacing.rsb" data-range="-100,300"></label>
+          <label class="field">Largeur de l’espace<input type="number" data-set="spacing.space" data-range="50,800,5"></label>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Normalisation</h2>
+        <p>Avec un cadre invisible copié avec la lettre, la position verticale est exacte. Sans cadre, l’outil met à l’échelle d’après une lettre de référence et pose le glyphe sur la ligne de base.</p>
+        <div class="stack">
+          <label class="field">Hauteur de référence sans cadre (en pt Illustrator, vide = automatique)<input type="number" data-set="auto.refPt" min="0" step="0.1"></label>
+          <div class="meta" id="refInfo" style="font-size:13px;color:var(--muted)"></div>
+          <label class="check"><input type="checkbox" data-set="options.useFrameWidth"><span>Utiliser la largeur du cadre comme chasse (utile pour une typo à chasse fixe)</span></label>
+          <label class="check"><input type="checkbox" data-set="options.composeAccents"><span>Composer automatiquement les lettres accentuées à partir de la lettre de base et de l’accent</span></label>
+          <label class="check"><input type="checkbox" data-set="options.autoAdvance"><span>Passer au glyphe vide suivant après chaque collage</span></label>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Projet</h2>
+        <p>Le projet est enregistré automatiquement. Tu peux aussi en garder une copie sur ton ordinateur.</p>
+        <div class="stack">
+          <label class="field">Nom du projet<input type="text" data-set="name"></label>
+          <div class="ed-actions">
+            <button class="btn" id="saveJson">Télécharger le projet (.json)</button>
+            <button class="btn" id="importJson">Importer un projet</button>
+            <input type="file" id="importFile" accept=".json,application/json" hidden>
+            <button class="btn danger" id="delProj">Supprimer ce projet</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel help" id="tab-help" hidden>
+    <h2>Préparer Illustrator</h2>
+    <ol>
+      <li>Vectorise les contours et le texte (<code>Objet › Tracé › Vectoriser le contour</code>, <code>Texte › Vectoriser</code>), puis fusionne avec le Pathfinder. Seules les formes pleines comptent dans une fonte.</li>
+      <li>Pour les contreformes (le trou du « o », du « A »), utilise un tracé transparent composé. Une forme blanche posée par-dessus est aussi acceptée : l’outil la transforme en découpe.</li>
+      <li>Vérifie que la copie inclut le code SVG : dans les préférences d’Illustrator, section presse-papiers, l’option de copie en SVG doit être activée (c’est le cas par défaut dans les versions récentes).</li>
+    </ol>
+    <h2>La méthode du cadre (recommandée)</h2>
+    <p>Dessine un rectangle sans fond ni contour qui va de l’ascendante à la descendante, et garde-le au même endroit pour chaque lettre (un calque verrouillé à part, que tu déverrouilles pour copier, ou un rectangle que tu dupliques). Sélectionne la lettre <strong>et</strong> le cadre, copie, colle. Le haut du cadre devient l’ascendante, le bas la descendante : les descendantes, les accents et les dépassements arrondis tombent exactement où tu les as dessinés.</p>
+    <p>Avec 800 / −200 dans les réglages et un cadre de 1000 pt de haut, 1 pt dans Illustrator vaut 1 unité de fonte.</p>
+    <p>Le plus simple : <strong>Exporter › La grille de dessin</strong> au format SVG. Ouvre-la dans Illustrator : chaque case a déjà son cadre invisible (calque Cadres) et ses lignes (calque Reperes, à verrouiller). Dessine dans le calque Glyphes, puis sélectionne la lettre et son cadre d’un rectangle de sélection, copie, colle. Les repères magenta éventuellement copiés avec sont ignorés.</p>
+    <h2>Plusieurs glyphes d’un coup</h2>
+    <p>Sélectionne plusieurs lettres dans Illustrator (une ligne, un alphabet entier, ou des cases de la grille), copie, colle. L’outil sépare les glyphes et ouvre l’import groupé : tape les caractères dans l’ordre de lecture (ou clique A–Z), corrige une vignette si besoin, puis importe. Les accents et points restent attachés à leur lettre ; pour un signe en plusieurs morceaux séparés, comme les guillemets, utilise « Fusionner ». Avec des fichiers SVG nommés <code>A.svg</code>, <code>uni00E9.svg</code> ou <code>zero.svg</code>, le caractère est lu dans le nom.</p>
+    <p>Pour des lettres alignées comme du texte, la ligne de base commune et l’échelle sont gardées : les descendantes et les accents tombent juste, sans cadre. Inclus un H ou quelques capitales dans le lot pour fixer l’échelle.</p>
+    <h2>Sans cadre</h2>
+    <p>L’outil prend la hauteur du H (ou du I, E, T, L) comme hauteur de capitale et met tout à la même échelle. Chaque glyphe est posé sur la ligne de base, sauf g p q y (alignés en haut sur la hauteur d’x), les guillemets (alignés sur les capitales) et les tirets (centrés). Ajuste le reste avec le décalage vertical.</p>
+    <h2>Le flux de travail</h2>
+    <ol>
+      <li>Clique sur une case, ou utilise les flèches du clavier.</li>
+      <li>Dans Illustrator, copie la lettre (⌘C / Ctrl+C), reviens ici et colle (⌘V / Ctrl+V). Tu peux aussi glisser un fichier .svg sur la zone de dessin.</li>
+      <li>L’outil passe tout seul à la case vide suivante : enchaîne copier, coller.</li>
+      <li>Règle les approches avec les tests « HH?HH » et « oo?oo », puis le crénage des paires difficiles.</li>
+      <li>Exporte : tu obtiens un .zip contenant le fichier .otf, à installer comme n’importe quelle police.</li>
+    </ol>
+    <h2>Annuler, versions</h2>
+    <p><code>⌘Z</code> / <code>Ctrl+Z</code> annule le dernier collage, effacement ou réglage, <code>⌘⇧Z</code> / <code>Ctrl+Y</code> le rétablit. L’historique vaut pour la session en cours.</p>
+    <p>Le projet s’enregistre tout seul à chaque modification. Pour garder un état auquel revenir plus tard, même dans plusieurs jours, enregistre une version avec <code>⌘S</code> / <code>Ctrl+S</code> ou depuis la fenêtre Projets (<code>⌘O</code> / <code>Ctrl+O</code>). Revenir à une version garde toujours l’état actuel en version, rien n’est perdu.</p>
+    <h2>Flèches, symboles, pictos</h2>
+    <p>Le bouton <strong>Ajouter des glyphes</strong> (ou la case + du groupe Personnalisés) ajoute des jeux entiers (flèches, maths, puces et formes, exposants, monnaies, latin étendu), n’importe quel caractère Unicode, ou un glyphe personnel sans touche au clavier pour un logo ou un picto. Ce dernier se tape depuis le panneau Glyphes d’Illustrator ou d’InDesign.</p>
+    <h2>Les accents</h2>
+    <p>Dessine une fois l’aigu, le grave, le circonflexe, le tréma et la cédille (groupe « Accents à composer »), placés au-dessus de la hauteur d’x comme sur un bas de casse. L’outil compose é è ê ë à ç… et remonte les accents des capitales de l’écart entre hauteur de capitale et hauteur d’x. Pour î et ï, dessine aussi le ı sans point. Un glyphe collé directement dans une case accentuée remplace toujours la composition.</p>
+    <h2>Après installation</h2>
+    <p>Si tu réexportes une nouvelle version, change le numéro de version ou désinstalle l’ancienne avant : les logiciels gardent souvent la police précédente en cache.</p>
+  </section>
+</main>
+<dialog id="projDlg" class="dlg" aria-labelledby="dlgTitle">
+  <div class="dlg-head">
+    <h2 id="dlgTitle">Projets</h2>
+    <div class="dacts">
+      <button class="btn" id="dlgNew">Nouveau projet</button>
+      <button class="btn quiet" id="dlgImport">Importer (.json)</button>
+      <button class="btn quiet" id="projClose" aria-label="Fermer">Fermer</button>
+    </div>
+  </div>
+  <div class="dlg-body">
+    <div id="projList" class="dlist"></div>
+    <h3 id="verTitle">Versions</h3>
+    <p class="dmeta">Tout est enregistré automatiquement. Une version fige l’état du projet pour pouvoir y revenir : par exemple avant de reprendre toutes les approches. Raccourci : <kbd class="k">⌘S</kbd> / <kbd class="k">Ctrl+S</kbd>.</p>
+    <div class="vsave">
+      <label class="sr" for="verName">Nom de la version</label>
+      <input type="text" id="verName" placeholder="Nom de la version (facultatif)">
+      <button class="btn primary" id="verSave">Enregistrer une version</button>
+    </div>
+    <div id="verList" class="dlist"></div>
+  </div>
+</dialog>
+<dialog id="batchDlg" class="dlg wide" aria-labelledby="batchTitle">
+  <div class="dlg-head">
+    <h2 id="batchTitle">Importer plusieurs glyphes</h2>
+    <div class="dacts">
+      <button class="btn quiet" id="batchClear">Vider</button>
+      <button class="btn quiet" id="batchClose">Fermer</button>
+    </div>
+  </div>
+  <div class="dlg-body">
+    <div class="bdrop" id="batchDrop" tabindex="0">
+      <div>Copie plusieurs lettres dans Illustrator et colle ici avec <kbd class="k">⌘V</kbd> / <kbd class="k">Ctrl+V</kbd>, ou glisse des fichiers .svg.</div>
+      <div class="dmeta">Les lettres alignées comme du texte gardent leur ligne de base commune. Avec la grille de l’atelier, chaque cadre donne directement son caractère.</div>
+      <button class="btn" id="batchPick">Choisir des fichiers SVG</button>
+      <input type="file" id="batchFile" accept=".svg,image/svg+xml" multiple hidden>
+    </div>
+    <p class="dmeta" id="batchInfo"></p>
+    <div class="bseq" id="batchSeqRow" hidden>
+      <label class="field">Caractères dans l’ordre de lecture (une espace = ignorer)<input type="text" id="batchSeq" spellcheck="false" autocomplete="off"></label>
+      <div class="dacts">
+        <button class="btn quiet tiny" data-seq="ABCDEFGHIJKLMNOPQRSTUVWXYZ">A–Z</button>
+        <button class="btn quiet tiny" data-seq="abcdefghijklmnopqrstuvwxyz">a–z</button>
+        <button class="btn quiet tiny" data-seq="0123456789">0–9</button>
+        <button class="btn quiet tiny" data-seq="sel">Depuis la case sélectionnée</button>
+      </div>
+    </div>
+    <label class="check" id="batchBaseRow" hidden><input type="checkbox" id="batchBase" checked><span>Garder la ligne de base et l’échelle communes à chaque ligne de lettres</span></label>
+    <div class="bcards" id="batchCards" hidden></div>
+    <p class="dmeta bhelp">Glisse une vignette sur une autre pour échanger leurs caractères.</p>
+  </div>
+  <div class="dlg-foot">
+    <span class="dmeta" id="batchSum"></span>
+    <button class="btn primary" id="batchGo" disabled>Importer</button>
+  </div>
+</dialog>
+<dialog id="addDlg" class="dlg" aria-labelledby="addTitle">
+  <div class="dlg-head">
+    <h2 id="addTitle">Ajouter des glyphes</h2>
+    <button class="btn quiet" id="addClose">Fermer</button>
+  </div>
+  <div class="dlg-body">
+    <h3>Jeux prêts à l’emploi</h3>
+    <p class="dmeta">Coche un jeu pour ajouter ses cases à la grille. Les lettres du latin étendu se composent automatiquement comme les accentuées françaises, en dessinant aussi le tilde et le rond en chef dans « Accents à composer ».</p>
+    <div id="addSets" class="sets"></div>
+    <h3>Caractères au choix</h3>
+    <p class="dmeta">Tape ou colle n’importe quels caractères, ou leurs codes Unicode (<code>U+2192</code>). Ils arrivent dans le groupe « Personnalisés ».</p>
+    <div class="vsave">
+      <label class="sr" for="addChars">Caractères à ajouter</label>
+      <input type="text" id="addChars" placeholder="➜ ✦ ❤ U+2192" spellcheck="false" autocomplete="off">
+      <button class="btn" id="addCharsBtn">Ajouter</button>
+    </div>
+    <h3>Glyphes personnels</h3>
+    <p class="dmeta">Pour un logo, un picto, une signature : un glyphe sans touche au clavier, rangé dans la zone d’usage privé d’Unicode. Après installation, tu le retrouves dans le panneau Glyphes d’Illustrator ou d’InDesign, sous son nom.</p>
+    <div class="vsave">
+      <label class="sr" for="addPua">Nom du glyphe</label>
+      <input type="text" id="addPua" placeholder="Nom, par exemple logo ou picto-maison" autocomplete="off">
+      <button class="btn" id="addPuaBtn">Créer</button>
+    </div>
+    <h3>Dans « Personnalisés »</h3>
+    <div id="customList" class="chips"></div>
+  </div>
+</dialog>
+<dialog id="exportDlg" class="dlg" aria-labelledby="expTitle">
+  <div class="dlg-head">
+    <h2 id="expTitle">Exporter</h2>
+    <button class="btn quiet" id="expClose">Fermer</button>
+  </div>
+  <div class="dlg-body xlist">
+    <div class="xrow wide">
+      <div><h3>La typo (.otf)</h3><p class="dmeta">Un .zip contenant le fichier .otf, avec le crénage.</p></div>
+      <div class="xname">
+        <label class="field">Nom de la police<input type="text" id="expFamily" autocomplete="off" spellcheck="false"></label>
+        <label class="field">Style<input type="text" id="expStyle" autocomplete="off" spellcheck="false" placeholder="Regular"></label>
+        <button class="btn primary" id="expFont">Exporter la typo</button>
+      </div>
+      <p class="dmeta" id="expFileName"></p>
+      <p class="dmeta xwin"><strong>Pour installer sous Windows :</strong> clic droit sur le .zip › <em>Extraire tout</em>, puis double-clic sur le .otf extrait › <em>Installer</em>. Ouvert directement depuis l’intérieur du .zip, Windows bloque le fichier par sécurité. Si tu installes une nouvelle version, désinstalle d’abord l’ancienne ou change le numéro de version (Réglages).</p>
+    </div>
+    <div class="xrow">
+      <div><h3>Le projet (.json)</h3><p class="dmeta">Une copie complète : glyphes, réglages, approches, crénage. À archiver, à envoyer, ou à réimporter depuis Projets.</p></div>
+      <button class="btn" id="expJson">Exporter le projet</button>
+    </div>
+    <div class="xrow wide">
+      <div><h3>La grille de dessin</h3><p class="dmeta">Une case par glyphe avec ses lignes (ascendante, capitale, x, base, descendante), un cadre aux bonnes proportions et les glyphes déjà dessinés, à ouvrir dans Illustrator. Le SVG garde trois calques séparés (Reperes, Cadres, Glyphes) et des cadres invisibles prêts pour la méthode du cadre. Le PDF convient mieux pour imprimer : son cadre y est un filet gris.</p></div>
+      <div class="gridopts">
+        <label class="field">Format<select id="gridFmt"><option value="svg">SVG, pour dessiner dans Illustrator</option><option value="pdf">PDF, pour imprimer ou archiver</option></select></label>
+        <label class="field">Échelle<select id="gridScale"><option value="1">100 % (1 pt = 1 unité)</option><option value="0.5" selected>50 %</option><option value="0.25">25 %</option></select></label>
+        <label class="check"><input type="checkbox" id="gridGlyphs" checked><span>Inclure les glyphes déjà dessinés</span></label>
+        <button class="btn" id="expGrid">Télécharger la grille</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/opentype.js/1.3.4/opentype.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+/* ===== Typo Atelier — logique cœur (sans interface) ===== */
+var Core = (function () {
+  'use strict';
+
+  /* ---------- Matrices ---------- */
+  function mul(a, b) { // a * b, format [a,b,c,d,e,f]
+    return [a[0]*b[0]+a[2]*b[1], a[1]*b[0]+a[3]*b[1], a[0]*b[2]+a[2]*b[3], a[1]*b[2]+a[3]*b[3],
+            a[0]*b[4]+a[2]*b[5]+a[4], a[1]*b[4]+a[3]*b[5]+a[5]];
+  }
+  var ID = [1,0,0,1,0,0];
+  function apply(m, x, y) { return [m[0]*x+m[2]*y+m[4], m[1]*x+m[3]*y+m[5]]; }
+  function parseTransform(s) {
+    var m = ID.slice(); if (!s) return m;
+    var re = /(matrix|translate|scale|rotate|skewX|skewY)\s*\(([^)]*)\)/g, r;
+    while ((r = re.exec(s))) {
+      var v = (r[2].match(/[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?/g) || []).map(Number), t;
+      switch (r[1]) {
+        case 'matrix': t = v.length === 6 ? v : ID; break;
+        case 'translate': t = [1,0,0,1,v[0]||0,v[1]||0]; break;
+        case 'scale': t = [v[0], 0, 0, v.length > 1 ? v[1] : v[0], 0, 0]; break;
+        case 'rotate':
+          var a = (v[0]||0) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
+          t = [c, sn, -sn, c, 0, 0];
+          if (v.length === 3) t = mul(mul([1,0,0,1,v[1],v[2]], t), [1,0,0,1,-v[1],-v[2]]);
+          break;
+        case 'skewX': t = [1,0,Math.tan((v[0]||0)*Math.PI/180),1,0,0]; break;
+        case 'skewY': t = [1,Math.tan((v[0]||0)*Math.PI/180),0,1,0,0]; break;
+      }
+      m = mul(m, t);
+    }
+    return m;
+  }
+
+  /* ---------- Parseur de tracés SVG -> commandes absolues M L C Z ---------- */
+  function tokenize(d) {
+    var out = [], i = 0, n = d.length;
+    while (i < n) {
+      var ch = d[i];
+      if (/[MmLlHhVvCcSsQqTtAaZz]/.test(ch)) { out.push(ch); i++; continue; }
+      if (/[\s,]/.test(ch)) { i++; continue; }
+      var m = /^[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?/.exec(d.slice(i, i + 40));
+      if (!m) { i++; continue; }
+      out.push(m[0]); i += m[0].length;
+    }
+    return out;
+  }
+  function arcToCubics(x1, y1, rx, ry, phi, fa, fs, x2, y2) {
+    if (rx === 0 || ry === 0) return [[x1, y1, x2, y2, x2, y2]];
+    var sinP = Math.sin(phi), cosP = Math.cos(phi);
+    var dx = (x1 - x2) / 2, dy = (y1 - y2) / 2;
+    var x1p = cosP*dx + sinP*dy, y1p = -sinP*dx + cosP*dy;
+    rx = Math.abs(rx); ry = Math.abs(ry);
+    var lam = x1p*x1p/(rx*rx) + y1p*y1p/(ry*ry);
+    if (lam > 1) { var s = Math.sqrt(lam); rx *= s; ry *= s; }
+    var num = rx*rx*ry*ry - rx*rx*y1p*y1p - ry*ry*x1p*x1p;
+    var den = rx*rx*y1p*y1p + ry*ry*x1p*x1p;
+    var co = Math.sqrt(Math.max(0, num / den)) * (fa === fs ? -1 : 1);
+    var cxp = co * rx * y1p / ry, cyp = -co * ry * x1p / rx;
+    var cx = cosP*cxp - sinP*cyp + (x1 + x2)/2, cy = sinP*cxp + cosP*cyp + (y1 + y2)/2;
+    function ang(ux, uy, vx, vy) {
+      var a = Math.atan2(ux*vy - uy*vx, ux*vx + uy*vy); return a;
+    }
+    var t1 = ang(1, 0, (x1p - cxp)/rx, (y1p - cyp)/ry);
+    var dt = ang((x1p - cxp)/rx, (y1p - cyp)/ry, (-x1p - cxp)/rx, (-y1p - cyp)/ry);
+    if (!fs && dt > 0) dt -= 2*Math.PI; else if (fs && dt < 0) dt += 2*Math.PI;
+    var segs = Math.ceil(Math.abs(dt) / (Math.PI/2)) || 1, d = dt / segs, res = [];
+    var k = 4/3 * Math.tan(d/4);
+    for (var i = 0; i < segs; i++) {
+      var a1 = t1 + i*d, a2 = a1 + d;
+      var p = [[Math.cos(a1) - k*Math.sin(a1), Math.sin(a1) + k*Math.cos(a1)],
+               [Math.cos(a2) + k*Math.sin(a2), Math.sin(a2) - k*Math.cos(a2)],
+               [Math.cos(a2), Math.sin(a2)]];
+      var q = p.map(function (pt) {
+        var X = pt[0]*rx, Y = pt[1]*ry;
+        return [cosP*X - sinP*Y + cx, sinP*X + cosP*Y + cy];
+      });
+      res.push([q[0][0], q[0][1], q[1][0], q[1][1], q[2][0], q[2][1]]);
+    }
+    return res;
+  }
+  // Renvoie une liste de contours ; chaque contour = [['M',x,y],['L',x,y],['C',...6],...] fermé implicitement
+  function parsePath(d) {
+    var t = tokenize(d || ''), i = 0, cmd = null, contours = [], cur = null;
+    var x = 0, y = 0, sx = 0, sy = 0, lcx = null, lcy = null, lqx = null, lqy = null;
+    function num() { return parseFloat(t[i++]); }
+    function flag() { // les drapeaux d'arc peuvent être collés : "0110"
+      var tok = t[i];
+      if (tok === '0' || tok === '1') { i++; return +tok; }
+      var c = tok[0]; t[i] = tok.slice(1); if (t[i] === '') i++;
+      return +c;
+    }
+    function start(nx, ny) { cur = [['M', nx, ny]]; contours.push(cur); x = sx = nx; y = sy = ny; }
+    function ensure() { if (!cur) start(x, y); }
+    while (i < t.length) {
+      if (/^[A-Za-z]$/.test(t[i])) cmd = t[i++];
+      else if (!cmd) { i++; continue; }
+      var rel = cmd === cmd.toLowerCase(), C = cmd.toUpperCase();
+      var ox = rel ? x : 0, oy = rel ? y : 0, prevC = C;
+      switch (C) {
+        case 'M':
+          start(num() + ox, num() + oy); cmd = rel ? 'l' : 'L'; lcx = lqx = null; continue;
+        case 'L': ensure(); x = num() + ox; y = num() + oy; cur.push(['L', x, y]); break;
+        case 'H': ensure(); x = num() + (rel ? x : 0); cur.push(['L', x, y]); break;
+        case 'V': ensure(); y = num() + (rel ? y : 0); cur.push(['L', x, y]); break;
+        case 'C': ensure();
+          var c1x = num()+ox, c1y = num()+oy, c2x = num()+ox, c2y = num()+oy, ex = num()+ox, ey = num()+oy;
+          cur.push(['C', c1x, c1y, c2x, c2y, ex, ey]); lcx = c2x; lcy = c2y; x = ex; y = ey; break;
+        case 'S': ensure();
+          var r1x = lcx !== null ? 2*x - lcx : x, r1y = lcy !== null ? 2*y - lcy : y;
+          var s2x = num()+ox, s2y = num()+oy, sex = num()+ox, sey = num()+oy;
+          cur.push(['C', r1x, r1y, s2x, s2y, sex, sey]); lcx = s2x; lcy = s2y; x = sex; y = sey; break;
+        case 'Q': case 'T': ensure();
+          var qx, qy;
+          if (C === 'Q') { qx = num()+ox; qy = num()+oy; }
+          else { qx = lqx !== null ? 2*x - lqx : x; qy = lqy !== null ? 2*y - lqy : y; }
+          var qex = num()+ox, qey = num()+oy;
+          cur.push(['C', x + 2/3*(qx-x), y + 2/3*(qy-y), qex + 2/3*(qx-qex), qey + 2/3*(qy-qey), qex, qey]);
+          lqx = qx; lqy = qy; x = qex; y = qey; break;
+        case 'A': ensure();
+          var rx = num(), ry = num(), rot = num(), fa = flag(), fs = flag(), aex = num()+ox, aey = num()+oy;
+          arcToCubics(x, y, rx, ry, rot*Math.PI/180, fa, fs, aex, aey).forEach(function (c) { cur.push(['C'].concat(c)); });
+          x = aex; y = aey; break;
+        case 'Z':
+          x = sx; y = sy; cur = null; lcx = lqx = null; continue;
+        default: i++; continue;
+      }
+      if (C !== 'C' && C !== 'S') { lcx = lcy = null; }
+      if (C !== 'Q' && C !== 'T') { lqx = lqy = null; }
+      if (isNaN(x) || isNaN(y)) break;
+    }
+    return contours.filter(function (c) { return c.length > 2 || (c.length === 2 && c[1][0] === 'C'); });
+  }
+
+  /* ---------- Formes de base -> d ---------- */
+  function A(el, n) { var v = parseFloat(el.getAttribute(n)); return isNaN(v) ? 0 : v; }
+  function shapeToD(el) {
+    var tag = el.tagName.toLowerCase().replace(/^.*:/, '');
+    if (tag === 'path') return el.getAttribute('d') || '';
+    if (tag === 'rect') {
+      var x = A(el,'x'), y = A(el,'y'), w = A(el,'width'), h = A(el,'height');
+      var rx = el.hasAttribute('rx') ? A(el,'rx') : (el.hasAttribute('ry') ? A(el,'ry') : 0);
+      var ry = el.hasAttribute('ry') ? A(el,'ry') : rx;
+      rx = Math.min(rx, w/2); ry = Math.min(ry, h/2);
+      if (!rx || !ry) return 'M'+x+' '+y+'H'+(x+w)+'V'+(y+h)+'H'+x+'Z';
+      return 'M'+(x+rx)+' '+y+'H'+(x+w-rx)+'A'+rx+' '+ry+' 0 0 1 '+(x+w)+' '+(y+ry)+'V'+(y+h-ry)+
+        'A'+rx+' '+ry+' 0 0 1 '+(x+w-rx)+' '+(y+h)+'H'+(x+rx)+'A'+rx+' '+ry+' 0 0 1 '+x+' '+(y+h-ry)+
+        'V'+(y+ry)+'A'+rx+' '+ry+' 0 0 1 '+(x+rx)+' '+y+'Z';
+    }
+    if (tag === 'circle' || tag === 'ellipse') {
+      var cx = A(el,'cx'), cy = A(el,'cy');
+      var erx = tag === 'circle' ? A(el,'r') : A(el,'rx'), ery = tag === 'circle' ? A(el,'r') : A(el,'ry');
+      return 'M'+(cx-erx)+' '+cy+'A'+erx+' '+ery+' 0 1 0 '+(cx+erx)+' '+cy+'A'+erx+' '+ery+' 0 1 0 '+(cx-erx)+' '+cy+'Z';
+    }
+    if (tag === 'polygon' || tag === 'polyline') {
+      var pts = (el.getAttribute('points') || '').match(/[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?/g) || [];
+      if (pts.length < 4) return '';
+      var s = 'M' + pts[0] + ' ' + pts[1];
+      for (var k = 2; k + 1 < pts.length; k += 2) s += 'L' + pts[k] + ' ' + pts[k+1];
+      return s + 'Z';
+    }
+    return '';
+  }
+
+  /* ---------- Styles (classes Illustrator, attributs, style inline) ---------- */
+  function parseCss(text) {
+    var rules = [], re = /([^{}]+)\{([^}]*)\}/g, m;
+    while ((m = re.exec(text || ''))) {
+      var decl = parseDecl(m[2]);
+      m[1].split(',').forEach(function (sel) { rules.push({ sel: sel.trim(), decl: decl }); });
+    }
+    return rules;
+  }
+  function parseDecl(s) {
+    var o = {};
+    (s || '').split(';').forEach(function (p) {
+      var k = p.indexOf(':'); if (k < 0) return;
+      o[p.slice(0, k).trim().toLowerCase()] = p.slice(k + 1).trim();
+    });
+    return o;
+  }
+  function matches(el, sel) {
+    if (!sel) return false;
+    var tag = el.tagName.toLowerCase(), cls = (el.getAttribute('class') || '').split(/\s+/), id = el.getAttribute('id');
+    var parts = sel.match(/^([a-zA-Z]*)((?:[.#][\w-]+)*)$/); if (!parts) return false;
+    if (parts[1] && parts[1].toLowerCase() !== tag) return false;
+    var bits = parts[2].match(/[.#][\w-]+/g) || [];
+    return bits.every(function (b) { return b[0] === '.' ? cls.indexOf(b.slice(1)) >= 0 : id === b.slice(1); });
+  }
+  var PROPS = ['fill', 'stroke', 'fill-rule', 'display', 'visibility', 'opacity', 'fill-opacity'];
+  function computeStyle(el, parent, rules) {
+    var s = Object.assign({}, parent);
+    s.opacity = '1'; // l'opacité ne s'hérite pas (on la multiplie à part)
+    PROPS.forEach(function (p) { if (el.hasAttribute(p)) s[p] = el.getAttribute(p); });
+    rules.forEach(function (r) { if (matches(el, r.sel)) PROPS.forEach(function (p) { if (r.decl[p] != null) s[p] = r.decl[p]; }); });
+    var inl = parseDecl(el.getAttribute('style'));
+    PROPS.forEach(function (p) { if (inl[p] != null) s[p] = inl[p]; });
+    s._op = (parent._op == null ? 1 : parent._op) * parseFloat(s.opacity || '1');
+    return s;
+  }
+  function isWhite(c) {
+    c = (c || '').replace(/\s/g, '').toLowerCase();
+    return c === '#fff' || c === '#ffffff' || c === 'white' || c === 'rgb(255,255,255)';
+  }
+  // Les repères de la grille exportée (magenta #FF2D8A) sont ignorés sans avertissement
+  function isGuide(c) { return (c || '').replace(/\s/g, '').toLowerCase() === '#ff2d8a'; }
+  function isNone(c) { c = (c || '').trim().toLowerCase(); return c === 'none' || c === 'transparent'; }
+
+  /* ---------- Géométrie ---------- */
+  function flatten(contour, steps) {
+    steps = steps || 8; var pts = [], x = 0, y = 0;
+    contour.forEach(function (c) {
+      if (c[0] === 'M' || c[0] === 'L') { x = c[1]; y = c[2]; pts.push([x, y]); }
+      else if (c[0] === 'C') {
+        for (var k = 1; k <= steps; k++) {
+          var t = k / steps, u = 1 - t;
+          pts.push([u*u*u*x + 3*u*u*t*c[1] + 3*u*t*t*c[3] + t*t*t*c[5], u*u*u*y + 3*u*u*t*c[2] + 3*u*t*t*c[4] + t*t*t*c[6]]);
+        }
+        x = c[5]; y = c[6];
+      }
+    });
+    return pts;
+  }
+  function area(poly) {
+    var a = 0; for (var i = 0, n = poly.length; i < n; i++) { var p = poly[i], q = poly[(i+1)%n]; a += p[0]*q[1] - q[0]*p[1]; }
+    return a / 2;
+  }
+  function inside(pt, poly) {
+    var c = false;
+    for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      var a = poly[i], b = poly[j];
+      if ((a[1] > pt[1]) !== (b[1] > pt[1]) && pt[0] < (b[0]-a[0]) * (pt[1]-a[1]) / (b[1]-a[1]) + a[0]) c = !c;
+    }
+    return c;
+  }
+  function reverse(contour) {
+    // points de passage, puis on reconstruit à l'envers
+    var segs = [], x = contour[0][1], y = contour[0][2], start = [x, y];
+    for (var i = 1; i < contour.length; i++) {
+      var c = contour[i];
+      if (c[0] === 'L') { segs.push({ t: 'L', a: [x, y], b: [c[1], c[2]] }); x = c[1]; y = c[2]; }
+      else { segs.push({ t: 'C', a: [x, y], c1: [c[1], c[2]], c2: [c[3], c[4]], b: [c[5], c[6]] }); x = c[5]; y = c[6]; }
+    }
+    if (Math.abs(x - start[0]) > 1e-6 || Math.abs(y - start[1]) > 1e-6) segs.push({ t: 'L', a: [x, y], b: start });
+    var out = [['M', start[0], start[1]]];
+    for (var k = segs.length - 1; k >= 0; k--) {
+      var s = segs[k];
+      if (s.t === 'L') out.push(['L', s.a[0], s.a[1]]);
+      else out.push(['C', s.c2[0], s.c2[1], s.c1[0], s.c1[1], s.a[0], s.a[1]]);
+    }
+    // supprime un éventuel dernier segment nul qui revient au départ
+    var last = out[out.length - 1];
+    if (last[0] === 'L' && Math.abs(last[1] - start[0]) < 1e-6 && Math.abs(last[2] - start[1]) < 1e-6) out.pop();
+    return out;
+  }
+  function transformContour(contour, m) {
+    return contour.map(function (c) {
+      var o = [c[0]];
+      for (var k = 1; k < c.length; k += 2) { var p = apply(m, c[k], c[k+1]); o.push(p[0], p[1]); }
+      return o;
+    });
+  }
+  // Repère source (y vers le bas) : un contour "plein" a une aire négative avec notre formule
+  // (= sens anti-horaire une fois Y retourné, convention PostScript/CFF).
+  function orientElement(contours, evenodd, cutout) {
+    var polys = contours.map(function (c) { return flatten(c); });
+    var out;
+    if (evenodd) {
+      out = contours.map(function (c, i) {
+        var depth = 0, probe = polys[i][0];
+        polys.forEach(function (p, j) { if (j !== i && inside(probe, p)) depth++; });
+        var wantFilled = depth % 2 === 0, a = area(polys[i]);
+        var isFilledDir = a < 0;
+        return wantFilled === isFilledDir ? c : reverse(c);
+      });
+    } else {
+      var big = 0, bi = 0;
+      polys.forEach(function (p, i) { var a = Math.abs(area(p)); if (a > big) { big = a; bi = i; } });
+      var flip = area(polys[bi]) > 0;
+      out = flip ? contours.map(reverse) : contours.slice();
+    }
+    if (cutout) out = out.map(reverse);
+    return out;
+  }
+
+  /* ---------- Lecture d'un collage Illustrator ---------- */
+  var SKIP = { defs:1, clippath:1, mask:1, symbol:1, title:1, desc:1, style:1, metadata:1, pattern:1,
+               lineargradient:1, radialgradient:1, filter:1, marker:1 };
+  function extractSvgText(text) {
+    if (!text) return null;
+    var a = text.indexOf('<svg'); if (a < 0) return null;
+    var b = text.lastIndexOf('</svg>'); if (b < 0) return null;
+    return text.slice(a, b + 6);
+  }
+  function readSvg(svgText, DOMParserImpl) {
+    var P = DOMParserImpl || DOMParser;
+    var doc = new P().parseFromString(svgText, 'image/svg+xml');
+    var root = doc.documentElement;
+    if (!root || root.tagName.toLowerCase() !== 'svg' || doc.getElementsByTagName('parsererror').length) {
+      throw new Error('Le contenu collé n’est pas un SVG lisible.');
+    }
+    var rules = [];
+    Array.prototype.forEach.call(doc.getElementsByTagName('style'), function (st) { rules = rules.concat(parseCss(st.textContent)); });
+    var shapes = [], frames = [], warnings = {};
+    function warn(k) { warnings[k] = true; }
+    function walk(el, m, style) {
+      Array.prototype.forEach.call(el.children || el.childNodes, function (ch) {
+        if (ch.nodeType !== 1) return;
+        var tag = ch.tagName.toLowerCase().replace(/^.*:/, '');
+        if (SKIP[tag]) return;
+        var st = computeStyle(ch, style, rules);
+        if ((st.display || '').trim() === 'none' || (st.visibility || '').trim() === 'hidden') return;
+        var mm = mul(m, parseTransform(ch.getAttribute('transform')));
+        if (tag === 'g' || tag === 'a' || tag === 'switch') return walk(ch, mm, st);
+        if (tag === 'svg') { // svg imbriqué : on applique x/y
+          return walk(ch, mul(mm, [1,0,0,1,A(ch,'x'),A(ch,'y')]), st);
+        }
+        if (tag === 'text') { if (!isGuide(st.fill)) warn('text'); return; }
+        if (tag === 'image') return warn('image');
+        if (tag === 'use') return warn('use');
+        if (tag === 'line') { if (!isGuide(st.stroke)) warn('stroke'); return; }
+        var d = shapeToD(ch); if (!d) return;
+        var noFill = isNone(st.fill) || parseFloat(st['fill-opacity'] || '1') === 0 || st._op === 0;
+        var noStroke = !st.stroke || isNone(st.stroke);
+        var contours = parsePath(d).map(function (c) { return transformContour(c, mm); });
+        if (noFill) {
+          if (tag === 'rect' && noStroke && contours.length) frames.push({ c: contours[0], id: ch.getAttribute('id') || ch.getAttribute('data-name') || '' });
+          else if (!noStroke && !isGuide(st.stroke)) warn('stroke');
+          return;
+        }
+        if (!contours.length) return;
+        if (!noStroke) warn('strokeAndFill');
+        shapes.push({ contours: contours, evenodd: (st['fill-rule'] || '').trim() === 'evenodd', cutout: isWhite(st.fill) });
+      });
+    }
+    var rootStyle = computeStyle(root, { fill: '#000', stroke: 'none', 'fill-rule': 'nonzero', _op: 1 }, rules);
+    walk(root, parseTransform(root.getAttribute('transform')), rootStyle);
+
+    var contours = [];
+    shapes.forEach(function (s) { contours = contours.concat(orientElement(s.contours, s.evenodd, s.cutout)); });
+    if (shapes.some(function (s) { return s.cutout; })) warn('cutout');
+    var frame = null;
+    if (frames.length) {
+      frames.forEach(function (f) {
+        var b = bboxOf([f.c]); var ar = (b.x1-b.x0)*(b.y1-b.y0);
+        if (!frame || ar > frame._a) frame = { x: b.x0, y: b.y0, w: b.x1-b.x0, h: b.y1-b.y0, _a: ar };
+      });
+      delete frame._a;
+      if (!(frame.h > 0)) frame = null;
+    }
+    contours = contours.map(function (c) { return c.map(function (cmd) {
+      return [cmd[0]].concat(cmd.slice(1).map(function (v) { return Math.round(v * 1000) / 1000; }));
+    }); });
+    var allFrames = frames.map(function (f) { var b = bboxOf([f.c]); return { x: b.x0, y: b.y0, w: b.x1 - b.x0, h: b.y1 - b.y0, id: f.id }; })
+      .filter(function (f) { return f.h > 0 && f.w > 0; });
+    return { contours: contours, bbox: contours.length ? bboxOf(contours) : null, frame: frame, frames: allFrames, warnings: Object.keys(warnings) };
+  }
+
+  function bboxOf(contours) {
+    var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    contours.forEach(function (c) { flatten(c, 12).forEach(function (p) {
+      if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0]; if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1];
+    }); });
+    return { x0: x0, y0: y0, x1: x1, y1: y1 };
+  }
+
+  /* ---------- Découpage d'un collage en plusieurs glyphes ---------- */
+  function splitGlyphs(r) {
+    var items = r.contours.map(function (c) { return { c: c, b: bboxOf([c]) }; });
+    if (r.frames && r.frames.length >= 2) {
+      var slots = r.frames.map(function (f) { return { frame: { x: f.x, y: f.y, w: f.w, h: f.h }, id: f.id, contours: [] }; });
+      var stray = 0;
+      items.forEach(function (it) {
+        var cx = (it.b.x0 + it.b.x1) / 2, cy = (it.b.y0 + it.b.y1) / 2, best = null;
+        slots.forEach(function (o) {
+          var f = o.frame;
+          if (cx >= f.x && cx <= f.x + f.w && cy >= f.y && cy <= f.y + f.h && (!best || f.w * f.h < best.frame.w * best.frame.h)) best = o;
+        });
+        if (best) best.contours.push(it.c); else stray++;
+      });
+      var out = slots.filter(function (o) { return o.contours.length; }).map(function (o) {
+        return { contours: o.contours, bbox: bboxOf(o.contours), frame: o.frame, id: o.id, row: 0 };
+      });
+      var hs = out.map(function (o) { return o.frame.h; }).sort(function (a, b) { return a - b; }), mh = hs[Math.floor(hs.length / 2)] || 1;
+      out.sort(function (a, b) { return Math.round(a.frame.y / (mh * .5)) - Math.round(b.frame.y / (mh * .5)) || a.frame.x - b.frame.x; });
+      return { glyphs: out, stray: stray, mode: 'frames' };
+    }
+    // Sans cadres : on regroupe les contours qui se chevauchent horizontalement et sont proches verticalement
+    var n = items.length, parent = items.map(function (_, i) { return i; });
+    function find(i) { while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; }
+    for (var i = 0; i < n; i++) for (var j = i + 1; j < n; j++) {
+      var a = items[i].b, b = items[j].b;
+      var wa = a.x1 - a.x0, wb = b.x1 - b.x0, ha = a.y1 - a.y0, hb = b.y1 - b.y0;
+      var ox = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+      var gapY = Math.max(a.y0, b.y0) - Math.min(a.y1, b.y1);
+      if (ox > 0.1 * Math.min(wa, wb) && gapY < 0.6 * Math.max(ha, hb)) parent[find(i)] = find(j);
+    }
+    var groups = {};
+    items.forEach(function (it, i) { var k = find(i); (groups[k] = groups[k] || []).push(it.c); });
+    var gl = Object.keys(groups).map(function (k) { var cs = groups[k]; return { contours: cs, bbox: bboxOf(cs), frame: null, id: '' }; });
+    gl.sort(function (a, b) { return a.bbox.y0 - b.bbox.y0; });
+    var rows = [];
+    gl.forEach(function (g) {
+      var h = g.bbox.y1 - g.bbox.y0, row = null;
+      rows.forEach(function (r) {
+        var ov = Math.min(r.y1, g.bbox.y1) - Math.max(r.y0, g.bbox.y0);
+        if (!row && ov >= 0.4 * Math.min(h, r.y1 - r.y0)) row = r;
+      });
+      if (!row) { row = { y0: g.bbox.y0, y1: g.bbox.y1, items: [] }; rows.push(row); }
+      row.y0 = Math.min(row.y0, g.bbox.y0); row.y1 = Math.max(row.y1, g.bbox.y1); row.items.push(g);
+    });
+    rows.sort(function (a, b) { return a.y0 - b.y0; });
+    var res = [];
+    rows.forEach(function (r, ri) {
+      r.items.sort(function (a, b) { return a.bbox.x0 - b.bbox.x0; });
+      r.items.forEach(function (g) { g.row = ri; g.rowBand = { y0: r.y0, y1: r.y1 }; g.rowSize = r.items.length; res.push(g); });
+    });
+    return { glyphs: res, stray: 0, mode: 'clusters' };
+  }
+  // "cadre_A", "cadre_uni00E9", "A.svg", "U+00E9", "zero" -> caractère
+  function charFromName(name) {
+    if (!name) return '';
+    var s = String(name).replace(/\.svg$/i, '').replace(/^cadre_/i, '').replace(/(?:[-_]\d+_?)$/, '');
+    if (Array.from(s).length === 1) return s;
+    var m = /^(?:uni|u\+?|U\+?)([0-9A-Fa-f]{4,6})$/.exec(s);
+    if (m) return String.fromCodePoint(parseInt(m[1], 16));
+    var dn = DIGIT_NAMES.indexOf(s.toLowerCase());
+    if (dn >= 0) return String(dn);
+    return '';
+  }
+
+  /* ---------- Jeu de caractères ---------- */
+  var ACC = { grave: 0x60, acute: 0xB4, circ: 0x2C6, dier: 0xA8, ced: 0xB8, tilde: 0x2DC, ring: 0x2DA };
+  var COMPOSE = {
+    'à':['a','grave'],'â':['a','circ'],'ä':['a','dier'],'é':['e','acute'],'è':['e','grave'],'ê':['e','circ'],'ë':['e','dier'],
+    'î':['ı','circ'],'ï':['ı','dier'],'ô':['o','circ'],'ö':['o','dier'],'ù':['u','grave'],'û':['u','circ'],'ü':['u','dier'],
+    'ÿ':['y','dier'],'ç':['c','ced'],
+    'À':['A','grave'],'Â':['A','circ'],'Ä':['A','dier'],'É':['E','acute'],'È':['E','grave'],'Ê':['E','circ'],'Ë':['E','dier'],
+    'Î':['I','circ'],'Ï':['I','dier'],'Ô':['O','circ'],'Ö':['O','dier'],'Ù':['U','grave'],'Û':['U','circ'],'Ü':['U','dier'],
+    'Ÿ':['Y','dier'],'Ç':['C','ced'],
+    'á':['a','acute'],'í':['ı','acute'],'ó':['o','acute'],'ú':['u','acute'],'ý':['y','acute'],'ì':['ı','grave'],'ò':['o','grave'],
+    'ñ':['n','tilde'],'ã':['a','tilde'],'õ':['o','tilde'],'å':['a','ring'],
+    'Á':['A','acute'],'Í':['I','acute'],'Ó':['O','acute'],'Ú':['U','acute'],'Ý':['Y','acute'],'Ì':['I','grave'],'Ò':['O','grave'],
+    'Ñ':['N','tilde'],'Ã':['A','tilde'],'Õ':['O','tilde'],'Å':['A','ring']
+  };
+  var GROUPS = [
+    { id: 'upper', label: 'Capitales', chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' },
+    { id: 'lower', label: 'Bas de casse', chars: 'abcdefghijklmnopqrstuvwxyz' },
+    { id: 'digits', label: 'Chiffres', chars: '0123456789' },
+    { id: 'punct', label: 'Ponctuation', chars: '.,;:!?…\'’‘"“”«»-–—()[]{}/\\&@#%*+=<>_|' },
+    { id: 'symbols', label: 'Symboles', chars: '€$£¢°§©®™^~' },
+    { id: 'marks', label: 'Accents à composer', chars: '`´ˆ¨¸˜˚ı' },
+    { id: 'accLower', label: 'Accentuées bas de casse', chars: 'àâäéèêëîïôöùûüÿçœæ' },
+    { id: 'accUpper', label: 'Accentuées capitales', chars: 'ÀÂÄÉÈÊËÎÏÔÖÙÛÜŸÇŒÆ' }
+  ];
+  // Jeux supplémentaires, activables par projet
+  var EXTRA_GROUPS = [
+    { id: 'latin', label: 'Latin étendu', chars: 'áíóúýìòñãõåøßðþÁÍÓÚÝÌÒÑÃÕÅØÐÞ' },
+    { id: 'punct2', label: 'Ponctuation supplémentaire', chars: '¡¿‹›‚„†‡¶·•' },
+    { id: 'arrows', label: 'Flèches', chars: '←↑→↓↔↕↖↗↘↙⇐⇑⇒⇓⇔↩↪↺↻' },
+    { id: 'math', label: 'Maths', chars: '±×÷≠≈≤≥∞√∑∏∂∆µπ∫‰¬' },
+    { id: 'numbers', label: 'Exposants et fractions', chars: '¹²³⁰⁴⁵⁶⁷⁸⁹½¼¾⅓⅔ºª' },
+    { id: 'currency', label: 'Monnaies', chars: '¥₩₹₽₿₺¤' },
+    { id: 'shapes', label: 'Puces et formes', chars: '■□▪▫▲△▶▷▼▽◀◁●○◆◇◦★☆♥♡♦♣♠✓✔✗✘' }
+  ];
+  function isPUA(ch) { var c = ch.codePointAt(0); return c >= 0xE000 && c <= 0xF8FF; }
+  function groupsFor(project) {
+    var list = GROUPS.slice(), ex = (project && project.extraGroups) || [];
+    EXTRA_GROUPS.forEach(function (g) { if (ex.indexOf(g.id) >= 0) list.push(g); });
+    var cust = (project && project.customChars) || [];
+    if (cust.length) list.push({ id: 'custom', label: 'Personnalisés', chars: cust.join(''), custom: true });
+    return list;
+  }
+  function charsFor(project) {
+    var seen = {}, out = [];
+    groupsFor(project).forEach(function (g) { Array.from(g.chars).forEach(function (ch) { if (!seen[ch]) { seen[ch] = 1; out.push(ch); } }); });
+    return out;
+  }
+  function displayName(ch, project) {
+    var n = project && project.customNames && project.customNames[ch];
+    return n || ch;
+  }
+  function keyOf(ch) { return 'u' + ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0'); }
+  function defaultAnchor(ch) {
+    if ('gpqy'.indexOf(ch) >= 0) return 'x';
+    if ('\'’‘"“”^°*™'.indexOf(ch) >= 0) return 'cap';
+    if ('-–—~=+<>±×÷≠≈≤≥¬←↑→↓↔↕↖↗↘↙⇐⇑⇒⇓⇔'.indexOf(ch) >= 0) return 'mid';
+    if ('¹²³⁰⁴⁵⁶⁷⁸⁹ºª'.indexOf(ch) >= 0) return 'cap';
+    if ('`´ˆ¨˜˚'.indexOf(ch) >= 0) return 'accent';
+    if (ch === '¸') return 'cedilla';
+    return 'base';
+  }
+
+  /* ---------- Placement dans l'em (normalisation) ---------- */
+  // Échelle commune (unités de fonte par point Illustrator). Ordre de confiance :
+  // valeur manuelle > H, I, E, T, L sans cadre > estimation sur les lettres sans cadre > glyphes placés par cadre.
+  var CAP_SET = 'ABDEFHIKLMNPRTUVWXYZ', X_SET = 'aemnruvwxz';
+  function med(a) { a = a.slice().sort(function (x, y) { return x - y; }); return a[Math.floor(a.length / 2)]; }
+  function charOfKey(k) { return String.fromCodePoint(parseInt(k.slice(1), 16)); }
+  function autoReference(project, glyphs) {
+    var M = project.metrics;
+    if (project.auto && project.auto.refPt > 0) return { pt: project.auto.refPt, units: M.cap, source: 'manual' };
+    var refs = ['H', 'I', 'E', 'T', 'L'];
+    for (var i = 0; i < refs.length; i++) {
+      var g = glyphs[keyOf(refs[i])];
+      if (g && g.bbox && !g.frame) return { pt: g.bbox.y1 - g.bbox.y0, units: M.cap, source: refs[i] };
+    }
+    var ratios = [];
+    Object.keys(glyphs).forEach(function (k) {
+      var gg = glyphs[k]; if (!gg || !gg.bbox || gg.frame) return;
+      var ch = charOfKey(k), h = gg.bbox.y1 - gg.bbox.y0; if (!(h > 0)) return;
+      if (CAP_SET.indexOf(ch) >= 0) ratios.push(M.cap / h);
+      else if (X_SET.indexOf(ch) >= 0) ratios.push(M.x / h);
+    });
+    if (ratios.length) { var r = med(ratios); return { pt: M.cap / r, units: M.cap, source: 'estimate', count: ratios.length }; }
+    var fr = [];
+    Object.keys(glyphs).forEach(function (k) { var gg = glyphs[k]; if (gg && gg.frame && gg.frame.h > 0) fr.push((M.asc - M.desc) / gg.frame.h); });
+    if (fr.length) { var rf = med(fr); return { pt: M.cap / rf, units: M.cap, source: 'frames', count: fr.length }; }
+    return null;
+  }
+  // Renvoie {contours (unités de fonte, Y vers le haut), advance, bbox} ou null
+  function place(project, glyphs, ch, ref) {
+    var g = glyphs[keyOf(ch)];
+    if (!g || !g.contours || !g.contours.length) return null;
+    var M = project.metrics, sp = project.spacing, b = g.bbox;
+    var lsb = g.lsb != null ? g.lsb : sp.lsb, rsb = g.rsb != null ? g.rsb : sp.rsb, dy = g.dy || 0;
+    var s, ox, oy, adv, fixedWidth = false;
+    if (g.frame) {
+      s = (M.asc - M.desc) / g.frame.h;
+      if (project.options.useFrameWidth && !g.frame.synthetic) { ox = g.frame.x; adv = g.frame.w * s; fixedWidth = true; }
+      else { ox = b.x0; }
+      oy = function (y) { return M.asc - (y - g.frame.y) * s + dy; };
+    } else {
+      ref = ref || autoReference(project, glyphs);
+      s = ref ? ref.units / ref.pt : ((X_SET.indexOf(ch) >= 0 ? M.x : M.cap) / (b.y1 - b.y0)); // sans référence : échelle provisoire
+      ox = b.x0;
+      var anchor = g.anchor || defaultAnchor(ch), h = (b.y1 - b.y0) * s, top;
+      if (anchor === 'x') top = M.x;
+      else if (anchor === 'cap') top = M.cap;
+      else if (anchor === 'mid') top = M.x / 2 + h / 2;
+      else if (anchor === 'accent') top = M.x + Math.round(M.x * 0.12) + h;
+      else if (anchor === 'cedilla') top = 10;
+      else top = h; // ligne de base
+      oy = function (y) { return top - (y - b.y0) * s + dy; };
+    }
+    var dx = fixedWidth ? 0 : lsb;
+    var contours = g.contours.map(function (c) { return c.map(function (cmd) {
+      var o = [cmd[0]];
+      for (var k = 1; k < cmd.length; k += 2) o.push((cmd[k] - ox) * s + dx, oy(cmd[k+1]));
+      return o;
+    }); });
+    if (!fixedWidth) adv = (b.x1 - b.x0) * s + lsb + rsb;
+    return { contours: contours, advance: Math.max(0, Math.round(adv)), bbox: bboxOf(contours), composed: false };
+  }
+  function placeOrCompose(project, glyphs, ch, ref) {
+    var p = place(project, glyphs, ch, ref);
+    if (p || !project.options.composeAccents || !COMPOSE[ch]) return p;
+    var base = place(project, glyphs, COMPOSE[ch][0], ref);
+    var markCh = String.fromCodePoint(ACC[COMPOSE[ch][1]]);
+    var mark = place(project, glyphs, markCh, ref);
+    if (!base && COMPOSE[ch][0] === 'ı') { // ı absent : on tente le i sans point impossible -> on abandonne
+      return null;
+    }
+    if (!base || !mark) return null;
+    var isCap = ch !== ch.toLowerCase();
+    var dx = (base.bbox.x0 + base.bbox.x1) / 2 - (mark.bbox.x0 + mark.bbox.x1) / 2;
+    var dy = (isCap && COMPOSE[ch][1] !== 'ced') ? project.metrics.cap - project.metrics.x : 0;
+    var moved = mark.contours.map(function (c) { return c.map(function (cmd) {
+      var o = [cmd[0]]; for (var k = 1; k < cmd.length; k += 2) o.push(cmd[k] + dx, cmd[k+1] + dy); return o;
+    }); });
+    var contours = base.contours.concat(moved);
+    return { contours: contours, advance: base.advance, bbox: bboxOf(contours), composed: true };
+  }
+
+  /* ---------- Construction de la fonte ---------- */
+  var DIGIT_NAMES = ['zero','one','two','three','four','five','six','seven','eight','nine'];
+  function glyphName(ch, project) {
+    var cn = project && project.customNames && project.customNames[ch];
+    if (cn) {
+      var n = String(cn).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9_.]+/g, '_').replace(/^[0-9._]+/, '');
+      if (n) return n.slice(0, 50) + '.' + ch.codePointAt(0).toString(16).toUpperCase();
+    }
+    if (/^[A-Za-z]$/.test(ch)) return ch;
+    if (/^[0-9]$/.test(ch)) return DIGIT_NAMES[+ch];
+    return 'uni' + ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
+  }
+  // Nom PostScript : ASCII sans espaces ni accents, 63 caractères max
+  function psSafe(s) {
+    return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '').slice(0, 30) || 'Typo';
+  }
+  function allChars() { return GROUPS.map(function (g) { return g.chars; }).join(''); }
+  function toOpentypePath(op, contours) {
+    var p = new op.Path();
+    contours.forEach(function (c) {
+      c.forEach(function (cmd) {
+        if (cmd[0] === 'M') p.moveTo(Math.round(cmd[1]), Math.round(cmd[2]));
+        else if (cmd[0] === 'L') p.lineTo(Math.round(cmd[1]), Math.round(cmd[2]));
+        else p.curveTo(Math.round(cmd[1]), Math.round(cmd[2]), Math.round(cmd[3]), Math.round(cmd[4]), Math.round(cmd[5]), Math.round(cmd[6]));
+      });
+      p.close();
+    });
+    return p;
+  }
+  function buildFont(op, project, glyphs) {
+    var M = project.metrics, ref = autoReference(project, glyphs);
+    var nd = new op.Path(), w = Math.round(M.cap * 0.6);
+    nd.moveTo(50, 0); nd.lineTo(50, M.cap); nd.lineTo(50 + w, M.cap); nd.lineTo(50 + w, 0); nd.close();
+    nd.moveTo(100, 50); nd.lineTo(w, 50); nd.lineTo(w, M.cap - 50); nd.lineTo(100, M.cap - 50); nd.close();
+    var list = [new op.Glyph({ name: '.notdef', unicode: 0, advanceWidth: w + 100, path: nd }),
+                new op.Glyph({ name: 'space', unicode: 32, advanceWidth: project.spacing.space, path: new op.Path() }),
+                new op.Glyph({ name: 'uni00A0', unicode: 0xA0, advanceWidth: project.spacing.space, path: new op.Path() })];
+    var index = {}, count = 0;
+    var exportChars = charsFor(project);
+    Object.keys(glyphs).forEach(function (k) { var ch = String.fromCodePoint(parseInt(k.slice(1), 16)); if (exportChars.indexOf(ch) < 0) exportChars.push(ch); });
+    exportChars.forEach(function (ch) {
+      if (index[ch] != null) return;
+      var p = placeOrCompose(project, glyphs, ch, ref); if (!p) return;
+      index[ch] = list.length;
+      var path = toOpentypePath(op, p.contours), bb = path.getBoundingBox();
+      var gl = new op.Glyph({ name: glyphName(ch, project), unicode: ch.codePointAt(0), advanceWidth: p.advance, path: path });
+      gl.leftSideBearing = isFinite(bb.x1) ? Math.round(bb.x1) : 0; list.push(gl);
+      count++;
+    });
+    var family = (project.family || 'Ma Typo').trim() || 'Ma Typo';
+    var style = (project.style || 'Regular').trim() || 'Regular';
+    var psName = psSafe(family) + '-' + psSafe(style);
+    var version = String(project.version || '1.000').replace(/[^0-9.]/g, '') || '1.000';
+    var font = new op.Font({
+      familyName: family, styleName: style, unitsPerEm: M.upm || 1000, ascender: M.asc, descender: M.desc,
+      postScriptName: psName, manufacturer: project.designer || 'Atelier typo',
+      designer: project.designer || 'Atelier typo', version: 'Version ' + version,
+      weightClass: 400, glyphs: list,
+      tables: { os2: { sxHeight: M.x, sCapHeight: M.cap } }
+    });
+    // Windows ne connaît que Regular, Italic, Bold, Bold Italic comme styles de famille :
+    // pour un autre style, il passe dans le nom de famille (ID 1) et les noms typographiques (ID 16/17) gardent la vraie structure.
+    if (!/^(regular|italic|bold|bold italic)$/i.test(style)) {
+      font.names.fontFamily = { en: family + ' ' + style };
+      font.names.fontSubfamily = { en: 'Regular' };
+      font.names.preferredFamily = { en: family };
+      font.names.preferredSubfamily = { en: style };
+    }
+    var pairs = [];
+    Object.keys(project.kerning || {}).forEach(function (k) {
+      var ab = Array.from(k); if (ab.length !== 2) return;
+      var v = Math.round(project.kerning[k]);
+      if (!v || index[ab[0]] == null || index[ab[1]] == null) return;
+      pairs.push([index[ab[0]], index[ab[1]], v]);
+    });
+    var buf = font.toArrayBuffer();
+    if (pairs.length) buf = addTables(buf, { GPOS: makeGPOS(pairs), kern: makeKern(pairs) });
+    return { buffer: buf, glyphCount: count, pairCount: pairs.length, fileBase: psName };
+  }
+
+  /* ---------- Tables de crénage (GPOS + kern) ---------- */
+  function W() { this.b = []; }
+  W.prototype.u16 = function (v) { this.b.push((v >> 8) & 255, v & 255); return this; };
+  W.prototype.i16 = function (v) { return this.u16(v < 0 ? v + 65536 : v); };
+  W.prototype.u32 = function (v) { this.u16((v >>> 16) & 65535); return this.u16(v & 65535); };
+  W.prototype.tag = function (s) { for (var i = 0; i < 4; i++) this.b.push(s.charCodeAt(i)); return this; };
+  function makeKern(pairs) {
+    var p = pairs.slice().sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+    var n = p.length, sr = 1, es = 0; while (sr * 2 <= n) { sr *= 2; es++; }
+    var w = new W();
+    w.u16(0).u16(1);                       // version, nTables
+    w.u16(0).u16(14 + 6 * n).u16(1);       // sous-table : version, longueur, coverage (horizontal, format 0)
+    w.u16(n).u16(sr * 6).u16(es).u16((n - sr) * 6);
+    p.forEach(function (q) { w.u16(q[0]).u16(q[1]).i16(q[2]); });
+    return w.b;
+  }
+  function makeGPOS(pairs) {
+    var byFirst = {};
+    pairs.forEach(function (p) { (byFirst[p[0]] = byFirst[p[0]] || []).push(p); });
+    var firsts = Object.keys(byFirst).map(Number).sort(function (a, b) { return a - b; });
+    // PairPos format 1
+    var nSets = firsts.length;
+    var headerLen = 10 + 2 * nSets;
+    var covLen = 4 + 2 * nSets;
+    var sets = firsts.map(function (f) {
+      var recs = byFirst[f].sort(function (a, b) { return a[1] - b[1]; });
+      var w = new W(); w.u16(recs.length); recs.forEach(function (r) { w.u16(r[1]).i16(r[2]); }); return w.b;
+    });
+    var pp = new W();
+    pp.u16(1).u16(headerLen).u16(0x0004).u16(0).u16(nSets);
+    var off = headerLen + covLen;
+    sets.forEach(function (s) { pp.u16(off); off += s.length; });
+    pp.u16(1).u16(nSets); firsts.forEach(function (f) { pp.u16(f); }); // Coverage format 1
+    sets.forEach(function (s) { pp.b = pp.b.concat(s); });
+
+    // ScriptList : DFLT + latn, chacun DefaultLangSys -> feature 0
+    var sl = new W();
+    sl.u16(2);
+    sl.tag('DFLT').u16(2 + 12);          // Script DFLT à l'offset 14
+    sl.tag('latn').u16(2 + 12 + 12);     // Script latn à l'offset 26
+    for (var s = 0; s < 2; s++) {        // Script table (4) + LangSys (8) = 12 octets
+      sl.u16(4).u16(0);                  // defaultLangSys offset, langSysCount
+      sl.u16(0).u16(0xFFFF).u16(1).u16(0);
+    }
+    var fl = new W(); fl.u16(1).tag('kern').u16(8); fl.u16(0).u16(1).u16(0);
+    var ll = new W(); ll.u16(1).u16(4); ll.u16(2).u16(0).u16(1).u16(8);
+    ll.b = ll.b.concat(pp.b);
+
+    var g = new W();
+    var o1 = 10, o2 = o1 + sl.b.length, o3 = o2 + fl.b.length;
+    g.u16(1).u16(0).u16(o1).u16(o2).u16(o3);
+    g.b = g.b.concat(sl.b, fl.b, ll.b);
+    return g.b;
+  }
+  function checksum(bytes) {
+    var sum = 0, n = bytes.length;
+    for (var i = 0; i < n; i += 4) {
+      sum = (sum + (((bytes[i] << 24) >>> 0) + ((bytes[i+1] || 0) << 16) + ((bytes[i+2] || 0) << 8) + (bytes[i+3] || 0))) >>> 0;
+    }
+    return sum;
+  }
+  function addTables(buffer, extra) {
+    var dv = new DataView(buffer), u8 = new Uint8Array(buffer);
+    var version = dv.getUint32(0), num = dv.getUint16(4), tables = {};
+    for (var i = 0; i < num; i++) {
+      var r = 12 + i * 16, tag = String.fromCharCode(u8[r], u8[r+1], u8[r+2], u8[r+3]);
+      var off = dv.getUint32(r + 8), len = dv.getUint32(r + 12);
+      tables[tag] = Array.from(u8.subarray(off, off + len));
+    }
+    Object.keys(extra).forEach(function (t) { tables[t] = extra[t]; });
+    var tags = Object.keys(tables).sort();
+    tables.head = tables.head.slice(); tables.head[8] = tables.head[9] = tables.head[10] = tables.head[11] = 0;
+    var n = tags.length, sr = 1, es = 0; while (sr * 2 <= n) { sr *= 2; es++; }
+    var headerLen = 12 + 16 * n, total = headerLen;
+    tags.forEach(function (t) { total += (tables[t].length + 3) & ~3; });
+    var out = new Uint8Array(total), odv = new DataView(out.buffer);
+    odv.setUint32(0, version); odv.setUint16(4, n); odv.setUint16(6, sr * 16); odv.setUint16(8, es); odv.setUint16(10, n * 16 - sr * 16);
+    var pos = headerLen, headPos = 0;
+    tags.forEach(function (t, k) {
+      var data = tables[t], r = 12 + k * 16;
+      for (var c = 0; c < 4; c++) out[r + c] = t.charCodeAt(c);
+      odv.setUint32(r + 4, checksum(data)); odv.setUint32(r + 8, pos); odv.setUint32(r + 12, data.length);
+      out.set(data, pos); if (t === 'head') headPos = pos;
+      pos += (data.length + 3) & ~3;
+    });
+    var adj = (0xB1B0AFBA - checksum(out)) >>> 0;
+    odv.setUint32(headPos + 8, adj);
+    return out.buffer;
+  }
+
+  /* ---------- Rendu SVG d'un contour ---------- */
+  function toD(contours, flipY) {
+    var f = flipY ? -1 : 1, r = function (v) { return Math.round(v * 10) / 10; };
+    return contours.map(function (c) {
+      return c.map(function (cmd) {
+        if (cmd[0] === 'M') return 'M' + r(cmd[1]) + ' ' + r(f * cmd[2]);
+        if (cmd[0] === 'L') return 'L' + r(cmd[1]) + ' ' + r(f * cmd[2]);
+        return 'C' + r(cmd[1]) + ' ' + r(f * cmd[2]) + ' ' + r(cmd[3]) + ' ' + r(f * cmd[4]) + ' ' + r(cmd[5]) + ' ' + r(f * cmd[6]);
+      }).join('') + 'Z';
+    }).join('');
+  }
+
+  return {
+    readSvg: readSvg, extractSvgText: extractSvgText, parsePath: parsePath, bboxOf: bboxOf,
+    place: place, placeOrCompose: placeOrCompose, autoReference: autoReference, buildFont: buildFont,
+    toD: toD, keyOf: keyOf, EXTRA_GROUPS: EXTRA_GROUPS, groupsFor: groupsFor, charsFor: charsFor, isPUA: isPUA, displayName: displayName, ACC: ACC, psSafe: psSafe, glyphName: glyphName, splitGlyphs: splitGlyphs, charFromName: charFromName, GROUPS: GROUPS, COMPOSE: COMPOSE, defaultAnchor: defaultAnchor, allChars: allChars,
+    _area: area, _flatten: flatten
+  };
+})();
+
+
+</script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var NS = 'http://www.w3.org/2000/svg';
+  var LS_KEY = 'typo-atelier:v1';
+  var CHARS = Core.charsFor(null);
+
+  /* ---------- État ---------- */
+  function newProject(name) {
+    return {
+      id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      kind: 'project', name: name || 'Ma typo', family: name || 'Ma Typo', style: 'Regular', designer: '', version: '1.000',
+      metrics: { upm: 1000, asc: 800, desc: -200, cap: 700, x: 500 },
+      spacing: { lsb: 50, rsb: 50, space: 250 }, auto: { refPt: 0 },
+      options: { composeAccents: true, useFrameWidth: false, autoAdvance: true },
+      kerning: {}, extraGroups: [], customChars: [], customNames: {}, updatedAt: Date.now()
+    };
+  }
+  function fixProject(p) {
+    var d = newProject();
+    ['metrics', 'spacing', 'auto', 'options'].forEach(function (k) { p[k] = Object.assign({}, d[k], p[k] || {}); });
+    p.kerning = p.kerning || {}; p.kind = 'project';
+    p.extraGroups = p.extraGroups || []; p.customChars = p.customChars || []; p.customNames = p.customNames || {};
+    ['name', 'family', 'style', 'version'].forEach(function (k) { if (p[k] == null) p[k] = d[k]; });
+    return p;
+  }
+  var S = { project: null, glyphs: {}, list: [], selected: 'A', placed: {}, ref: null };
+
+  /* ---------- Enregistrement : compte (db) + copie locale ---------- */
+  var Store = {
+    db: null, uid: null, mode: 'local', timers: {}, pending: 0,
+    local: function () { try { return JSON.parse(localStorage.getItem(LS_KEY)) || { projects: {} }; } catch (e) { return { projects: {} }; } },
+    saveLocal: function () {
+      try {
+        var all = Store.local();
+        all.projects[S.project.id] = { meta: S.project, glyphs: S.glyphs };
+        all.last = S.project.id;
+        localStorage.setItem(LS_KEY, JSON.stringify(all));
+        return true;
+      } catch (e) { return false; }
+    },
+    removeLocal: function (id) {
+      try { var all = Store.local(); delete all.projects[id]; localStorage.setItem(LS_KEY, JSON.stringify(all)); } catch (e) {}
+    },
+    projRef: function (pid) { return Store.db.collection('data/users/' + Store.uid).doc(pid); },
+    connect: async function () {
+      try {
+        if (!window.claude || !window.claude.use) return false;
+        var db = await window.claude.use('db'), user = await window.claude.use('user');
+        if (!db || !user) return false;
+        var uid = await user.id(); if (!uid) return false;
+        Store.db = db; Store.uid = uid; Store.mode = 'cloud';
+        return true;
+      } catch (e) { return false; }
+    },
+    listCloud: async function () {
+      var snap = await Store.db.collection('data/users/' + Store.uid).limit(200).get();
+      return snap.docs.map(function (d) { return d.data(); }).filter(function (d) { return d && d.kind === 'project'; });
+    },
+    loadCloud: async function (pid) {
+      var meta = (await Store.projRef(pid).get()).data();
+      var gs = await Store.projRef(pid).collection('glyphs').limit(1000).get(), glyphs = {};
+      gs.docs.forEach(function (d) { var v = d.data(); if (v) glyphs[d.id] = v; });
+      return { meta: meta, glyphs: glyphs };
+    },
+    pushAll: async function (meta, glyphs) {
+      await Store.projRef(meta.id).set(meta);
+      var keys = Object.keys(glyphs);
+      for (var i = 0; i < keys.length; i++) await Store.projRef(meta.id).collection('glyphs').doc(keys[i]).set(glyphs[keys[i]]);
+    },
+    queue: function (key, fn) {
+      Store.saveLocal();
+      if (Store.mode !== 'cloud') { setStatus('local'); return; }
+      clearTimeout(Store.timers[key]);
+      setStatus('busy');
+      Store.timers[key] = setTimeout(function () {
+        delete Store.timers[key];
+        Store.pending++;
+        fn().then(function () { Store.pending--; if (!Store.pending && !Object.keys(Store.timers).length) setStatus('ok'); })
+          .catch(function (e) {
+            Store.pending--;
+            setStatus('error', e && e.code === 'quota_exceeded' ? 'Espace de stockage plein' : 'Échec de l’enregistrement en ligne, copie locale conservée');
+          });
+      }, 700);
+    },
+    meta: function () {
+      S.project.updatedAt = Date.now();
+      S.project.glyphCount = Object.keys(S.glyphs).length;
+      var snap = JSON.parse(JSON.stringify(S.project));
+      Store.queue('meta', function () { return Store.projRef(snap.id).set(snap); });
+    },
+    glyph: function (key) {
+      S.project.updatedAt = Date.now();
+      var pid = S.project.id, g = S.glyphs[key] ? JSON.parse(JSON.stringify(S.glyphs[key])) : null;
+      Store.queue('g:' + key, function () {
+        var ref = Store.projRef(pid).collection('glyphs').doc(key);
+        return g ? ref.set(g) : ref.delete();
+      });
+      Store.meta();
+    },
+    deleteProject: async function (pid) {
+      Store.removeLocal(pid);
+      if (Store.mode !== 'cloud') return;
+      var gs = await Store.projRef(pid).collection('glyphs').limit(1000).get();
+      for (var i = 0; i < gs.docs.length; i++) await Store.projRef(pid).collection('glyphs').doc(gs.docs[i].id).delete();
+      await Store.projRef(pid).delete();
+    }
+  };
+  function setStatus(kind, msg) {
+    var el = $('#status');
+    el.className = 'status ' + (kind === 'error' ? 'local' : kind);
+    el.querySelector('span').textContent = msg || ({ ok: 'Enregistré dans ton compte', busy: 'Enregistrement…', local: 'Enregistré sur cet appareil' })[kind] || '';
+  }
+
+  /* ---------- Calculs ---------- */
+  function recompute() {
+    CHARS = Core.charsFor(S.project);
+    S.ref = Core.autoReference(S.project, S.glyphs);
+    S.placed = {};
+    CHARS.forEach(function (ch) { var p = Core.placeOrCompose(S.project, S.glyphs, ch, S.ref); if (p) S.placed[ch] = p; });
+  }
+  function kernVal(a, b) { return (S.project.kerning && S.project.kerning[a + b]) || 0; }
+
+  /* ---------- Rendu de texte avec la typo en construction ---------- */
+  function layout(text, withKern) {
+    var M = S.project.metrics, lines = text.split('\n'), out = [], width = 0;
+    lines.forEach(function (line, li) {
+      var x = 0, chars = Array.from(line);
+      chars.forEach(function (ch, i) {
+        var p = S.placed[ch];
+        if (ch === ' ' || ch === '\u00A0') x += S.project.spacing.space;
+        else if (p) { out.push({ d: Core.toD(p.contours, true), x: x, y: li * (M.asc - M.desc) * 1.1 }); x += p.advance; }
+        else { out.push({ missing: true, x: x, y: li * (M.asc - M.desc) * 1.1, w: M.x * 0.7 }); x += M.x * 0.7 + 60; }
+        if (withKern && i < chars.length - 1) x += kernVal(ch, chars[i + 1]);
+      });
+      width = Math.max(width, x);
+    });
+    return { items: out, width: Math.max(width, 1), lines: lines.length };
+  }
+  function textSvg(text, size, opts) {
+    opts = opts || {};
+    var M = S.project.metrics, L = layout(text, opts.kern !== false), lineH = (M.asc - M.desc) * 1.1;
+    var h = (M.asc - M.desc) + (L.lines - 1) * lineH, scale = size / 1000, pad = 40;
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', [-pad, -M.asc, L.width + pad * 2, h].join(' '));
+    svg.setAttribute('width', Math.round((L.width + pad * 2) * scale));
+    svg.setAttribute('height', Math.round(h * scale));
+    if (opts.guides) {
+      for (var li = 0; li < L.lines; li++) {
+        [['asc', M.asc], ['cap', M.cap], ['x', M.x], ['base', 0], ['desc', M.desc]].forEach(function (g) {
+          var y = -g[1] + li * lineH, l = document.createElementNS(NS, 'line');
+          l.setAttribute('x1', -pad); l.setAttribute('x2', L.width + pad); l.setAttribute('y1', y); l.setAttribute('y2', y);
+          l.setAttribute('stroke', 'var(--guide-soft)'); l.setAttribute('stroke-width', g[0] === 'base' ? 2 / scale : 1 / scale);
+          svg.appendChild(l);
+        });
+      }
+    }
+    L.items.forEach(function (it) {
+      if (it.missing) {
+        var r = document.createElementNS(NS, 'rect');
+        r.setAttribute('x', it.x + 30); r.setAttribute('y', -M.x + it.y); r.setAttribute('width', it.w); r.setAttribute('height', M.x);
+        r.setAttribute('fill', 'none'); r.setAttribute('stroke', 'var(--ghost)'); r.setAttribute('stroke-dasharray', (4 / scale) + ' ' + (4 / scale));
+        r.setAttribute('stroke-width', 1.5 / scale);
+        svg.appendChild(r);
+      } else {
+        var p = document.createElementNS(NS, 'path');
+        p.setAttribute('d', it.d); p.setAttribute('transform', 'translate(' + it.x + ' ' + it.y + ')');
+        p.setAttribute('fill', opts.color || 'var(--glyph)');
+        svg.appendChild(p);
+      }
+    });
+    return svg;
+  }
+
+  /* ---------- Aperçu ---------- */
+  function renderPreview() {
+    var st = $('#previewStage'), txt = $('#previewText').value;
+    st.innerHTML = '';
+    if (!Object.keys(S.placed).length) {
+      st.innerHTML = '<div class="empty">Ta typo apparaîtra ici dès le premier glyphe collé.</div>'; return;
+    }
+    st.appendChild(textSvg(txt || ' ', +$('#previewSize').value, { guides: $('#previewGuides').checked }));
+  }
+
+  /* ---------- Grille ---------- */
+  function cellSvg(ch) {
+    var p = S.placed[ch], M = S.project.metrics;
+    if (!p) return null;
+    var svg = document.createElementNS(NS, 'svg'), w = Math.max(p.advance, M.asc - M.desc) ;
+    var cx = p.advance / 2;
+    svg.setAttribute('viewBox', [cx - w / 2, -M.asc, w, M.asc - M.desc].join(' '));
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    var path = document.createElementNS(NS, 'path'); path.setAttribute('d', Core.toD(p.contours, true));
+    svg.appendChild(path);
+    return svg;
+  }
+  function renderGrid() {
+    var root = $('#groups'); root.innerHTML = '';
+    var groups = Core.groupsFor(S.project), seen = {};
+    if (!groups.some(function (g) { return g.custom; })) groups = groups.concat([{ id: 'custom', label: 'Personnalisés', chars: '', custom: true }]);
+    groups.forEach(function (gr) {
+      var chars = Array.from(gr.chars).filter(function (c) { if (seen[c]) return false; seen[c] = 1; return true; });
+      var done = chars.filter(function (c) { return S.placed[c]; }).length;
+      var sec = document.createElement('div'); sec.className = 'group'; sec.dataset.chars = chars.join('');
+      sec.innerHTML = '<h3>' + gr.label + ' <small>' + (chars.length ? done + ' / ' + chars.length : '') + '</small></h3>';
+      var grid = document.createElement('div'); grid.className = 'grid';
+      chars.forEach(function (ch) { grid.appendChild(makeCell(ch)); });
+      if (gr.custom) {
+        var add = document.createElement('button'); add.className = 'cell addcell'; add.type = 'button';
+        add.innerHTML = '<span class="big">+</span>'; add.setAttribute('aria-label', 'Ajouter des glyphes');
+        add.title = 'Ajouter des glyphes : flèches, symboles, caractères au choix, pictos';
+        add.addEventListener('click', openAddDialog);
+        grid.appendChild(add);
+      }
+      sec.appendChild(grid); root.appendChild(sec);
+    });
+  }
+  function makeCell(ch) {
+    var key = Core.keyOf(ch), g = S.glyphs[key], p = S.placed[ch];
+    var b = document.createElement('button');
+    b.className = 'cell' + (!p ? ' empty' : '') + (p && p.composed ? ' composed' : '') + (g && g.warnings && g.warnings.length ? ' warn' : '');
+    b.dataset.ch = ch; b.setAttribute('aria-pressed', S.selected === ch ? 'true' : 'false');
+    b.setAttribute('aria-label', 'Glyphe ' + ch + (p ? (p.composed ? ', composé automatiquement' : ', dessiné') : ', vide'));
+    var pua = Core.isPUA(ch), shown = pua ? Core.displayName(ch, S.project) : ch;
+    if (pua) b.setAttribute('aria-label', 'Glyphe ' + shown + (p ? ', dessiné' : ', vide'));
+    var lab = document.createElement('span'); lab.className = 'lab'; lab.textContent = shown; b.appendChild(lab);
+    var svg = cellSvg(ch);
+    if (svg) b.appendChild(svg);
+    else { var big = document.createElement('span'); big.className = 'big' + (pua ? ' name' : ''); big.textContent = pua ? '' : ch; big.setAttribute('aria-hidden', 'true'); b.appendChild(big); }
+    b.addEventListener('click', function () { select(ch); });
+    return b;
+  }
+  function refreshCell(ch) {
+    var old = document.querySelector('.cell[data-ch="' + CSS.escape(ch) + '"]');
+    if (old) old.replaceWith(makeCell(ch));
+  }
+  function select(ch) {
+    var prev = document.querySelector('.cell[aria-pressed=true]');
+    if (prev) prev.setAttribute('aria-pressed', 'false');
+    S.selected = ch;
+    var c = document.querySelector('.cell[data-ch="' + CSS.escape(ch) + '"]');
+    if (c) c.setAttribute('aria-pressed', 'true');
+    renderEditor();
+  }
+
+  /* ---------- Éditeur de glyphe ---------- */
+  var WARN_TEXT = {
+    stroke: 'Un tracé avec contour mais sans fond a été ignoré. Vectorise le contour dans Illustrator.',
+    strokeAndFill: 'Un objet a un contour en plus du fond : seul le fond est gardé. Vectorise le contour s’il fait partie du dessin.',
+    text: 'Du texte non vectorisé a été ignoré (Texte › Vectoriser).',
+    image: 'Une image bitmap a été ignorée : seules les formes vectorielles comptent.',
+    use: 'Un symbole Illustrator a été ignoré. Romps le lien du symbole avant de copier.',
+    cutout: 'Les formes blanches ont été converties en découpes.'
+  };
+  var ED = {}; // références vers les parties de l’éditeur qui se redessinent pendant un réglage
+  function canvasSvg(ch) {
+    var p = S.placed[ch], M = S.project.metrics;
+    var adv = p ? p.advance : 600, pad = 120, w = Math.max(adv + pad * 2, 900);
+    var x0 = adv / 2 - w / 2, h = (M.asc - M.desc) + 160;
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', [x0, -M.asc - 80, w, h].join(' '));
+    [['Ascendante', M.asc], ['Capitale', M.cap], ['x', M.x], ['Ligne de base', 0], ['Descendante', M.desc]].forEach(function (gd) {
+      var l = document.createElementNS(NS, 'line');
+      l.setAttribute('x1', x0); l.setAttribute('x2', x0 + w); l.setAttribute('y1', -gd[1]); l.setAttribute('y2', -gd[1]);
+      l.setAttribute('stroke', 'var(--guide)'); l.setAttribute('stroke-opacity', gd[1] === 0 ? 1 : .45); l.setAttribute('stroke-width', gd[1] === 0 ? 3 : 2);
+      svg.appendChild(l);
+      var t = document.createElementNS(NS, 'text');
+      t.setAttribute('x', x0 + 14); t.setAttribute('y', -gd[1] - 10); t.setAttribute('font-size', 26); t.setAttribute('fill', 'var(--guide)');
+      t.setAttribute('font-family', 'var(--font)'); t.textContent = gd[0] + ' ' + gd[1];
+      svg.appendChild(t);
+    });
+    if (p) {
+      [0, adv].forEach(function (x) {
+        var l = document.createElementNS(NS, 'line');
+        l.setAttribute('x1', x); l.setAttribute('x2', x); l.setAttribute('y1', -M.asc - 60); l.setAttribute('y2', -M.desc + 60);
+        l.setAttribute('stroke', 'var(--blue)'); l.setAttribute('stroke-width', 2); l.setAttribute('stroke-dasharray', '10 8');
+        svg.appendChild(l);
+      });
+      var path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', Core.toD(p.contours, true)); path.setAttribute('fill', p.composed ? 'var(--muted)' : 'var(--glyph)');
+      svg.appendChild(path);
+    }
+    return svg;
+  }
+  function spacingSvg(ch) {
+    var isUp = ch !== ch.toLowerCase() || /[0-9]/.test(ch);
+    var a = isUp ? 'HH' : 'nn', b = isUp ? 'OO' : 'oo';
+    return textSvg(a + ch + a + ' ' + b + ch + b, 48, { kern: false });
+  }
+  function metaText(ch) {
+    var p = S.placed[ch], cp = 'U+' + ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0');
+    return p ? cp + ', chasse ' + p.advance : cp;
+  }
+  // Redessine la lettre, la chasse et le test d’espacement sans recréer les champs (le curseur reste attrapé)
+  function paintEditorDynamic() {
+    var ch = S.selected;
+    if (!ED.canvas || ED.ch !== ch) { renderEditor(); return; }
+    var old = ED.canvas.querySelector('svg'); if (old) old.replaceWith(canvasSvg(ch));
+    ED.meta.textContent = metaText(ch);
+    if (ED.test && S.placed[ch]) { ED.test.innerHTML = ''; ED.test.appendChild(spacingSvg(ch)); }
+  }
+  function renderEditor() {
+    var ch = S.selected, key = Core.keyOf(ch), g = S.glyphs[key], p = S.placed[ch];
+    var ed = $('#editor'); ed.innerHTML = ''; ED = { ch: ch };
+    var head = document.createElement('div'); head.className = 'ed-head';
+    head.innerHTML = '<span class="ch"></span><span class="meta"></span>';
+    head.querySelector('.ch').textContent = Core.isPUA(ch) ? Core.displayName(ch, S.project) : ch;
+    ED.meta = head.querySelector('.meta'); ED.meta.textContent = metaText(ch);
+    ed.appendChild(head);
+
+    var badges = document.createElement('div');
+    if (g) badges.innerHTML = g.frame ? (g.frame.synthetic ? '<span class="badge">Aligné sur la ligne de base du lot</span>' : '<span class="badge">Placé par le cadre</span>') : '<span class="badge alt">Placement automatique</span>';
+    else if (p && p.composed) badges.innerHTML = '<span class="badge alt">Composé : ' + Core.COMPOSE[ch][0] + ' + accent</span>';
+    if (badges.innerHTML) { badges.style.marginBottom = '8px'; ed.appendChild(badges); }
+
+    var canvas = document.createElement('div'); canvas.className = 'canvas'; canvas.tabIndex = 0;
+    canvas.setAttribute('aria-label', 'Zone de collage pour ' + ch);
+    canvas.appendChild(canvasSvg(ch));
+    if (!p) {
+      var hint = document.createElement('div'); hint.className = 'hint';
+      hint.innerHTML = '<div>Copie le glyphe dans Illustrator,<br>puis colle ici avec <kbd>⌘V</kbd> ou <kbd>Ctrl+V</kbd>.<br><span style="font-size:13px">Tu peux aussi glisser un fichier .svg.</span></div>';
+      canvas.appendChild(hint);
+    }
+    canvas.addEventListener('dragover', function (e) { e.preventDefault(); canvas.classList.add('drop'); });
+    canvas.addEventListener('dragleave', function () { canvas.classList.remove('drop'); });
+    canvas.addEventListener('drop', function (e) {
+      e.preventDefault(); canvas.classList.remove('drop');
+      var f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) f.text().then(function (t) { importInto(ch, t); });
+      else importInto(ch, e.dataTransfer.getData('text/plain'));
+    });
+    ED.canvas = canvas; ed.appendChild(canvas);
+
+    var notes = g && g.warnings ? g.warnings.map(function (w) { return WARN_TEXT[w] || w; }) : [];
+    if (g && !g.frame && !S.ref) notes.push('Échelle provisoire : cette lettre est mise à la hauteur des capitales faute de référence. Colle un H, ou indique la hauteur de référence dans Réglages, et toutes les tailles se recalent.');
+    if (notes.length) {
+      var ul = document.createElement('ul'); ul.className = 'notes';
+      notes.forEach(function (w) { var li = document.createElement('li'); li.textContent = w; ul.appendChild(li); });
+      ed.appendChild(ul);
+    }
+
+    if (g) {
+      var f = document.createElement('div'); f.className = 'sliders';
+      f.appendChild(sliderField(ch, 'Approche gauche', 'lsb', S.project.spacing.lsb, -200, 400));
+      f.appendChild(sliderField(ch, 'Approche droite', 'rsb', S.project.spacing.rsb, -200, 400));
+      f.appendChild(sliderField(ch, 'Décalage vertical', 'dy', 0, -400, 400));
+      if (!g.frame) {
+        var lab = document.createElement('label'); lab.className = 'field'; lab.textContent = 'Alignement';
+        var sel = document.createElement('select');
+        [['base', 'Sur la ligne de base'], ['x', 'Haut sur la hauteur d’x'], ['cap', 'Haut sur les capitales'], ['mid', 'Centré sur la hauteur d’x'],
+         ['accent', 'Accent au-dessus de l’x'], ['cedilla', 'Sous la ligne de base']].forEach(function (o) {
+          var opt = document.createElement('option'); opt.value = o[0]; opt.textContent = o[1]; sel.appendChild(opt);
+        });
+        sel.value = g.anchor || Core.defaultAnchor(ch);
+        sel.addEventListener('change', function () { change('alignement de ' + ch, [key], function () { S.glyphs[key].anchor = sel.value; }); glyphChanged(ch); });
+        lab.appendChild(sel); f.appendChild(lab);
+      }
+      ed.appendChild(f);
+    }
+
+    if (p) {
+      var st = document.createElement('div'); st.className = 'spacing-test';
+      st.appendChild(spacingSvg(ch));
+      ED.test = st; ed.appendChild(st);
+    }
+
+    var act = document.createElement('div'); act.className = 'ed-actions';
+    if (g) {
+      var clear = document.createElement('button'); clear.className = 'btn danger'; clear.textContent = 'Effacer ce glyphe';
+      clear.addEventListener('click', function () { eraseGlyph(ch); });
+      act.appendChild(clear);
+    }
+    var pick = document.createElement('button'); pick.className = 'btn'; pick.textContent = 'Choisir un fichier SVG';
+    var file = document.createElement('input'); file.type = 'file'; file.accept = '.svg,image/svg+xml'; file.hidden = true;
+    pick.addEventListener('click', function () { file.click(); });
+    file.addEventListener('change', function () { if (file.files[0]) file.files[0].text().then(function (t) { importInto(ch, t); }); });
+    act.appendChild(pick); act.appendChild(file);
+    if (Core.isPUA(ch) && p) {
+      var ins = document.createElement('button'); ins.className = 'btn quiet'; ins.textContent = 'Ajouter à l’aperçu';
+      ins.title = 'Ce glyphe n’a pas de touche au clavier : ce bouton l’insère dans le texte d’aperçu';
+      ins.addEventListener('click', function () { var t = $('#previewText'); t.value += ch; renderPreview(); renderKern(); });
+      act.appendChild(ins);
+    }
+    if (S.project.customChars.indexOf(ch) >= 0) {
+      var rmc = document.createElement('button'); rmc.className = 'btn quiet danger'; rmc.textContent = 'Retirer cette case';
+      rmc.addEventListener('click', function () { removeCustom(ch); toast('Case retirée (' + MOD + 'Z pour annuler)'); });
+      act.appendChild(rmc);
+    }
+    ed.appendChild(act);
+  }
+  // Curseur + champ numérique liés. Pour les approches, vide = valeur par défaut du projet.
+  function sliderField(ch, label, prop, def, min, max) {
+    var key = Core.keyOf(ch), g = S.glyphs[key];
+    var cur = prop === 'dy' ? (g.dy || 0) : g[prop];
+    var wrap = document.createElement('div'); wrap.className = 'sfield';
+    var top = document.createElement('div'); top.className = 'sfield-top';
+    var id = 'f-' + prop;
+    var lab = document.createElement('label'); lab.htmlFor = id; lab.textContent = label;
+    var num = document.createElement('input'); num.type = 'number'; num.step = '1'; num.id = id;
+    num.placeholder = String(def); num.value = (cur == null || (prop === 'dy' && !cur)) ? '' : cur;
+    var reset = document.createElement('button'); reset.className = 'btn quiet reset'; reset.type = 'button';
+    reset.textContent = prop === 'dy' ? 'Remettre à 0' : 'Par défaut';
+    reset.title = prop === 'dy' ? 'Supprimer le décalage' : 'Revenir à l’approche par défaut du projet (' + def + ')';
+    var range = document.createElement('input'); range.type = 'range'; range.min = min; range.max = max; range.step = 1;
+    range.setAttribute('aria-label', label);
+    function eff() { return cur == null ? def : cur; }
+    function sync() {
+      var v = eff();
+      if (v < +range.min) range.min = Math.floor(v / 50) * 50;
+      if (v > +range.max) range.max = Math.ceil(v / 50) * 50;
+      range.value = v;
+      num.value = (cur == null || (prop === 'dy' && !cur)) ? '' : cur;
+      reset.hidden = cur == null || (prop === 'dy' && !cur);
+      wrap.classList.toggle('inherit', cur == null && prop !== 'dy');
+    }
+    var raf = null, pending;
+    function commit(v) {
+      cur = v;
+      sync();
+      pending = v;
+      if (raf) return;
+      raf = requestAnimationFrame(function () {
+        raf = null;
+        change(label.toLowerCase() + ' de ' + ch, [key], function () {
+          var gg = S.glyphs[key]; if (!gg) return;
+          if (prop === 'dy') gg.dy = pending || 0; else gg[prop] = pending;
+        }, 'num:' + ch + prop);
+        glyphChanged(ch, true);
+      });
+    }
+    range.addEventListener('input', function () { commit(+range.value); });
+    var t;
+    num.addEventListener('input', function () {
+      clearTimeout(t);
+      t = setTimeout(function () { if (num.value === '') commit(prop === 'dy' ? 0 : null); else if (!isNaN(+num.value)) commit(Math.round(+num.value)); }, 200);
+    });
+    reset.addEventListener('click', function () { commit(prop === 'dy' ? 0 : null); });
+    top.appendChild(lab); top.appendChild(reset); top.appendChild(num);
+    wrap.appendChild(top); wrap.appendChild(range);
+    sync();
+    return wrap;
+  }
+
+  /* ---------- Import d'un collage ---------- */
+  function importInto(ch, text) {
+    var svgText = Core.extractSvgText(text);
+    if (!svgText) { toast('Rien de vectoriel dans le presse-papiers. Copie la lettre dans Illustrator puis recolle.'); return false; }
+    var r;
+    try { r = Core.readSvg(svgText); } catch (e) { toast(e.message); return false; }
+    if (!r.contours.length) { toast('Aucune forme pleine trouvée. Vectorise les contours et le texte avant de copier.'); return false; }
+    var sp = Core.splitGlyphs(r);
+    if ((r.frames.length >= 2 && sp.glyphs.length >= 2) || sp.glyphs.length >= 3) {
+      openBatch(sp, r.warnings);
+      toast(sp.glyphs.length + ' glyphes détectés : indique quel caractère est lequel');
+      return true;
+    }
+    var key = Core.keyOf(ch), prev = S.glyphs[key] || {};
+    change('collage de ' + ch, [key], function () {
+      S.glyphs[key] = { contours: r.contours, bbox: r.bbox, frame: r.frame, warnings: r.warnings,
+        lsb: prev.lsb != null ? prev.lsb : null, rsb: prev.rsb != null ? prev.rsb : null, dy: prev.dy || 0, anchor: prev.anchor || null, updatedAt: Date.now() };
+    });
+    glyphChanged(ch);
+    toast(ch + ' importé' + (r.frame ? ' avec son cadre' : ''));
+    if (S.project.options.autoAdvance) {
+      var i = CHARS.indexOf(ch);
+      for (var k = 1; k < CHARS.length; k++) {
+        var n = CHARS[(i + k) % CHARS.length];
+        if (!S.glyphs[Core.keyOf(n)] && !S.placed[n]) { select(n); scrollToCell(n); break; }
+      }
+    }
+    return true;
+  }
+  function scrollToCell(ch) {
+    var c = document.querySelector('.cell[data-ch="' + CSS.escape(ch) + '"]');
+    if (c && c.scrollIntoView) {
+      var r = c.getBoundingClientRect();
+      if (r.top < 80 || r.bottom > window.innerHeight) c.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    }
+  }
+  function affected(ch) {
+    var list = [ch];
+    Object.keys(Core.COMPOSE).forEach(function (c) {
+      var parts = Core.COMPOSE[c];
+      if (parts[0] === ch || String.fromCodePoint(Core.ACC[parts[1]]) === ch) list.push(c);
+    });
+    return list;
+  }
+  function glyphChanged(ch, keepEditor) {
+    var refBefore = S.ref ? S.ref.pt + S.ref.source : '';
+    recompute();
+    if ((S.ref ? S.ref.pt + S.ref.source : '') !== refBefore) renderGrid(); else affected(ch).forEach(refreshCell);
+    updateGroupCounts();
+    if (!keepEditor) renderEditor(); else paintEditorDynamic();
+    renderPreview(); renderKern(); renderRefInfo();
+    Store.glyph(Core.keyOf(ch));
+  }
+  function refreshEditorPreview() {
+    // met à jour le dessin et les tests sans recréer les champs (garde le focus)
+    var active = document.activeElement, idx = active && active.closest && active.closest('.editor') ? Array.from(document.querySelectorAll('.editor input, .editor select')).indexOf(active) : -1;
+    renderEditor();
+    if (idx >= 0) { var el = document.querySelectorAll('.editor input, .editor select')[idx]; if (el) { el.focus(); if (el.setSelectionRange && el.type === 'text') el.setSelectionRange(el.value.length, el.value.length); } }
+  }
+  function updateGroupCounts() {
+    document.querySelectorAll('.group').forEach(function (sec, i) {
+      var chars = Array.from(sec.dataset.chars || ''), done = chars.filter(function (c) { return S.placed[c]; }).length;
+      sec.querySelector('small').textContent = chars.length ? done + ' / ' + chars.length : '';
+    });
+  }
+
+  document.addEventListener('paste', function (e) {
+    var cd = e.clipboardData; if (!cd) return;
+    var text = cd.getData('image/svg+xml') || cd.getData('text/plain') || cd.getData('text/html');
+    var t = e.target, typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
+    if (!Core.extractSvgText(text)) {
+      if (!typing && $('#tab-glyphs').hidden === false && !document.querySelector('dialog[open]')) toast('Rien de vectoriel dans le presse-papiers. Copie la lettre dans Illustrator puis recolle.');
+      return;
+    }
+    e.preventDefault();
+    if ($('#batchDlg').open) {
+      try { var res = readBatchText(text); if (res) addToBatch(res.sp, res.warnings); else toast('Aucune forme pleine trouvée dans ce collage.'); }
+      catch (err) { toast(err.message); }
+      return;
+    }
+    if (document.querySelector('dialog[open]')) return;
+    if ($('#tab-glyphs').hidden) showTab('glyphs');
+    importInto(S.selected, text);
+  });
+  document.addEventListener('keydown', function (e) {
+    if ($('#tab-glyphs').hidden || document.querySelector('dialog[open]')) return;
+    var t = e.target; if (t && /INPUT|TEXTAREA|SELECT/.test(t.tagName)) return;
+    var i = CHARS.indexOf(S.selected), cols = 1;
+    var cells = document.querySelectorAll('.grid')[0];
+    if (cells) cols = getComputedStyle(cells).gridTemplateColumns.split(' ').length;
+    var map = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: cols, ArrowUp: -cols };
+    if (map[e.key]) { e.preventDefault(); var n = Math.min(CHARS.length - 1, Math.max(0, i + map[e.key])); select(CHARS[n]); scrollToCell(CHARS[n]); }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && S.glyphs[Core.keyOf(S.selected)]) {
+      e.preventDefault(); eraseGlyph(S.selected);
+    }
+  });
+
+  /* ---------- Crénage ---------- */
+  var COMMON = ['AV','AW','AY','AT','AC','AG','AO','AQ','AU','FA','LT','LV','LW','LY','PA','TA','VA','WA','YA','Ta','Te','To','Tr','Tu','Ty','Va','Ve','Vo','Wa','We','Wo','Ya','Ye','Yo','Fa','Fe','Fo','Pa','Pe','Po','av','aw','ay','ov','ow','oy','va','ve','vo','wa','we','wo','ya','ye','yo','r.','r,','y.','y,','v.','w.','T.','T,','V.','V,','Y.','Y,','P.','P,','F.','F,'];
+  function renderKern() {
+    var test = $('#kernTest'); test.innerHTML = '';
+    if (Object.keys(S.placed).length) test.appendChild(textSvg($('#previewText').value || 'AVATAR', 64, {}));
+    else test.textContent = 'Colle quelques glyphes pour commencer à créner.';
+    var list = $('#kernList'); list.innerHTML = '';
+    var keys = Object.keys(S.project.kerning).sort();
+    if (!keys.length) {
+      var p = document.createElement('p'); p.style.color = 'var(--muted)';
+      p.textContent = 'Aucune paire pour l’instant. Ajoute une paire, ou laisse l’outil proposer les paires courantes parmi les glyphes déjà dessinés.';
+      list.appendChild(p); return;
+    }
+    keys.forEach(function (k) {
+      var row = document.createElement('div'); row.className = 'kern-row';
+      var view = document.createElement('div'); view.appendChild(pairSvg(k)); row.appendChild(view);
+      var sl = document.createElement('input'); sl.type = 'range'; sl.min = -300; sl.max = 150; sl.step = 5; sl.value = S.project.kerning[k];
+      sl.setAttribute('aria-label', 'Crénage ' + k);
+      var wrap = document.createElement('div'); wrap.className = 'slider'; wrap.appendChild(sl); row.appendChild(wrap);
+      var num = document.createElement('input'); num.type = 'number'; num.value = S.project.kerning[k]; num.setAttribute('aria-label', 'Valeur ' + k);
+      row.appendChild(num);
+      var del = document.createElement('button'); del.className = 'btn quiet'; del.textContent = 'Retirer';
+      row.appendChild(del);
+      function upd(v) {
+        change('crénage ' + k, [], function () { S.project.kerning[k] = v; }, 'kern:' + k); sl.value = v; num.value = v;
+        view.innerHTML = ''; view.appendChild(pairSvg(k));
+        var t = $('#kernTest'); t.innerHTML = ''; t.appendChild(textSvg($('#previewText').value || 'AVATAR', 64, {}));
+        renderPreview(); Store.meta();
+      }
+      sl.addEventListener('input', function () { upd(+sl.value); });
+      num.addEventListener('change', function () { upd(Math.round(+num.value) || 0); });
+      del.addEventListener('click', function () { change('retrait de la paire ' + k, [], function () { delete S.project.kerning[k]; }); Store.meta(); renderKern(); renderPreview(); });
+      list.appendChild(row);
+    });
+  }
+  function pairSvg(k) {
+    var ab = Array.from(k), ctx = /[a-z]/.test(ab[0]) || /[a-z]/.test(ab[1]) ? 'n' : 'H';
+    return textSvg(ctx + k + ctx, 52, {});
+  }
+  $('#kAdd').addEventListener('click', function () {
+    var a = Array.from($('#kA').value.trim())[0], b = Array.from($('#kB').value.trim())[0];
+    if (!a || !b) { toast('Indique les deux caractères de la paire.'); return; }
+    if (S.project.kerning[a + b] == null) change('ajout de la paire ' + a + b, [], function () { S.project.kerning[a + b] = 0; });
+    $('#kA').value = ''; $('#kB').value = ''; Store.meta(); renderKern(); $('#kA').focus();
+  });
+  $('#kA').addEventListener('input', function () { if ($('#kA').value) $('#kB').focus(); });
+  $('#kCommon').addEventListener('click', function () {
+    var n = 0;
+    change('ajout des paires courantes', [], function () {
+      COMMON.forEach(function (k) { var ab = Array.from(k); if (S.placed[ab[0]] && S.placed[ab[1]] && S.project.kerning[k] == null) { S.project.kerning[k] = 0; n++; } });
+    });
+    toast(n ? n + ' paires ajoutées à 0, à régler une par une' : 'Aucune nouvelle paire : dessine d’abord des lettres comme A, V, T, Y, o, a.');
+    if (n) { Store.meta(); renderKern(); }
+  });
+
+  /* ---------- Réglages ---------- */
+  function getPath(o, p) { return p.split('.').reduce(function (a, k) { return a == null ? a : a[k]; }, o); }
+  function setPath(o, p, v) { var ks = p.split('.'), last = ks.pop(); ks.reduce(function (a, k) { return a[k]; }, o)[last] = v; }
+  function fillSettings() {
+    document.querySelectorAll('[data-set]').forEach(function (el) {
+      var v = getPath(S.project, el.dataset.set);
+      if (el.type === 'checkbox') el.checked = !!v;
+      else el.value = (el.dataset.set === 'auto.refPt' && !v) ? '' : (v == null ? '' : v);
+      if (el._range) el._range.value = el.value || 0;
+    });
+    renderRefInfo();
+  }
+  function renderRefInfo() {
+    var el = $('#refInfo'); if (!el) return;
+    var r = S.ref;
+    if (!r) el.textContent = 'Pas encore de référence : colle le H sans cadre, ou indique sa hauteur en pt.';
+    else if (r.source === 'manual') el.textContent = 'Référence manuelle : ' + r.pt + ' pt = ' + r.units + ' unités.';
+    else if (r.source === 'estimate') el.textContent = 'Référence estimée d’après ' + r.count + ' lettre(s) sans accent collées sans cadre : ' + Math.round(r.pt * 10) / 10 + ' pt = ' + r.units + ' unités. Colle un H pour la fixer.';
+    else if (r.source === 'frames') el.textContent = 'Référence tirée des glyphes placés par cadre : ' + Math.round(r.pt * 10) / 10 + ' pt = ' + r.units + ' unités.';
+    else el.textContent = 'Référence automatique : la hauteur du ' + r.source + ' (' + Math.round(r.pt * 10) / 10 + ' pt) = ' + r.units + ' unités.';
+  }
+  document.querySelectorAll('[data-set]').forEach(function (el) {
+    var t;
+    el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', function () {
+      clearTimeout(t);
+      t = setTimeout(function () {
+        var v = el.type === 'checkbox' ? el.checked : (el.type === 'number' ? (el.value === '' ? 0 : +el.value) : el.value);
+        var oldName = S.project.name;
+        change('réglages', [], function () {
+          setPath(S.project, el.dataset.set, v);
+          // renommer le projet renomme aussi la police tant qu’elle portait le même nom
+          if (el.dataset.set === 'name' && (S.project.family || '').trim().toLowerCase() === (oldName || '').trim().toLowerCase()) S.project.family = v;
+        }, 'set:' + el.dataset.set);
+        if (el.dataset.set === 'name') { var fam = document.querySelector('[data-set="family"]'); if (fam) fam.value = S.project.family; }
+        if (el.dataset.set === 'name') renderProjects();
+        recompute(); renderGrid(); renderEditor(); renderPreview(); renderKern(); renderRefInfo();
+        Store.meta();
+      }, el.type === 'checkbox' ? 0 : (el.type === 'number' ? 120 : 350));
+    });
+  });
+
+  // Curseurs des réglages, liés aux champs numériques
+  document.querySelectorAll('input[type=number][data-range]').forEach(function (num) {
+    var r = num.dataset.range.split(',').map(Number), range = document.createElement('input');
+    range.type = 'range'; range.min = r[0]; range.max = r[1]; range.step = r[2] || 1;
+    var lab = num.closest('label'); range.setAttribute('aria-label', lab ? lab.firstChild.textContent.trim() : '');
+    num.after(range); if (lab) lab.classList.add('with-range');
+    range.addEventListener('input', function () { num.value = range.value; num.dispatchEvent(new Event('input')); });
+    num.addEventListener('input', function () { if (num.value !== '' && !isNaN(+num.value)) range.value = num.value; });
+    num._range = range;
+  });
+
+  /* ---------- Import de plusieurs glyphes d’un coup ---------- */
+  var B = { items: [], warnings: [], mode: '' };
+  var CAPS_REF = 'ABCDEFGHIKLMNPRSTUVWXYZ', X_REF = 'acemnorsuvwxz';
+  function median(a) { a = a.slice().sort(function (x, y) { return x - y; }); return a.length ? a[Math.floor(a.length / 2)] : null; }
+  function openBatch(sp, warnings, fromFiles) {
+    B.items = sp ? sp.glyphs.map(function (g) {
+      return { contours: g.contours, bbox: g.bbox, frame: g.frame, row: g.row, rowBand: g.rowBand, rowSize: g.rowSize, ch: Core.charFromName(g.id), fromName: !!Core.charFromName(g.id), file: g.file };
+    }) : [];
+    B.warnings = warnings || []; B.mode = sp ? sp.mode : '';
+    var d = $('#batchDlg'); if (!d.open) d.showModal();
+    // Sans noms reconnus : on propose la suite des caractères depuis la case sélectionnée
+    if (B.items.length && !B.items.some(function (it) { return it.ch; })) fillSequence(CHARS.slice(CHARS.indexOf(S.selected)).join(''));
+    renderBatch();
+    if (sp && sp.stray) toast(sp.stray + ' forme(s) hors des cadres ignorée(s)');
+  }
+  function addToBatch(sp, warnings) {
+    var base = B.items.length;
+    sp.glyphs.forEach(function (g) {
+      B.items.push({ contours: g.contours, bbox: g.bbox, frame: g.frame, row: (g.row || 0) + 1000 + base, rowBand: g.rowBand, rowSize: g.rowSize,
+        ch: Core.charFromName(g.id), fromName: !!Core.charFromName(g.id), file: g.file });
+    });
+    (warnings || []).forEach(function (w) { if (B.warnings.indexOf(w) < 0) B.warnings.push(w); });
+    renderBatch();
+  }
+  function fillSequence(seq) {
+    var chars = Array.from(seq);
+    B.items.forEach(function (it, i) { var c = chars[i]; it.ch = (c && c !== ' ') ? c : ''; it.fromName = false; });
+  }
+  function seqString() { return B.items.map(function (it) { return it.ch || ' '; }).join('').replace(/\s+$/, ''); }
+  function thumb(it) {
+    var svg = document.createElementNS(NS, 'svg'), vb;
+    if (it.frame) vb = [it.frame.x, it.frame.y, it.frame.w, it.frame.h];
+    else {
+      var band = it.rowBand || { y0: it.bbox.y0, y1: it.bbox.y1 }, h = band.y1 - band.y0, w = Math.max(it.bbox.x1 - it.bbox.x0, h * 0.6);
+      var cx = (it.bbox.x0 + it.bbox.x1) / 2, pad = h * 0.08;
+      vb = [cx - w / 2 - pad, band.y0 - pad, w + pad * 2, h + pad * 2];
+    }
+    svg.setAttribute('viewBox', vb.join(' ')); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    var p = document.createElementNS(NS, 'path'); p.setAttribute('d', Core.toD(it.contours, false)); svg.appendChild(p);
+    return svg;
+  }
+  function renderBatch() {
+    var has = B.items.length;
+    $('#batchSeqRow').hidden = !has; $('#batchGo').disabled = !has; $('#batchCards').hidden = !has;
+    $('#batchBaseRow').hidden = !has || B.mode === 'frames' || B.items.every(function (it) { return it.frame; });
+    $('#batchDrop').classList.toggle('compact', !!has);
+    var seq = $('#batchSeq'); if (document.activeElement !== seq) seq.value = seqString();
+    var counts = {};
+    B.items.forEach(function (it) { if (it.ch) counts[it.ch] = (counts[it.ch] || 0) + 1; });
+    var wrap = $('#batchCards'); wrap.innerHTML = '';
+    var n = 0, replace = 0;
+    B.items.forEach(function (it, i) {
+      var card = document.createElement('div'); card.className = 'bcard'; card.draggable = true; card.dataset.i = i;
+      card.appendChild(thumb(it));
+      var inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 2; inp.value = it.ch; inp.setAttribute('aria-label', 'Caractère du glyphe ' + (i + 1));
+      inp.addEventListener('input', function () {
+        it.ch = Array.from(inp.value.trim()).slice(-1)[0] || ''; it.fromName = false;
+        inp.value = it.ch; renderBatchStatus();
+        $('#batchSeq').value = seqString();
+        if (it.ch) { var nx = wrap.querySelectorAll('.bcard input')[i + 1]; if (nx) { nx.focus(); nx.select(); } }
+      });
+      inp.addEventListener('focus', function () { inp.select(); });
+      card.appendChild(inp);
+      var st = document.createElement('div'); st.className = 'bstat'; card.appendChild(st);
+      var acts = document.createElement('div'); acts.className = 'bacts';
+      if (i < B.items.length - 1) {
+        var mg = document.createElement('button'); mg.className = 'btn quiet tiny'; mg.textContent = 'Fusionner →';
+        mg.title = 'Réunir avec le glyphe suivant (guillemets, signes en plusieurs morceaux)';
+        mg.addEventListener('click', function () {
+          var nx = B.items[i + 1];
+          it.contours = it.contours.concat(nx.contours); it.bbox = Core.bboxOf(it.contours);
+          if (it.rowBand && nx.rowBand) it.rowBand = { y0: Math.min(it.rowBand.y0, nx.rowBand.y0), y1: Math.max(it.rowBand.y1, nx.rowBand.y1) };
+          B.items.splice(i + 1, 1); renderBatch();
+        });
+        acts.appendChild(mg);
+      }
+      var rm = document.createElement('button'); rm.className = 'btn quiet tiny'; rm.textContent = 'Retirer';
+      rm.addEventListener('click', function () { B.items.splice(i, 1); renderBatch(); });
+      acts.appendChild(rm);
+      card.appendChild(acts);
+      // Glisser une vignette sur une autre échange leurs caractères
+      card.addEventListener('dragstart', function (e) { e.dataTransfer.setData('text/x-batch', String(i)); e.dataTransfer.effectAllowed = 'move'; card.classList.add('dragging'); });
+      card.addEventListener('dragend', function () { card.classList.remove('dragging'); });
+      card.addEventListener('dragover', function (e) { if (e.dataTransfer.types.indexOf('text/x-batch') >= 0) { e.preventDefault(); card.classList.add('over'); } });
+      card.addEventListener('dragleave', function () { card.classList.remove('over'); });
+      card.addEventListener('drop', function (e) {
+        var from = e.dataTransfer.getData('text/x-batch'); if (from === '') return;
+        e.preventDefault(); e.stopPropagation(); card.classList.remove('over');
+        var a = B.items[+from], t = a.ch; a.ch = it.ch; it.ch = t; renderBatch();
+      });
+      wrap.appendChild(card);
+    });
+    renderBatchStatus();
+    var info = $('#batchInfo');
+    if (!has) info.textContent = '';
+    else info.textContent = B.items.length + ' glyphe(s) trouvé(s)' + (B.mode === 'frames' ? ', chacun dans son cadre' : '') +
+      (B.items.some(function (it) { return it.fromName; }) ? '. Les caractères lus dans les noms des cadres ou des fichiers sont déjà remplis.' : '. Vérifie l’attribution, puis importe.');
+  }
+  function renderBatchStatus() {
+    var counts = {}, n = 0, replace = 0, dup = 0;
+    B.items.forEach(function (it) { if (it.ch) counts[it.ch] = (counts[it.ch] || 0) + 1; });
+    document.querySelectorAll('#batchCards .bcard').forEach(function (card, i) {
+      var it = B.items[i], st = card.querySelector('.bstat'), msg = '', cls = '';
+      if (!it.ch) { msg = 'ignoré'; cls = 'skip'; }
+      else if (CHARS.indexOf(it.ch) < 0) { msg = 'hors de la grille'; cls = 'warn'; }
+      else if (counts[it.ch] > 1) { msg = 'en double'; cls = 'warn'; dup++; }
+      else if (S.glyphs[Core.keyOf(it.ch)]) { msg = 'remplace'; cls = 'warn'; replace++; n++; }
+      else { msg = it.fromName ? 'lu dans le nom' : 'nouveau'; n++; }
+      st.textContent = msg; st.className = 'bstat ' + cls;
+      card.classList.toggle('skipped', !it.ch || CHARS.indexOf(it.ch) < 0);
+    });
+    $('#batchGo').textContent = n ? 'Importer ' + n + ' glyphe' + (n > 1 ? 's' : '') : 'Importer';
+    $('#batchGo').disabled = !n || dup > 0;
+    $('#batchSum').textContent = dup ? 'Un même caractère est attribué deux fois.' : (replace ? replace + ' glyphe(s) existant(s) seront remplacés (annulable avec ' + MOD + 'Z).' : '');
+  }
+  // Échelle commune du lot (unités de fonte par point Illustrator)
+  function batchScale(list) {
+    // Priorité : capitales du lot > échelle déjà connue du projet > hauteur d’x du lot (dernier recours, car la hauteur d’x réglée n’est qu’une estimation)
+    var M = S.project.metrics, caps = [], xs = [];
+    list.forEach(function (it) {
+      if (it.frame) return;
+      var h = it.bbox.y1 - it.bbox.y0;
+      if (CAPS_REF.indexOf(it.ch) >= 0) caps.push(h);
+      else if (X_REF.indexOf(it.ch) >= 0) xs.push(h);
+    });
+    if (caps.length) return { k: M.cap / median(caps), from: 'caps' };
+    if (S.ref) return { k: S.ref.units / S.ref.pt, from: 'project' };
+    if (xs.length) return { k: M.x / median(xs), from: 'x' };
+    return null;
+  }
+  // Hauteur d’x mesurée sur les lettres à sommet plat du lot
+  function measuredX(list, k) {
+    var flat = list.filter(function (it) { return !it.frame && 'mnruvwxz'.indexOf(it.ch) >= 0; });
+    if (!flat.length) flat = list.filter(function (it) { return !it.frame && X_REF.indexOf(it.ch) >= 0; });
+    if (!flat.length) return null;
+    return Math.round(median(flat.map(function (it) { return it.bbox.y1 - it.bbox.y0; })) * k);
+  }
+  function commitBatch() {
+    var counts = {};
+    B.items.forEach(function (it) { if (it.ch) counts[it.ch] = (counts[it.ch] || 0) + 1; });
+    var list = B.items.filter(function (it) { return it.ch && CHARS.indexOf(it.ch) >= 0 && counts[it.ch] === 1; });
+    if (!list.length) return;
+    var M = S.project.metrics, sc = batchScale(list), k = sc && sc.k, useBase = $('#batchBase').checked, xNote = '';
+    if (sc && sc.from !== 'x') {
+      var mx = measuredX(list, k);
+      if (mx && Math.abs(mx - M.x) > M.x * 0.02) xNote = mx;
+    }
+    // Ligne de base de chaque rangée : médiane des bas de lettres sans descendante
+    var rows = {};
+    list.forEach(function (it) { if (!it.frame) (rows[it.row] = rows[it.row] || []).push(it); });
+    var baseOf = {};
+    Object.keys(rows).forEach(function (r) {
+      var items = rows[r];
+      // seules les lettres et chiffres posés sur la ligne de base servent à la trouver (pas les accents, tirets, guillemets, descendantes)
+      var bottoms = items.filter(function (it) {
+        return /[\p{L}\p{N}]/u.test(it.ch) && Core.defaultAnchor(it.ch) === 'base' && 'gjpqyQJçÇ'.indexOf(it.ch) < 0;
+      }).map(function (it) { return it.bbox.y1; });
+      // les lettres à pied plat donnent la ligne de base exacte (les rondes la dépassent légèrement)
+      var flat = items.filter(function (it) { return 'hiklmnrfxzEFHIKLMNPRTXZ147'.indexOf(it.ch) >= 0; }).map(function (it) { return it.bbox.y1; });
+      if (items.length >= 3 && flat.length >= 1) baseOf[r] = median(flat);
+      else if (items.length >= 3 && bottoms.length >= 2) baseOf[r] = median(bottoms);
+    });
+    var keys = list.map(function (it) { return Core.keyOf(it.ch); });
+    change('import de ' + list.length + ' glyphes', keys, function () {
+      if (xNote) S.project.metrics.x = xNote;
+      list.forEach(function (it) {
+        var key = Core.keyOf(it.ch), prev = S.glyphs[key] || {}, frame = it.frame;
+        if (!frame && k && useBase) {
+          var base = baseOf[it.row], top = it.bbox.y0, bottom = it.bbox.y1, anchor = Core.defaultAnchor(it.ch);
+          if (base == null) { // rangée trop courte : on déduit la ligne de base de l’alignement habituel du glyphe
+            if (anchor === 'x') base = top + M.x / k;
+            else if (anchor === 'cap') base = top + M.cap / k;
+            else if (anchor === 'base') base = bottom;
+            else if (anchor === 'accent') base = bottom + (M.x + Math.round(M.x * 0.12)) / k;
+            else if (anchor === 'cedilla') base = top + 10 / k;
+            else if (anchor === 'mid') base = (top + bottom) / 2 + (M.x / 2) / k;
+          }
+          if (base != null) frame = { x: it.bbox.x0, y: base - M.asc / k, w: it.bbox.x1 - it.bbox.x0, h: (M.asc - M.desc) / k, synthetic: true };
+        }
+        S.glyphs[key] = { contours: it.contours, bbox: it.bbox, frame: frame || null, warnings: B.warnings.slice(),
+          lsb: prev.lsb != null ? prev.lsb : null, rsb: prev.rsb != null ? prev.rsb : null, dy: prev.dy || 0, anchor: prev.anchor || null, updatedAt: Date.now() };
+      });
+    });
+    recompute(); renderGrid(); renderEditor(); renderPreview(); renderKern(); renderRefInfo();
+    keys.forEach(function (key) { Store.glyph(key); });
+    $('#batchDlg').close();
+    B.items = [];
+    if (xNote) { fillSettings(); Store.meta(); }
+    toast(list.length + ' glyphes importés' + (xNote ? ', hauteur d’x mesurée sur tes dessins : ' + xNote : '') +
+      (k || list.every(function (it) { return it.frame; }) ? '' : '. Ajoute un H au lot pour fixer l’échelle.'));
+  }
+  function readBatchText(text, name) {
+    var svgText = Core.extractSvgText(text);
+    if (!svgText) return null;
+    var r = Core.readSvg(svgText);
+    if (!r.contours.length) return null;
+    if (name) { // un fichier = un glyphe, nommé par le fichier
+      return { sp: { mode: 'files', stray: 0, glyphs: [{ contours: r.contours, bbox: r.bbox, frame: r.frame, id: name, row: 0, rowSize: 1, file: name }] }, warnings: r.warnings };
+    }
+    return { sp: Core.splitGlyphs(r), warnings: r.warnings };
+  }
+  async function batchFiles(files) {
+    var ok = 0;
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i]; if (!/\.svg$/i.test(f.name) && f.type !== 'image/svg+xml') continue;
+      try { var res = readBatchText(await f.text(), f.name); if (res) { addToBatch(res.sp, res.warnings); ok++; } } catch (e) {}
+    }
+    if (!ok) toast('Aucun fichier SVG lisible.');
+  }
+  $('#batchBtn').addEventListener('click', function () { B.items = []; openBatch(null); $('#batchDrop').focus(); });
+  $('#batchClose').addEventListener('click', function () { $('#batchDlg').close(); });
+  $('#batchGo').addEventListener('click', commitBatch);
+  $('#batchClear').addEventListener('click', function () { B.items = []; renderBatch(); });
+  $('#batchSeq').addEventListener('input', function () { fillSequence(this.value); renderBatch(); });
+  document.querySelectorAll('[data-seq]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var v = b.dataset.seq === 'sel' ? CHARS.slice(CHARS.indexOf(S.selected)).join('') : b.dataset.seq;
+      fillSequence(v); renderBatch();
+    });
+  });
+  $('#batchPick').addEventListener('click', function () { $('#batchFile').click(); });
+  $('#batchFile').addEventListener('change', function () { var fs = Array.from(this.files); this.value = ''; batchFiles(fs); });
+  var drop = $('#batchDrop');
+  drop.addEventListener('dragover', function (e) { if (e.dataTransfer.types.indexOf('text/x-batch') < 0) { e.preventDefault(); drop.classList.add('drop'); } });
+  drop.addEventListener('dragleave', function () { drop.classList.remove('drop'); });
+  drop.addEventListener('drop', function (e) {
+    e.preventDefault(); drop.classList.remove('drop');
+    if (e.dataTransfer.files && e.dataTransfer.files.length) return batchFiles(Array.from(e.dataTransfer.files));
+    var t = e.dataTransfer.getData('image/svg+xml') || e.dataTransfer.getData('text/plain');
+    var res = t && readBatchText(t);
+    if (res) addToBatch(res.sp, res.warnings); else toast('Rien de vectoriel dans ce dépôt.');
+  });
+  // Déposer des fichiers SVG n’importe où sur la grille ouvre aussi l’import groupé
+  $('#groups').addEventListener('dragover', function (e) { if (e.dataTransfer.types.indexOf('Files') >= 0) e.preventDefault(); });
+  $('#groups').addEventListener('drop', function (e) {
+    if (!e.dataTransfer.files || !e.dataTransfer.files.length) return;
+    e.preventDefault(); B.items = []; openBatch(null); batchFiles(Array.from(e.dataTransfer.files));
+  });
+
+  /* ---------- Ajouter des glyphes ---------- */
+  function openAddDialog() { renderAddDialog(); $('#addDlg').showModal(); }
+  function renderAddDialog() {
+    var wrap = $('#addSets'); wrap.innerHTML = '';
+    Core.EXTRA_GROUPS.forEach(function (g) {
+      var on = S.project.extraGroups.indexOf(g.id) >= 0;
+      var lab = document.createElement('label'); lab.className = 'setrow' + (on ? ' on' : '');
+      var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = on;
+      var txt = document.createElement('div');
+      var t = document.createElement('div'); t.className = 'dname'; t.textContent = g.label + ' (' + Array.from(g.chars).length + ')';
+      var ex = document.createElement('div'); ex.className = 'setchars'; ex.textContent = Array.from(g.chars).join(' ');
+      txt.appendChild(t); txt.appendChild(ex);
+      lab.appendChild(cb); lab.appendChild(txt);
+      cb.addEventListener('change', function () {
+        change((cb.checked ? 'ajout' : 'retrait') + ' du jeu ' + g.label, [], function () {
+          var a = S.project.extraGroups.filter(function (x) { return x !== g.id; });
+          if (cb.checked) a.push(g.id);
+          S.project.extraGroups = a;
+        });
+        lab.classList.toggle('on', cb.checked);
+        gridChanged();
+      });
+      wrap.appendChild(lab);
+    });
+    var cl = $('#customList'); cl.innerHTML = '';
+    if (!S.project.customChars.length) { cl.innerHTML = '<p class="dmeta">Aucun pour l’instant.</p>'; return; }
+    S.project.customChars.forEach(function (ch) {
+      var row = document.createElement('div'); row.className = 'chip';
+      var name = Core.isPUA(ch) ? Core.displayName(ch, S.project) : ch;
+      row.innerHTML = '<span></span><small></small>';
+      row.querySelector('span').textContent = name;
+      row.querySelector('small').textContent = cpOf(ch);
+      var rm = document.createElement('button'); rm.className = 'btn quiet tiny'; rm.textContent = 'Retirer';
+      rm.setAttribute('aria-label', 'Retirer ' + name);
+      rm.addEventListener('click', function () { removeCustom(ch); renderAddDialog(); });
+      row.appendChild(rm); cl.appendChild(row);
+    });
+  }
+  function cpOf(ch) { return 'U+' + ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0'); }
+  function gridChanged() {
+    recompute(); renderGrid(); renderEditor(); renderPreview(); Store.meta();
+  }
+  // caractères tapés ou codes Unicode (U+2192, 0x2192, \u2192), séparés ou non par des espaces
+  function parseChars(text) {
+    var out = [];
+    text.split(/\s+/).forEach(function (tok) {
+      if (!tok) return;
+      var m = /^(?:U\+|\\u|0x)([0-9A-Fa-f]{4,6})$/i.exec(tok);
+      if (m) { var cp = parseInt(m[1], 16); if (cp > 0x1F && cp <= 0x10FFFF) out.push(String.fromCodePoint(cp)); }
+      else Array.from(tok).forEach(function (c) { out.push(c); });
+    });
+    return out;
+  }
+  $('#addCharsBtn').addEventListener('click', function () {
+    var inp = $('#addChars'), list = parseChars(inp.value), have = Core.charsFor(S.project), added = [];
+    list.forEach(function (ch) { if (have.indexOf(ch) < 0 && added.indexOf(ch) < 0 && ch.trim()) added.push(ch); });
+    if (!added.length) { toast(list.length ? 'Ces caractères sont déjà dans la grille.' : 'Tape ou colle un caractère, ou un code comme U+2192.'); return; }
+    change('ajout de ' + added.join(''), [], function () { S.project.customChars = S.project.customChars.concat(added); });
+    inp.value = ''; renderAddDialog(); gridChanged();
+    toast(added.length + ' case(s) ajoutée(s) dans « Personnalisés »');
+  });
+  $('#addChars').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#addCharsBtn').click(); });
+  $('#addPuaBtn').addEventListener('click', function () {
+    var inp = $('#addPua'), name = inp.value.trim();
+    if (!name) { toast('Donne un nom au glyphe, par exemple « logo » ou « picto-maison ».'); inp.focus(); return; }
+    var used = {}; Core.charsFor(S.project).forEach(function (c) { used[c] = 1; });
+    Object.keys(S.glyphs).forEach(function (k) { used[String.fromCodePoint(parseInt(k.slice(1), 16))] = 1; });
+    var cp = 0xE000; while (used[String.fromCodePoint(cp)] && cp < 0xF8FF) cp++;
+    var ch = String.fromCodePoint(cp);
+    change('création de ' + name, [], function () {
+      S.project.customChars = S.project.customChars.concat([ch]);
+      S.project.customNames = Object.assign({}, S.project.customNames); S.project.customNames[ch] = name;
+    });
+    inp.value = ''; renderAddDialog(); gridChanged();
+    $('#addDlg').close(); select(ch); scrollToCell(ch);
+    toast('« ' + name + ' » créé (' + cpOf(ch) + ') : colle son dessin');
+  });
+  $('#addPua').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#addPuaBtn').click(); });
+  function removeCustom(ch) {
+    var key = Core.keyOf(ch);
+    change('retrait de ' + (Core.isPUA(ch) ? Core.displayName(ch, S.project) : ch), [key], function () {
+      S.project.customChars = S.project.customChars.filter(function (c) { return c !== ch; });
+      if (S.project.customNames[ch]) { S.project.customNames = Object.assign({}, S.project.customNames); delete S.project.customNames[ch]; }
+      delete S.glyphs[key];
+    });
+    if (S.selected === ch) S.selected = 'A';
+    Store.glyph(key); gridChanged();
+  }
+  $('#addBtn').addEventListener('click', openAddDialog);
+  $('#addClose').addEventListener('click', function () { $('#addDlg').close(); });
+
+  /* ---------- Fichiers : export, sauvegarde, import ---------- */
+  async function offerFile(filename, data) {
+    var dl = null;
+    try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) {}
+    if (dl) {
+      try { await dl.save({ filename: filename, data: data }); toast(filename + ' prêt'); }
+      catch (e) {
+        if (e && e.code === 'declined') return;
+        toast(e && e.code === 'rate_limited' ? 'Un téléchargement est déjà en attente.' : 'Le téléchargement n’est pas disponible ici.');
+      }
+      return;
+    }
+    var blob = data instanceof Blob ? data : new Blob([data]), a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  }
+  /* ---------- Grille de dessin pour Illustrator ---------- */
+  var GUIDE = '#FF2D8A';
+  function gridLayout(scale, withGlyphs, maxPt) {
+    var M = S.project.metrics, em = M.asc - M.desc, maxAdv = 0;
+    CHARS.forEach(function (ch) { var p = S.placed[ch]; if (p && !p.composed) maxAdv = Math.max(maxAdv, p.advance); });
+    var cw = Math.max(Math.round(em * 0.8), withGlyphs ? maxAdv : 0), cols = 12;
+    var gapX = 160, labelH = 210, gapY = 110, groupGap = 260, margin = 300, titleH = 420;
+    var cells = [], y = margin + titleH, sections = [];
+    Core.groupsFor(S.project).forEach(function (gr) {
+      var chars = Array.from(gr.chars);
+      sections.push({ label: gr.label, y: y });
+      y += 170;
+      chars.forEach(function (ch, i) {
+        var col = i % cols, row = Math.floor(i / cols);
+        var top = y + row * (labelH + em + gapY);
+        cells.push({ ch: ch, x: margin + col * (cw + gapX), labelY: top, frameTop: top + labelH, base: top + labelH + M.asc });
+      });
+      y += Math.ceil(chars.length / cols) * (labelH + em + gapY) - gapY + groupGap;
+    });
+    var W = margin * 2 + cols * cw + (cols - 1) * gapX, H = y - groupGap + margin;
+    var s = scale, note = '';
+    if (Math.max(W, H) * s > maxPt) { s = maxPt / Math.max(W, H); note = 'réduite à ' + Math.round(s * 100) + ' %'; }
+    return { cells: cells, sections: sections, W: W, H: H, s: s, cw: cw, em: em, M: M, note: note, margin: margin };
+  }
+  function glyphFor(ch, withGlyphs) {
+    if (!withGlyphs || !S.glyphs[Core.keyOf(ch)]) return null;
+    return S.placed[ch] || null;
+  }
+  function f2(v) { return (Math.round(v * 100) / 100).toString(); }
+  function xmlEsc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function cpLabel(ch) { return 'U+' + ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0'); }
+
+  function buildGridSvg(scale, withGlyphs) {
+    var L = gridLayout(scale, withGlyphs, 14000), s = L.s, M = L.M;
+    var W = L.W * s, H = L.H * s, fs = Math.max(6, 110 * s), lw = 0.6, out = [];
+    out.push('<?xml version="1.0" encoding="UTF-8"?>');
+    out.push('<svg xmlns="http://www.w3.org/2000/svg" width="' + f2(W) + '" height="' + f2(H) + '" viewBox="0 0 ' + f2(W) + ' ' + f2(H) + '">');
+    out.push('<g id="Reperes">');
+    out.push('<text x="' + f2(L.margin * s) + '" y="' + f2((L.margin + 220) * s) + '" font-family="Helvetica, Arial, sans-serif" font-size="' + f2(Math.max(10, 200 * s)) + '" fill="' + GUIDE + '">' +
+      xmlEsc((S.project.family || 'Ma typo') + ' – grille de dessin') + '</text>');
+    out.push('<text x="' + f2(L.margin * s) + '" y="' + f2((L.margin + 360) * s) + '" font-family="Helvetica, Arial, sans-serif" font-size="' + f2(fs) + '" fill="' + GUIDE + '">' +
+      xmlEsc('Ascendante ' + M.asc + ', capitale ' + M.cap + ', x ' + M.x + ', descendante ' + M.desc + '. Copie chaque glyphe avec son cadre (calque Cadres).') + '</text>');
+    L.sections.forEach(function (sec) {
+      out.push('<text x="' + f2(L.margin * s) + '" y="' + f2((sec.y + 110) * s) + '" font-family="Helvetica, Arial, sans-serif" font-size="' + f2(fs * 1.2) + '" fill="' + GUIDE + '">' + xmlEsc(sec.label) + '</text>');
+    });
+    L.cells.forEach(function (c) {
+      var x1 = c.x * s, x2 = (c.x + L.cw) * s;
+      out.push('<text x="' + f2(x1) + '" y="' + f2((c.labelY + 150) * s) + '" font-family="Helvetica, Arial, sans-serif" font-size="' + f2(fs) + '" fill="' + GUIDE + '">' + xmlEsc(Core.displayName(c.ch, S.project) + '  ' + cpLabel(c.ch)) + '</text>');
+      [M.asc, M.cap, M.x, 0, M.desc].forEach(function (v) {
+        var y = (c.base - v) * s;
+        out.push('<line x1="' + f2(x1) + '" y1="' + f2(y) + '" x2="' + f2(x2) + '" y2="' + f2(y) + '" stroke="' + GUIDE + '" stroke-width="' + (v === 0 ? lw * 2 : lw) + '" fill="none"/>');
+      });
+    });
+    out.push('</g>');
+    out.push('<g id="Cadres">');
+    L.cells.forEach(function (c) {
+      out.push('<rect id="cadre_' + Core.glyphName(c.ch) + '" x="' + f2(c.x * s) + '" y="' + f2(c.frameTop * s) + '" width="' + f2(L.cw * s) + '" height="' + f2(L.em * s) + '" fill="none"/>');
+    });
+    out.push('</g>');
+    out.push('<g id="Glyphes">');
+    L.cells.forEach(function (c) {
+      var p = glyphFor(c.ch, withGlyphs); if (!p) return;
+      var ox = c.x + (L.cw - p.advance) / 2;
+      var d = p.contours.map(function (con) {
+        return con.map(function (cmd) {
+          var pts = [];
+          for (var k = 1; k < cmd.length; k += 2) pts.push(f2((ox + cmd[k]) * s) + ' ' + f2((c.base - cmd[k + 1]) * s));
+          return cmd[0] + pts.join(' ');
+        }).join('') + 'Z';
+      }).join('');
+      out.push('<g id="' + Core.glyphName(c.ch) + '"><path d="' + d + '" fill="#000000"/></g>');
+    });
+    out.push('</g></svg>');
+    return { text: out.join('\n'), note: L.note };
+  }
+
+  var WINANSI = { '€': 0x80, '‚': 0x82, 'ƒ': 0x83, '„': 0x84, '…': 0x85, 'ˆ': 0x88, 'Œ': 0x8C, '‘': 0x91, '’': 0x92, '“': 0x93, '”': 0x94,
+    '–': 0x96, '—': 0x97, '˜': 0x98, '™': 0x99, 'œ': 0x9C, 'Ÿ': 0x9F };
+  function pdfStr(t) {
+    var o = '';
+    Array.from(t).forEach(function (ch) {
+      var c = ch.codePointAt(0), b = WINANSI[ch] != null ? WINANSI[ch] : (c < 256 ? c : 63);
+      if (ch === '(' || ch === ')' || ch === '\\') o += '\\' + ch;
+      else if (b < 32 || b > 126) o += '\\' + ('00' + b.toString(8)).slice(-3);
+      else o += String.fromCharCode(b);
+    });
+    return '(' + o + ')';
+  }
+  function buildGridPdf(scale, withGlyphs) {
+    var L = gridLayout(scale, withGlyphs, 14000), s = L.s, M = L.M;
+    var W = L.W * s, H = L.H * s, fs = Math.max(6, 110 * s), cs = [];
+    var Y = function (yDown) { return f2(H - yDown * s); };
+    var X = function (x) { return f2(x * s); };
+    function text(x, yDown, size, str) { cs.push('BT /F1 ' + f2(size) + ' Tf 1 0.176 0.541 rg ' + X(x) + ' ' + Y(yDown) + ' Td ' + pdfStr(str) + ' Tj ET'); }
+    text(L.margin, L.margin + 220, Math.max(10, 200 * s), (S.project.family || 'Ma typo') + ' – grille de dessin');
+    text(L.margin, L.margin + 360, fs, 'Ascendante ' + M.asc + ', capitale ' + M.cap + ', x ' + M.x + ', descendante ' + M.desc + '.');
+    L.sections.forEach(function (sec) { text(L.margin, sec.y + 110, fs * 1.2, sec.label); });
+    cs.push('1 0.176 0.541 RG');
+    L.cells.forEach(function (c) {
+      text(c.x, c.labelY + 150, fs, (c.ch === 'ı' ? 'i sans point' : Core.isPUA(c.ch) ? Core.displayName(c.ch, S.project) : c.ch) + '  ' + cpLabel(c.ch));
+      [M.asc, M.cap, M.x, 0, M.desc].forEach(function (v) {
+        cs.push((v === 0 ? '1.2' : '0.6') + ' w ' + X(c.x) + ' ' + Y(c.base - v) + ' m ' + X(c.x + L.cw) + ' ' + Y(c.base - v) + ' l S');
+      });
+    });
+    cs.push('0.72 G 0.4 w');
+    L.cells.forEach(function (c) { cs.push(X(c.x) + ' ' + Y(c.frameTop + L.em) + ' ' + f2(L.cw * s) + ' ' + f2(L.em * s) + ' re S'); });
+    cs.push('0 g');
+    L.cells.forEach(function (c) {
+      var p = glyphFor(c.ch, withGlyphs); if (!p) return;
+      var ox = c.x + (L.cw - p.advance) / 2, ops = [];
+      p.contours.forEach(function (con) {
+        con.forEach(function (cmd) {
+          var pts = [];
+          for (var k = 1; k < cmd.length; k += 2) pts.push(X(ox + cmd[k]) + ' ' + Y(c.base - cmd[k + 1]));
+          ops.push(pts.join(' ') + (cmd[0] === 'M' ? ' m' : cmd[0] === 'L' ? ' l' : ' c'));
+        });
+        ops.push('h');
+      });
+      cs.push(ops.join('\n') + '\nf');
+    });
+    var content = cs.join('\n');
+    var objs = [
+      '<< /Type /Catalog /Pages 2 0 R >>',
+      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + f2(W) + ' ' + f2(H) + '] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+      '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream',
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+      '<< /Title ' + pdfStr((S.project.family || 'Ma typo') + ' – grille de dessin') + ' /Creator (Atelier typo) >>'
+    ];
+    var pdf = '%PDF-1.4\n', offs = [];
+    objs.forEach(function (o, i) { offs.push(pdf.length); pdf += (i + 1) + ' 0 obj\n' + o + '\nendobj\n'; });
+    var xref = pdf.length;
+    pdf += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+    offs.forEach(function (o) { pdf += ('0000000000' + o).slice(-10) + ' 00000 n \n'; });
+    pdf += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R /Info 6 0 R >>\nstartxref\n' + xref + '\n%%EOF\n';
+    return { text: pdf, note: L.note };
+  }
+
+  /* ---------- Fenêtre Exporter ---------- */
+  function fileBase() { return Core.psSafe(S.project.family || 'Ma typo') + '-' + Core.psSafe(S.project.style || 'Regular'); }
+  function syncExportNames() {
+    $('#expFamily').value = S.project.family || ''; $('#expStyle').value = S.project.style || '';
+    $('#expFileName').textContent = 'Fichier : ' + fileBase() + '.otf, nom dans les menus : ' + ((S.project.family || 'Ma typo').trim() + ' ' + (S.project.style || 'Regular').trim());
+  }
+  $('#exportBtn').addEventListener('click', function () { syncExportNames(); $('#exportDlg').showModal(); $('#expFamily').focus(); });
+  ['expFamily', 'expStyle'].forEach(function (id) {
+    var prop = id === 'expFamily' ? 'family' : 'style';
+    $('#' + id).addEventListener('input', function () {
+      var v = this.value;
+      change('nom de la police', [], function () { S.project[prop] = v; }, 'set:' + prop);
+      var f = document.querySelector('[data-set="' + prop + '"]'); if (f) f.value = v;
+      $('#expFileName').textContent = 'Fichier : ' + fileBase() + '.otf, nom dans les menus : ' + ((S.project.family || 'Ma typo').trim() + ' ' + (S.project.style || 'Regular').trim());
+      Store.meta();
+    });
+  });
+  $('#expClose').addEventListener('click', function () { $('#exportDlg').close(); });
+  $('#exportDlg').addEventListener('click', function (e) { if (e.target === this) this.close(); });
+  $('#expFont').addEventListener('click', async function () {
+    if (!window.opentype || !window.JSZip) { toast('Les outils d’export n’ont pas pu se charger. Recharge la page.'); return; }
+    if (!Object.keys(S.placed).length) { toast('Colle au moins un glyphe avant d’exporter.'); return; }
+    var btn = this; btn.disabled = true;
+    try {
+      var out = Core.buildFont(window.opentype, S.project, S.glyphs);
+      var zip = new JSZip(); zip.file(out.fileBase + '.otf', out.buffer);
+      var blob = await zip.generateAsync({ type: 'blob' });
+      toast(out.glyphCount + ' glyphes, ' + out.pairCount + ' paires de crénage. Sous Windows, extrais le .zip avant d’installer.');
+      await offerFile(out.fileBase + '.zip', blob);
+    } catch (e) { console.error(e); toast('L’export a échoué : ' + (e.message || e)); }
+    btn.disabled = false;
+  });
+  function exportJson() {
+    var data = JSON.stringify({ format: 'typo-atelier', version: 1, exportedAt: new Date().toISOString(), project: S.project, glyphs: S.glyphs });
+    offerFile((S.project.name || 'projet').replace(/[^\w\-]+/g, '_') + '.json', data);
+  }
+  $('#expJson').addEventListener('click', exportJson);
+  $('#saveJson').addEventListener('click', exportJson);
+  $('#expGrid').addEventListener('click', function () {
+    var fmt = $('#gridFmt').value, scale = +$('#gridScale').value, withG = $('#gridGlyphs').checked;
+    var r = fmt === 'pdf' ? buildGridPdf(scale, withG) : buildGridSvg(scale, withG);
+    if (r.note) toast('Grille ' + r.note + ' pour rester dans la taille maximale d’un plan de travail');
+    offerFile(fileBase() + '-grille.' + fmt, r.text);
+  });
+
+  $('#importJson').addEventListener('click', function () { $('#importFile').click(); });
+  $('#importFile').addEventListener('change', async function () {
+    var f = this.files[0]; this.value = ''; if (!f) return;
+    try {
+      var j = JSON.parse(await f.text());
+      if (j.format !== 'typo-atelier' || !j.project) throw new Error();
+      var p = fixProject(j.project); p.id = newProject().id; p.name = (p.name || 'Projet') + ' (importé)';
+      await openProject(p, j.glyphs || {}, true);
+      toast('Projet importé');
+    } catch (e) { toast('Ce fichier n’est pas un projet de l’atelier typo.'); }
+  });
+  var delArmed = null;
+  $('#delProj').addEventListener('click', async function () {
+    var btn = this;
+    if (!delArmed) {
+      btn.textContent = 'Confirmer la suppression';
+      delArmed = setTimeout(function () { delArmed = null; btn.textContent = 'Supprimer ce projet'; }, 4000);
+      return;
+    }
+    clearTimeout(delArmed); delArmed = null; btn.textContent = 'Supprimer ce projet';
+    var id = S.project.id;
+    S.list = S.list.filter(function (p) { return p.id !== id; });
+    try { await Store.deleteProject(id); localStorage.removeItem(LS_KEY + ':versions:' + id); } catch (e) {}
+    if (S.list.length) await switchProject(S.list[0].id);
+    else await openProject(newProject(), {}, true);
+    toast('Projet supprimé');
+  });
+
+  /* ---------- Historique : annuler / rétablir ---------- */
+  var Hist = { undo: [], redo: [], max: 150 };
+  function clone(o) { return o == null ? o : JSON.parse(JSON.stringify(o)); }
+  function capture(keys) {
+    var st = { meta: clone(S.project), glyphs: {} };
+    keys.forEach(function (k) { st.glyphs[k] = clone(S.glyphs[k]); });
+    return st;
+  }
+  // Enregistre une modification. Les gestes rapprochés de même nature (curseur, saisie) sont regroupés.
+  function change(label, keys, fn, mergeKey) {
+    var before = capture(keys);
+    fn();
+    var after = capture(keys), now = Date.now(), last = Hist.undo[Hist.undo.length - 1];
+    if (mergeKey && last && last.mergeKey === mergeKey && now - last.t < 1500) { last.after = after; last.t = now; }
+    else {
+      Hist.undo.push({ label: label, before: before, after: after, mergeKey: mergeKey, t: now });
+      if (Hist.undo.length > Hist.max) Hist.undo.shift();
+    }
+    Hist.redo = [];
+    updateUndoUI();
+  }
+  function applyState(st) {
+    var id = S.project.id;
+    S.project = fixProject(clone(st.meta)); S.project.id = id;
+    var keys = Object.keys(st.glyphs);
+    keys.forEach(function (k) { if (st.glyphs[k]) S.glyphs[k] = clone(st.glyphs[k]); else delete S.glyphs[k]; });
+    recompute(); renderProjects(); fillSettings(); renderGrid(); renderEditor(); renderPreview(); renderKern();
+    keys.forEach(function (k) { Store.glyph(k); });
+    Store.meta();
+  }
+  function undo() {
+    var e = Hist.undo.pop();
+    if (!e) { toast('Rien à annuler'); return; }
+    Hist.redo.push(e); applyState(e.before); updateUndoUI(); toast('Annulé : ' + e.label);
+  }
+  function redo() {
+    var e = Hist.redo.pop();
+    if (!e) { toast('Rien à rétablir'); return; }
+    Hist.undo.push(e); applyState(e.after); updateUndoUI(); toast('Rétabli : ' + e.label);
+  }
+  function resetHistory() { Hist.undo = []; Hist.redo = []; updateUndoUI(); }
+  function updateUndoUI() {
+    var u = $('#undoBtn'), r = $('#redoBtn'); if (!u) return;
+    var lu = Hist.undo[Hist.undo.length - 1], lr = Hist.redo[Hist.redo.length - 1];
+    u.disabled = !lu; r.disabled = !lr;
+    u.title = lu ? 'Annuler ' + lu.label + ' (' + MOD + 'Z)' : 'Rien à annuler';
+    r.title = lr ? 'Rétablir ' + lr.label + ' (' + MOD + '⇧Z)' : 'Rien à rétablir';
+  }
+  var MOD = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? '⌘' : 'Ctrl+';
+  function eraseGlyph(ch) {
+    var key = Core.keyOf(ch);
+    if (!S.glyphs[key]) return;
+    change('effacement de ' + ch, [key], function () { delete S.glyphs[key]; });
+    glyphChanged(ch);
+    toast('Glyphe ' + ch + ' effacé (' + MOD + 'Z pour annuler)');
+  }
+  $('#undoBtn').addEventListener('click', undo);
+  $('#redoBtn').addEventListener('click', redo);
+  document.addEventListener('keydown', function (e) {
+    if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+    if (document.querySelector('dialog[open]')) return;
+    var k = (e.key || '').toLowerCase(), t = e.target;
+    var typing = t && (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && t.type === 'text'));
+    if (k === 'z' || k === 'y') {
+      if (typing) return; // le texte en cours de saisie garde l’annulation du navigateur
+      e.preventDefault();
+      if (k === 'y' || e.shiftKey) redo(); else undo();
+    } else if (k === 's') {
+      e.preventDefault(); quickVersion();
+    } else if (k === 'o') {
+      e.preventDefault(); openProjectsDialog();
+    }
+  });
+
+  /* ---------- Chargement / ouverture des projets ---------- */
+  async function loadProjectData(id) {
+    var local = Store.local().projects[id];
+    if (Store.mode === 'cloud') {
+      var c = await Store.loadCloud(id);
+      if (c.meta) {
+        var useLocal = local && local.meta && local.meta.updatedAt > (c.meta.updatedAt || 0);
+        return useLocal ? local : c;
+      }
+    }
+    return local || null;
+  }
+  function renderProjects() {
+    if (!S.list.some(function (p) { return p.id === S.project.id; })) S.list.unshift(S.project);
+    S.list = S.list.map(function (p) { return p.id === S.project.id ? S.project : p; });
+    $('#projName').textContent = S.project.name || 'Sans titre';
+  }
+  async function openProject(meta, glyphs, isNew) {
+    S.project = fixProject(meta); S.glyphs = glyphs || {};
+    S.project.glyphCount = Object.keys(S.glyphs).length;
+    if (isNew) {
+      S.list.unshift(S.project);
+      Store.saveLocal();
+      if (Store.mode === 'cloud') {
+        setStatus('busy');
+        try { await Store.pushAll(S.project, S.glyphs); setStatus('ok'); } catch (e) { setStatus('error', 'Échec de l’enregistrement en ligne, copie locale conservée'); }
+      }
+    }
+    try { var all = Store.local(); all.last = S.project.id; localStorage.setItem(LS_KEY, JSON.stringify(all)); } catch (e) {}
+    S.selected = S.selected || 'A';
+    resetHistory();
+    recompute(); renderProjects(); fillSettings(); renderGrid(); renderEditor(); renderPreview(); renderKern();
+  }
+  async function switchProject(id) {
+    setStatus('busy', 'Ouverture…');
+    try {
+      var d = await loadProjectData(id);
+      if (d && d.meta) { await openProject(d.meta, d.glyphs || {}); setStatus(Store.mode === 'cloud' ? 'ok' : 'local'); return true; }
+      setStatus(Store.mode === 'cloud' ? 'ok' : 'local');
+    } catch (e) { setStatus('error', 'Ouverture impossible pour le moment'); }
+    return false;
+  }
+
+  /* ---------- Versions (points de sauvegarde) ---------- */
+  var CHUNK = 180000;
+  var Versions = {
+    lsKey: function (pid) { return LS_KEY + ':versions:' + pid; },
+    localList: function (pid) { try { return JSON.parse(localStorage.getItem(Versions.lsKey(pid))) || []; } catch (e) { return []; } },
+    col: function (pid) { return Store.projRef(pid).collection('versions'); },
+    list: async function (pid) {
+      if (Store.mode === 'cloud') {
+        var snap = await Versions.col(pid).limit(200).get();
+        return snap.docs.map(function (d) { var v = d.data(); v.id = d.id; return v; })
+          .sort(function (a, b) { return b.createdAt - a.createdAt; });
+      }
+      return Versions.localList(pid).map(function (v) { return { id: v.id, name: v.name, createdAt: v.createdAt, glyphCount: v.glyphCount }; })
+        .sort(function (a, b) { return b.createdAt - a.createdAt; });
+    },
+    save: async function (name) {
+      var pid = S.project.id, id = 'v' + Date.now().toString(36);
+      var payload = JSON.stringify({ project: S.project, glyphs: S.glyphs });
+      var info = { name: name, createdAt: Date.now(), glyphCount: Object.keys(S.glyphs).length };
+      if (Store.mode === 'cloud') {
+        var n = Math.ceil(payload.length / CHUNK) || 1;
+        for (var i = 0; i < n; i++) await Versions.col(pid).doc(id).collection('chunks').doc('c' + i).set({ s: payload.slice(i * CHUNK, (i + 1) * CHUNK) });
+        info.chunks = n;
+        await Versions.col(pid).doc(id).set(info);
+      } else {
+        var list = Versions.localList(pid);
+        list.push(Object.assign({ id: id, data: payload }, info));
+        localStorage.setItem(Versions.lsKey(pid), JSON.stringify(list)); // peut lever une erreur de quota
+      }
+      return id;
+    },
+    load: async function (pid, id) {
+      if (Store.mode === 'cloud') {
+        var info = (await Versions.col(pid).doc(id).get()).data(); if (!info) return null;
+        var txt = '';
+        for (var i = 0; i < info.chunks; i++) txt += (await Versions.col(pid).doc(id).collection('chunks').doc('c' + i).get()).data().s;
+        return JSON.parse(txt);
+      }
+      var v = Versions.localList(pid).filter(function (x) { return x.id === id; })[0];
+      return v ? JSON.parse(v.data) : null;
+    },
+    remove: async function (pid, id) {
+      if (Store.mode === 'cloud') {
+        var info = (await Versions.col(pid).doc(id).get()).data();
+        for (var i = 0; info && i < info.chunks; i++) await Versions.col(pid).doc(id).collection('chunks').doc('c' + i).delete();
+        await Versions.col(pid).doc(id).delete();
+      } else {
+        localStorage.setItem(Versions.lsKey(pid), JSON.stringify(Versions.localList(pid).filter(function (x) { return x.id !== id; })));
+      }
+    }
+  };
+  function fmtDate(t) {
+    try { return new Date(t).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return new Date(t).toLocaleString(); }
+  }
+  async function saveVersion(name) {
+    setStatus('busy', 'Enregistrement de la version…');
+    try {
+      await Versions.save(name || ('Version du ' + fmtDate(Date.now())));
+      setStatus(Store.mode === 'cloud' ? 'ok' : 'local');
+      return true;
+    } catch (e) {
+      setStatus('error', 'Version non enregistrée');
+      toast(Store.mode === 'cloud' ? 'La version n’a pas pu être enregistrée.' : 'Plus de place sur cet appareil pour une nouvelle version.');
+      return false;
+    }
+  }
+  async function quickVersion() {
+    if (await saveVersion('Version du ' + fmtDate(Date.now()))) {
+      toast('Version enregistrée. Retrouve-la dans Projets');
+      if ($('#projDlg').open) renderDialog();
+    }
+  }
+  async function restoreVersion(v) {
+    var pid = S.project.id;
+    setStatus('busy', 'Retour à la version…');
+    try {
+      var data = await Versions.load(pid, v.id);
+      if (!data) throw new Error();
+      await Versions.save('Avant le retour à « ' + v.name + ' »');
+      var oldKeys = Object.keys(S.glyphs), meta = fixProject(data.project); meta.id = pid;
+      S.project = meta; S.glyphs = data.glyphs || {};
+      S.project.updatedAt = Date.now(); S.project.glyphCount = Object.keys(S.glyphs).length;
+      Store.saveLocal();
+      if (Store.mode === 'cloud') {
+        await Store.pushAll(S.project, S.glyphs);
+        for (var i = 0; i < oldKeys.length; i++) if (!S.glyphs[oldKeys[i]]) await Store.projRef(pid).collection('glyphs').doc(oldKeys[i]).delete();
+      }
+      resetHistory();
+      recompute(); renderProjects(); fillSettings(); renderGrid(); renderEditor(); renderPreview(); renderKern();
+      setStatus(Store.mode === 'cloud' ? 'ok' : 'local');
+      toast('Projet revenu à « ' + v.name + ' ». L’état précédent est gardé en version.');
+    } catch (e) { setStatus('error', 'Retour à la version impossible'); }
+  }
+
+  /* ---------- Fenêtre Projets ---------- */
+  function openProjectsDialog() {
+    var d = $('#projDlg'); if (!d.open) d.showModal();
+    renderDialog();
+  }
+  $('#projBtn').addEventListener('click', openProjectsDialog);
+  $('#projClose').addEventListener('click', function () { $('#projDlg').close(); });
+  $('#projDlg').addEventListener('click', function (e) { if (e.target === this) this.close(); });
+  function armed(btn, label, confirmLabel, action) {
+    var timer = null;
+    btn.textContent = label;
+    btn.addEventListener('click', function () {
+      if (!timer) { btn.textContent = confirmLabel; timer = setTimeout(function () { timer = null; btn.textContent = label; }, 4000); return; }
+      clearTimeout(timer); timer = null; btn.textContent = label; action();
+    });
+  }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  async function renderDialog() {
+    var pl = $('#projList'); pl.innerHTML = '';
+    S.list.slice().sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); }).forEach(function (p) {
+      var cur = p.id === S.project.id, row = el('div', 'drow' + (cur ? ' current' : ''));
+      var info = el('div', 'dinfo');
+      info.appendChild(el('div', 'dname', p.name || 'Sans titre'));
+      info.appendChild(el('div', 'dmeta', (cur ? 'Ouvert, ' : '') + (p.glyphCount != null ? p.glyphCount + ' glyphes, ' : '') + 'modifié le ' + fmtDate(p.updatedAt || Date.now())));
+      row.appendChild(info);
+      var acts = el('div', 'dacts');
+      if (!cur) {
+        var o = el('button', 'btn', 'Ouvrir');
+        o.addEventListener('click', async function () { if (await switchProject(p.id)) { $('#projDlg').close(); toast('« ' + p.name + ' » ouvert'); } });
+        acts.appendChild(o);
+      }
+      var dup = el('button', 'btn quiet', 'Dupliquer');
+      dup.addEventListener('click', async function () {
+        var d = cur ? { meta: clone(S.project), glyphs: clone(S.glyphs) } : await loadProjectData(p.id);
+        if (!d) { toast('Impossible de lire ce projet.'); return; }
+        var np = fixProject(clone(d.meta)); np.id = newProject().id; np.name = (np.name || 'Projet') + ' (copie)'; np.updatedAt = Date.now();
+        await openProject(np, clone(d.glyphs) || {}, true);
+        renderDialog(); toast('Copie créée et ouverte');
+      });
+      acts.appendChild(dup);
+      var del = el('button', 'btn quiet danger');
+      armed(del, 'Supprimer', 'Confirmer', async function () {
+        S.list = S.list.filter(function (x) { return x.id !== p.id; });
+        try { await Store.deleteProject(p.id); localStorage.removeItem(Versions.lsKey(p.id)); } catch (e) {}
+        if (cur) { if (S.list.length) await switchProject(S.list[0].id); else await openProject(newProject(), {}, true); }
+        renderDialog(); toast('Projet supprimé');
+      });
+      acts.appendChild(del);
+      row.appendChild(acts); pl.appendChild(row);
+    });
+
+    $('#verTitle').textContent = 'Versions de « ' + (S.project.name || 'Sans titre') + ' »';
+    var vl = $('#verList'); vl.innerHTML = '';
+    vl.appendChild(el('div', 'dmeta', 'Chargement…'));
+    var vs = [];
+    try { vs = await Versions.list(S.project.id); } catch (e) { vl.innerHTML = ''; vl.appendChild(el('div', 'dmeta', 'Versions illisibles pour le moment.')); return; }
+    vl.innerHTML = '';
+    if (!vs.length) { vl.appendChild(el('p', 'dmeta', 'Aucune version. Enregistre un état du projet pour pouvoir y revenir plus tard, par exemple avant de retoucher toutes les approches.')); return; }
+    vs.forEach(function (v) {
+      var row = el('div', 'drow'), info = el('div', 'dinfo');
+      info.appendChild(el('div', 'dname', v.name));
+      info.appendChild(el('div', 'dmeta', fmtDate(v.createdAt) + (v.glyphCount != null ? ', ' + v.glyphCount + ' glyphes' : '')));
+      row.appendChild(info);
+      var acts = el('div', 'dacts');
+      var back = el('button', 'btn');
+      armed(back, 'Revenir à cette version', 'Confirmer le retour', async function () { await restoreVersion(v); renderDialog(); });
+      acts.appendChild(back);
+      var rm = el('button', 'btn quiet danger');
+      armed(rm, 'Supprimer', 'Confirmer', async function () { try { await Versions.remove(S.project.id, v.id); } catch (e) {} renderDialog(); });
+      acts.appendChild(rm);
+      row.appendChild(acts); vl.appendChild(row);
+    });
+  }
+  $('#verSave').addEventListener('click', async function () {
+    var inp = $('#verName'), btn = this; btn.disabled = true;
+    if (await saveVersion(inp.value.trim())) { inp.value = ''; toast('Version enregistrée'); renderDialog(); }
+    btn.disabled = false;
+  });
+  $('#verName').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#verSave').click(); });
+  $('#dlgNew').addEventListener('click', async function () {
+    var p = newProject('Nouvelle typo');
+    S.selected = 'A';
+    await openProject(p, {}, true);
+    $('#projDlg').close();
+    showTab('settings');
+    var inp = document.querySelector('[data-set="name"]'); if (inp) { inp.focus(); inp.select(); }
+    toast('Projet créé : donne-lui un nom');
+  });
+  $('#dlgImport').addEventListener('click', function () { $('#projDlg').close(); $('#importFile').click(); });
+
+  /* ---------- Onglets, aperçu, toasts ---------- */
+  function showTab(id) {
+    document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.tab === id ? 'true' : 'false'); });
+    document.querySelectorAll('.panel').forEach(function (p) { p.hidden = p.id !== 'tab-' + id; });
+    try { history.replaceState(null, '', '#' + id); } catch (e) {}
+  }
+  document.querySelectorAll('.tabs button').forEach(function (b) { b.addEventListener('click', function () { showTab(b.dataset.tab); }); });
+  ['previewText', 'previewSize', 'previewGuides'].forEach(function (id) {
+    $('#' + id).addEventListener('input', function () { renderPreview(); if (id === 'previewText') renderKern(); });
+  });
+  var toastT;
+  function toast(msg) {
+    var t = $('#toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('show'); }, 2800);
+  }
+
+  /* ---------- Démarrage ---------- */
+  (async function boot() {
+    var h = (location.hash || '').slice(1);
+    if (['glyphs', 'kern', 'settings', 'help'].indexOf(h) >= 0) showTab(h);
+    var local = Store.local(), ids = Object.keys(local.projects || {});
+    S.list = ids.map(function (id) { return fixProject(local.projects[id].meta); });
+    var first = local.last && local.projects[local.last] ? local.projects[local.last] : (ids.length ? local.projects[ids[0]] : null);
+    if (first) await openProject(first.meta, first.glyphs);
+    else { S.project = fixProject(newProject()); S.glyphs = {}; S.list = [S.project]; await openProject(S.project, {}); }
+    setStatus('local');
+
+    var ok = await Store.connect();
+    if (!ok) { setStatus('local', 'Enregistré sur cet appareil'); return; }
+    setStatus('busy', 'Synchronisation…');
+    try {
+      var cloud = await Store.listCloud(), cloudIds = {};
+      cloud.forEach(function (p) { cloudIds[p.id] = p; });
+      // projets locaux absents ou plus récents -> envoyés dans le compte
+      for (var i = 0; i < ids.length; i++) {
+        var lp = local.projects[ids[i]];
+        if (!lp || !lp.meta) continue;
+        var cp = cloudIds[ids[i]];
+        if ((!cp && Object.keys(lp.glyphs || {}).length) || (cp && (lp.meta.updatedAt || 0) > (cp.updatedAt || 0))) {
+          await Store.pushAll(fixProject(lp.meta), lp.glyphs || {});
+          cloudIds[ids[i]] = lp.meta;
+        }
+      }
+      S.list = Object.keys(cloudIds).map(function (k) { return fixProject(cloudIds[k]); })
+        .sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
+      var target = cloudIds[S.project.id] ? S.project.id : (S.list[0] && S.list[0].id);
+      if (target) await switchProject(target);
+      else renderProjects();
+      setStatus('ok');
+    } catch (e) {
+      console.error(e);
+      Store.mode = 'local';
+      setStatus('error', 'Compte injoignable, enregistré sur cet appareil');
+    }
+  })();
+  document.addEventListener('visibilitychange', function () { if (document.hidden && S.project) Store.saveLocal(); });
+})();
+
+</script>
+<!-- toolbox-back --><a href="../toolbox.html" aria-label="Retour toolbox" style="position:fixed;top:max(12px,env(safe-area-inset-top));left:12px;z-index:2147483647;padding:8px 14px;border-radius:999px;background:rgba(20,20,20,.8);color:#fff;font:600 14px system-ui,sans-serif;text-decoration:none;backdrop-filter:blur(6px)">← Toolbox</a>
+</body>
+</html>
