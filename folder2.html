@@ -310,6 +310,7 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
 .warn{font-size:11px; background:var(--well); border:1px solid var(--line); border-radius:4px; padding:7px 9px}
 @media (prefers-reduced-motion:reduce){ *{transition:none !important} }
 </style>
+<script src="../gate.js"></script>
 </head>
 <body>
 <div class="app">
@@ -387,10 +388,28 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
 </div>
 <div style="height:1px;background:var(--line-soft);margin:6px -10px 4px"></div>
 <div id="controlsVol"></div>
-<div class="line"><label for="edgeColor">Couleur de la tranche</label><input type="color" id="edgeColor" value="#e2e0da"></div>
 <label class="chk"><input type="checkbox" id="shapeMode"> Tranche selon la forme du PNG <span class="q" title="La tranche suit le contour de la transparence au lieu du rectangle de l'image.">?</span></label>
 <div id="shapeOpts" class="hidden"><div class="prop"><label class="scrub" for="cutT" title="Opacité à partir de laquelle un pixel compte comme matière">Seuil</label><input type="range" id="cutTR" min="5" max="95" step="1" value="50" aria-label="Seuil"><span class="num"><input type="number" id="cutT" min="5" max="95" step="1" value="50"><i>%</i></span></div>
 <div class="mt" id="shapeInfo"></div></div>
+</div></section>
+<section class="sec open" data-sec="tranche"><header><button class="tog" type="button"><i class="tri"></i>Tranche</button><div class="hd-act"><button class="icon-btn" id="btnResetEdge" title="Réinitialiser la tranche"><svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 6.2A5.2 5.2 0 1 1 3 9.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2.6 2.6v3.8h3.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></header><div class="body">
+<div class="mt">Visible dès que l'épaisseur est supérieure à 0.</div>
+<div class="line"><label for="edgeMat">Matière</label><select id="edgeMat" class="field" style="width:158px" aria-label="Matière de la tranche">
+<option value="0">Unie</option>
+<option value="1">Prolonge l'image</option>
+<option value="2">Feuilles empilées</option>
+<option value="3">Peaux + cœur</option>
+<option value="4">Acrylique</option>
+</select></div>
+<div class="line" id="edgeColorRow"><label for="edgeColor" id="edgeColorLbl">Couleur</label><button type="button" class="tb" id="edgeAuto" style="height:22px;padding:0 8px;font-size:11px" title="Prendre la couleur moyenne de l'image">Auto</button><input type="color" id="edgeColor" value="#e2e0da"></div>
+<div class="line hidden" id="edgeCoreRow"><label for="edgeCore">Cœur</label><input type="color" id="edgeCore" value="#b08a5a"></div>
+<div id="edgeCtl"></div>
+<div class="grp">Lumière de la tranche</div>
+<label class="chk"><input type="checkbox" id="eLink" checked> Même lumière que la finition <span class="q" title="Utilise l'azimut, la hauteur, le suivi de souris et l'animation de l'onglet Finition, pour que le volume et le visuel reçoivent la même lumière.">?</span></label>
+<div id="eLightOpts" class="hidden">
+<div class="prop"><label class="scrub" for="eAzi">Azimut</label><input type="range" id="eAziR" min="-180" max="180" step="1" value="130" aria-label="Azimut de la tranche"><span class="num"><input type="number" id="eAzi" min="-180" max="180" step="1" value="130"><i>°</i></span></div>
+<div class="prop"><label class="scrub" for="eElev">Hauteur</label><input type="range" id="eElevR" min="0" max="89" step="1" value="42" aria-label="Hauteur de la tranche"><span class="num"><input type="number" id="eElev" min="0" max="89" step="1" value="42"><i>°</i></span></div>
+</div>
 </div></section>
 <section class="sec" data-sec="deform"><header><button class="tog" type="button"><i class="tri"></i>Déformation</button><div class="hd-act"><button class="icon-btn" id="btnResetDeform" title="Réinitialiser la déformation"><svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 6.2A5.2 5.2 0 1 1 3 9.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2.6 2.6v3.8h3.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></header><div class="body">
 <div id="controls2"></div>
@@ -417,7 +436,15 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
     <option value="6">Glace brisée</option><option value="7">Rayons</option><option value="8">Écailles</option>
     <option value="9">Moiré laser</option><option value="10">Galaxie étoilée</option><option value="11">Nacre</option>
   </optgroup>
-</select>
+<option value="12">Treillis losanges</option><option value="13">Éclats de cristal</option><option value="14">Sable holographique</option><option value="15">Prisme damier</option><option value="16">Argent étoilé</option><option value="17">Faisceau + flare</option><option value="18">Rayures arc-en-ciel</option><option value="19">Bandes douces</option><option value="20">Flux liquide</option><option value="21">Argent bords irisés</option><option value="22">Miroir argent</option><option value="23">Tinsel</option><option value="24">Gravé (etched)</option><option value="25">Starlight</option><option value="26">Rainbow rare doré</option><option value="27">Motif perso (image)</option></select>
+<div id="patOpts" class="hidden">
+<div class="line"><button type="button" class="tb" id="patLoad" style="height:24px;padding:0 10px">Charger un motif…</button><span class="mt" id="patName" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">aucun</span></div>
+<label class="chk"><input type="checkbox" id="patRep" checked> Répéter le motif <span class="q" title="Coché : le motif se répète sur la surface (taille = Échelle). Décoché : il est étiré une fois sur toute l'image.">?</span></label>
+<div class="prop"><label class="scrub" for="patRelief" title="Force du relief : 0 film plat, plus haut = contours plus marqués et reflets plus francs">Relief</label><input type="range" id="patReliefR" min="0" max="200" step="1" value="50" aria-label="Relief"><span class="num"><input type="number" id="patRelief" min="0" max="200" step="1" value="50"><i>%</i></span></div>
+<label class="chk"><input type="checkbox" id="patInv"> Inverser le motif <span class="q" title="Échange blanc et noir : les creux deviennent des reliefs, et inversement.">?</span></label>
+<div class="mt">Niveaux de gris : blanc = relief haut, noir = bas. Les contours accrochent la lumière.</div>
+<input type="file" id="patFile" accept="image/*" hidden>
+</div>
 <div class="grp">Appliquer sur</div>
 <div class="seg" id="zone">
   <button data-v="0" aria-pressed="true">Tout</button>
@@ -443,6 +470,10 @@ input[type=color]::-webkit-color-swatch{border:0; border-radius:2px}
 </div></section>
 <section class="sec" data-sec="surface"><header><button class="tog" type="button"><i class="tri"></i>Surface</button><div class="hd-act"></div></header><div class="body">
 <div class="prop"><label class="scrub" for="glare" title="Le point chaud de la lumière qui traverse le film">Reflet</label><input type="range" id="glareR" min="0" max="100" step="1" value="60" aria-label="Reflet"><span class="num"><input type="number" id="glare" min="0" max="100" step="1" value="60"><i>%</i></span></div>
+<div class="prop"><label class="scrub" for="fdepth" title="Profondeur du film sous l'encre : le motif glisse quand on tourne l'objet, les disques du cosmos se décalent selon leur plan">Profondeur</label><input type="range" id="fdepthR" min="0" max="100" step="1" value="60" aria-label="Profondeur"><span class="num"><input type="number" id="fdepth" min="0" max="100" step="1" value="60"><i>%</i></span></div>
+<div class="prop"><label class="scrub" for="fglint" title="Micro-éclats : chaque grain est un petit miroir qui s'allume à un angle précis">Scintillement</label><input type="range" id="fglintR" min="0" max="100" step="1" value="50" aria-label="Scintillement"><span class="num"><input type="number" id="fglint" min="0" max="100" step="1" value="50"><i>%</i></span></div>
+<div class="prop"><label class="scrub" for="fwave" title="Légère ondulation du film : le reflet ne balaie plus la surface d'un bloc">Ondulation</label><input type="range" id="fwaveR" min="0" max="100" step="1" value="40" aria-label="Ondulation"><span class="num"><input type="number" id="fwave" min="0" max="100" step="1" value="40"><i>%</i></span></div>
+<div class="prop"><label class="scrub" for="firid" title="Couleur des reflets : 0 blanc, 100 décomposés en arc-en-ciel comme sur un vrai film">Reflet irisé</label><input type="range" id="firidR" min="0" max="100" step="1" value="70" aria-label="Reflet irisé"><span class="num"><input type="number" id="firid" min="0" max="100" step="1" value="70"><i>%</i></span></div>
 <div class="prop"><label class="scrub" for="gloss" title="Reflet du pelliculage, indépendant du film">Vernis</label><input type="range" id="glossR" min="0" max="100" step="1" value="25" aria-label="Vernis"><span class="num"><input type="number" id="gloss" min="0" max="100" step="1" value="25"><i>%</i></span></div>
 <div class="prop"><label class="scrub" for="grain" title="Grain d'impression, casse l'aspect image de synthèse">Grain</label><input type="range" id="grainR" min="0" max="30" step="1" value="4" aria-label="Grain"><span class="num"><input type="number" id="grain" min="0" max="30" step="1" value="4"><i>%</i></span></div>
 </div></section>
@@ -600,7 +631,12 @@ const ST = {on:false, bord:3, bordCol:"#ffffff", type:0, zone:0, amt:70, cover:2
             ang:30, con:1.1, foilCol:"#e8c26a", gloss:25, grain:4, azi:130, elev:42,
             ink:40, inkSoft:45, inkTone:55, inkGloss:55, inkShadow:40,
             pal:1, hue:0, sat:70, spread:100, glare:60,
-            follow:true, lanim:false, lspeed:4, lswing:45};
+            depth:60, glint:50, wave:40, irid:70, patRep:true, patRelief:50, patInv:false, follow:true, lanim:false, lspeed:4, lswing:45};
+// finition de la tranche
+const PAT = {tex:null, w:1, h:1, name:""};
+const ET_DEF = {mat:0, core:"#b08a5a", pages:24, skin:12, blur:2, fade:0, grain:12,
+                round:35, gloss:35, rough:45, metal:0, contrast:60, link:true, azi:130, elev:42};
+const ET = {...ET_DEF};
 const PALS = [
   {n:"Arc-en-ciel",       c:["#ff5a6e","#ffd166","#3fe0c5","#7a6cff"]},
   {n:"Nacre",             c:["#ffd3ea","#cde9ff","#e4d4ff","#fff2d1"]},
@@ -643,7 +679,7 @@ const CONTROLS = [
   {k:"pivX", l:"Pivot X", min:-100, max:100, step:1, u:"%"},
   {k:"pivY", l:"Pivot Y", min:-100, max:100, step:1, u:"%"},
   {k:"pivZ", l:"Pivot Z", min:-200, max:200, step:1, u:"%"},
-  {k:"thick",  l:"Épaisseur",          min:0, max:80, step:0.5, u:"px", d:2},
+  {k:"thick",  l:"Épaisseur",          min:0, max:400, step:0.5, u:"px", d:2},
   {k:"taperH", l:"Trapèze horizontal", min:-80, max:80, step:1, u:"%", d:1},
   {k:"taperV", l:"Trapèze vertical",   min:-80, max:80, step:1, u:"%", d:1},
   {k:"skewX",  l:"Cisaillement X",     min:-80, max:80, step:1, u:"%", d:1},
@@ -698,15 +734,18 @@ precision highp float;
 uniform sampler2D u_tex, u_tex2;
 uniform float u_alpha, u_shade, u_back, u_mode, u_cut;
 uniform vec2 u_flip, u_fit2;
-uniform vec3 u_cam, u_edge;
+uniform vec3 u_cam, u_edge, u_nz, u_eLight, u_eCore;
+uniform float u_eMat, u_eRound, u_eGloss, u_eRough, u_eMetal, u_eContrast, u_eGrain, u_eFade, u_ePages, u_eSkin, u_eBlur, u_eDepth;
 // finition sticker
 uniform float u_stick, u_type, u_amt, u_scale, u_ang, u_con, u_zone, u_gloss, u_grain, u_aspect;
-uniform float u_sat, u_spread, u_cover, u_glare, u_time;
+uniform float u_sat, u_spread, u_cover, u_glare, u_time, u_depth, u_glint, u_wave, u_irid;
 uniform vec2 u_bordUV, u_hover;
 uniform vec3 u_bordCol, u_foilCol, u_tx, u_ty, u_light;
 uniform vec3 u_p0, u_p1, u_p2, u_p3;
 // masque de foil
-uniform sampler2D u_maskTex, u_mask2Tex;
+uniform sampler2D u_maskTex, u_mask2Tex, u_pat;
+uniform vec2 u_patTexel;
+uniform float u_patRep, u_patRelief, u_patInv;
 uniform float u_maskSrc;           // 0 : masque du recto, lu dans le cadre commun ; 1 : masque propre du verso
 uniform float u_mask, u_maskMode, u_maskInv, u_maskHard, u_maskShow, u_maskGloss;
 // relief d'encre
@@ -786,6 +825,19 @@ float inkH(vec2 p){
   float dens = mix(1.0, 0.25 + 0.75*(1.0 - lum(c)), u_inkTone);
   return a.a * dens * (1.0 - foilAt(p, u_inkSoft));
 }
+vec3 glint(vec2 p, vec3 N, vec3 tx, vec3 ty, vec3 H){
+  vec3 acc = vec3(0.0);
+  for(int l = 0; l < 2; l++){
+    float fl = float(l);
+    vec2 gi = floor(p*(34.0 + fl*40.0) + fl*31.0), gf = fract(p*(34.0 + fl*40.0) + fl*31.0);
+    vec2 fn = (hash2(gi + 7.3) - 0.5)*1.3;
+    float lit = pow(max(dot(normalize(tx*fn.x + ty*fn.y + N), H), 0.0), 600.0 - 250.0*fl);
+    float m = smoothstep(0.5, 0.1, length(gf - 0.5 - (hash2(gi) - 0.5)*0.4)) * step(0.45, hash1(gi + 1.7));
+    acc += m * lit * mix(vec3(1.0), pal(hash1(gi)*3.0)*1.4, u_irid);
+  }
+  return acc;
+}
+float patH(vec2 p){ vec4 c = texture2D(u_pat, fract(p)); float v = lum(c.rgb); if(u_patInv > 0.5) v = 1.0 - v; return v*c.a; }
 float alphaAt(vec2 p){
   if(u_back > 0.5){
     vec2 q = (p - 0.5) / u_fit2 + 0.5;
@@ -800,8 +852,75 @@ void main(){
   float ndv = abs(dot(N, V));
   float k = mix(1.0 - u_shade, 1.0, pow(clamp(ndv,0.0,1.0), 0.6));
   if(u_mode > 1.5){
-    vec3 c = u_edge * (0.6 + 0.4 * pow(clamp(ndv,0.0,1.0), 0.5)) * k;
-    gl_FragColor = vec4(c * u_alpha, u_alpha);
+    // ---- tranche : v_uvq = (u, v) du point de bord dans l'image, t = profondeur 0 (recto) → 1 (verso)
+    vec3 Ns = normalize(v_n);
+    float t = clamp(v_uvq.z, 0.0, 1.0);
+    vec2 euv = clamp(v_uvq.xy, 0.003, 0.997);
+    vec3 Nz = normalize(u_nz);
+    // profil arrondi : la normale bascule progressivement vers la face sur le rayon de l'arête
+    vec3 Ne = Ns;
+    float rad = u_eRound * 0.5;
+    if(rad > 0.002){
+      float af = clamp(1.0 - t / rad, 0.0, 1.0);
+      float ab = clamp(1.0 - (1.0 - t) / rad, 0.0, 1.0);
+      float a = af - ab;
+      Ne = normalize(Ns * sqrt(max(1.0 - a*a, 0.0)) + Nz * a);
+    }
+    // couleur reprise de l'image (bord prolongé)
+    vec3 imgc = u_edge;
+    if(u_eMat > 0.5 && (u_eMat < 1.5 || u_eMat > 3.5)){
+      vec4 tc = texture2D(u_tex, euv, u_eBlur);
+      vec3 cc = tc.a > 0.003 ? tc.rgb / tc.a : u_edge;
+      imgc = mix(u_edge, cc, clamp(tc.a * 1.2, 0.0, 1.0));
+    }
+    vec3 albedo = u_edge;
+    if(u_eMat < 0.5){
+      albedo = u_edge;
+    } else if(u_eMat < 1.5){
+      albedo = imgc;
+    } else if(u_eMat < 2.5){                        // feuilles empilées
+      float n = max(u_ePages, 2.0);
+      float pid0 = floor(t * n);
+      float wob = vnoise(euv * 14.0 + vec2(pid0 * 7.3, pid0 * 3.9)) - 0.5;
+      float tt = t * n + 0.16 * wob;
+      float pid = floor(tt);
+      float lp = fract(tt);
+      float line = smoothstep(0.0, 0.16, lp) * smoothstep(1.0, 0.84, lp);
+      float tone = 1.0 + 0.14 * (hash1(vec2(pid, 3.7)) - 0.5);
+      float amt = smoothstep(2.0, 6.0, u_eDepth / n);      // lignes estompées quand elles passent sous le pixel (anti-moiré)
+      albedo = u_edge * mix(0.88, tone * mix(0.58, 1.0, line), amt);
+    } else if(u_eMat < 3.5){                        // sandwich : peaux + cœur
+      float d = min(t, 1.0 - t);
+      float m = smoothstep(u_eSkin - 0.006, u_eSkin + 0.006, d);
+      albedo = mix(u_edge, u_eCore, m);
+      albedo *= 1.0 - 0.28 * smoothstep(0.014, 0.0, abs(d - u_eSkin));
+    } else {                                        // acrylique : l'image « transpire » dans la masse
+      float mid = 1.0 - abs(2.0 * t - 1.0);
+      float glow = pow(1.0 - mid, 3.0);
+      albedo = imgc * (0.72 + 0.22 * mid + 0.5 * glow) + vec3(0.04 + 0.08 * glow);
+    }
+    albedo *= 1.0 - u_eFade * 0.75 * pow(t, 0.8);
+    float g = vnoise(euv * 260.0 + vec2(t * u_eDepth * 0.35, t * u_eDepth * 0.2)) * 0.6
+            + hash1(floor(euv * 900.0 + vec2(t * u_eDepth * 1.1, 0.0))) * 0.4;
+    albedo *= 1.0 + u_eGrain * (g - 0.5) * 0.8;
+
+    // éclairage : même source que la finition (ou la sienne)
+    vec3 Lq = normalize(u_eLight);
+    vec3 Hq = normalize(Lq + V);
+    float diff = clamp((dot(Ne, Lq) + 0.25) / 1.25, 0.0, 1.0);
+    float lit = (1.0 - u_eContrast) + u_eContrast * (0.12 + 1.15 * diff);
+    float ndvE = clamp(dot(Ne, V), 0.0, 1.0);
+    float F = 0.04 + 0.96 * pow(1.0 - ndvE, 5.0);
+    float ex = mix(260.0, 6.0, u_eRough);
+    float sp = pow(max(dot(Ne, Hq), 0.0), ex) * mix(1.0, 0.35, u_eRough);
+    vec3 specCol = mix(vec3(1.0), albedo, u_eMetal);
+    vec3 c = albedo * lit * (1.0 - 0.6 * u_eMetal);
+    c += specCol * sp * u_eGloss * (0.5 + 1.5 * F) * 1.2;
+    vec3 Rf = reflect(-V, Ne);
+    float sky = smoothstep(-0.6, 0.9, Rf.y);
+    c += specCol * (0.06 + 0.9 * F) * mix(0.25, 1.0, sky) * u_eGloss * (1.0 - u_eRough * 0.7) * 0.55;
+    c *= mix(1.0, k, 0.5);                           // l'Ombrage global agit aussi, à demi
+    gl_FragColor = vec4(clamp(c, 0.0, 1.5) * u_alpha, u_alpha);
     return;
   }
   vec2 uv = v_uvq.xy / max(v_uvq.z, 0.0001);
@@ -838,9 +957,16 @@ void main(){
     float ca = cos(u_ang), sa = sin(u_ang);
     vec2 sp = (uv - 0.5) * vec2(u_aspect, 1.0) * u_scale;
     vec2 rp = vec2(sp.x*ca - sp.y*sa, sp.x*sa + sp.y*ca);
-    float sweep = vv.x*ca + vv.y*sa;
-    vec3 L = normalize(u_light);
+    // parallaxe : le film est sous l'encre, son motif glisse quand l'angle de vue change
+    vec2 vr = vec2(vv.x*ca - vv.y*sa, vv.x*sa + vv.y*ca);
+    rp -= vr * u_depth * 1.2;
+        vec3 L = normalize(u_light);
     vec3 Hv = normalize(L + V);
+    vec2 wq = uv*vec2(u_aspect, 1.0)*3.0;
+    vec2 wg = vec2(fbm(wq + vec2(0.7, 0.0)) - fbm(wq - vec2(0.7, 0.0)), fbm(wq + vec2(0.0, 0.7)) - fbm(wq - vec2(0.0, 0.7)));
+    N = normalize(N + (tx*wg.x + ty*wg.y)*u_wave*1.0);
+    vec2 hT = vec2(dot(Hv, tx), dot(Hv, ty));
+    float sweep = (hT.x*ca + hT.y*sa)*3.2 + (vv.x*ca + vv.y*sa)*0.6;
     float spot = pow(max(dot(N, Hv), 0.0), 5.0);
     float fres = pow(1.0 - ndv, 2.0);
     float tw = u_time;
@@ -854,9 +980,49 @@ void main(){
 
     // on ne calcule le film que là où il se pose
     if(zmask * u_amt > 0.001){
-    if(u_type < 0.5){                                        // holographique
-      float band = 0.5 + 0.5*sin((rp.y*0.9 + sweep*3.0) * 3.1415926);
-      f = pal(rp.y*0.18*u_spread + sweep*1.6) * (0.55 + 0.9*band);
+    if(u_type > 1.5 && u_type < 2.5){          // cosmos : disques-réseaux sur 4 plans, amas, spirales
+      float bub = 0.0; vec3 cc = vec3(0.0);
+      float clus = fbm(rp*0.35 + 5.0);
+      for(int ly = 0; ly < 4; ly++){
+        float fl = float(ly);
+        float sc = ly == 0 ? 0.9 : (ly == 1 ? 2.8 : (ly == 2 ? 8.0 : 24.0));
+        float rr = ly == 0 ? 0.42 : (ly == 1 ? 0.36 : (ly == 2 ? 0.3 : 0.24));
+        float kp = (ly == 0 ? 0.62 : (ly == 1 ? 0.55 : (ly == 2 ? 0.45 : 0.3))) + (0.5 - clus)*0.35;
+        vec2 gp = (rp + vr*u_depth*0.9*(1.5 - fl))*sc + fl*13.7, gi = floor(gp), gf = fract(gp);
+        for(int j = -1; j <= 1; j++) for(int i = -1; i <= 1; i++){
+          vec2 o = vec2(float(i), float(j)), id = gi + o + fl*57.0;
+          if(hash1(id + 7.7) < kp) continue;
+          vec2 c = o + 0.15 + hash2(id)*0.7;
+          float r = rr*(0.4 + 0.6*hash1(id + 2.2));
+          vec2 lc = (gf - c) / r;
+          float m = smoothstep(1.0, 0.9, length(lc));
+          if(m > bub){
+            bub = m;
+            float a = hash1(id)*6.2831853;
+            vec2 dr = vec2(cos(a), sin(a));
+            cc = pal(dot(hT, dr)*2.6 + hash1(id + 1.3)*2.0*u_spread + dot(lc, dr)*0.45) * (0.35 + 0.9*hash1(id + 4.0)) * (1.0 - 0.25*dot(lc, lc));
+          }
+        }
+      }
+      float spm = 0.0;
+      for(int gI = 0; gI < 2; gI++){
+        vec2 gc = gI == 0 ? vec2(0.76, 0.50) : vec2(0.66, 0.86);
+        vec2 pp = (uv - gc) * vec2(u_aspect, 1.0);
+        float rg = length(pp), an = atan(pp.y, pp.x);
+        float arm = abs(fract(an/6.2831853*2.0 + log(rg*30.0 + 1.0)*1.6) - 0.5);
+        float dots = step(0.45, hash1(floor(pp*230.0) + float(gI)*9.0));
+        spm = max(spm, smoothstep(0.34, 0.0, arm) * smoothstep(0.085, 0.01, rg) * dots);
+      }
+      f = mix(vec3(0.06), cc, bub);
+      f = mix(f, pal(hT.x*2.4 + rp.x*0.1*u_spread)*1.5, spm);
+    } else if(u_type < 0.5){                                 // holographique : spectre continu, ordres de diffraction
+      float w = fbm(rp*0.5)*2.0;
+      float ph = rp.y*0.16*u_spread + sweep*1.5 + w*0.35;
+      float band = 0.5 + 0.5*sin((rp.y*0.7 + sweep*3.0 + w)*3.1415926);
+      vec3 s1 = pal(ph);
+      vec3 s2 = pal(ph + 0.25*u_spread + 0.18*sin(rp.x*0.8));
+      f = mix(s1, s2, 0.35)*(0.5 + 1.1*band)*1.25;
+      fx = s1*pow(band, 6.0)*0.35;
     } else if(u_type < 1.5){                                 // linéaire brossé
       float ln = sin(rp.y*160.0);
       f = pal(rp.y*0.05*u_spread + sweep*2.2 + ln*0.01) * (0.45 + 0.95*abs(ln));
@@ -912,7 +1078,7 @@ void main(){
             if(m > cov){ cov = m; body = c; }
             // éclat + halo de diffusion qui déborde du grain
             float halo = exp(-dot(dv, dv) / (r*r*1.6));
-            vec3 fc = mix(vec3(1.0), tint, 0.35);
+            vec3 fc = mix(vec3(1.0), tint*1.3, u_irid);
             flash += fc * lit * (m*6.0 + halo*1.3) * keep;
             // étoile à quatre branches pour les éclats les plus francs
             float star = step(0.8, hash1(id + 8.8)) * smoothstep(0.3, 0.9, lit) * keep;
@@ -939,7 +1105,7 @@ void main(){
       vec3 nn = normalize(tx*fn.x + ty*fn.y + N);
       vec3 pc = pal(hash1(mg)*3.0*u_spread + sweep*1.5);
       f = pc * (0.35 + 2.3*pow(max(dot(nn,Hv),0.0), 22.0));
-      fx = mix(vec3(1.0), pc, 0.5) * pow(max(dot(nn, Hv), 0.0), 90.0) * 1.1;
+      fx = mix(vec3(1.0), pc*1.3, u_irid) * pow(max(dot(nn, Hv), 0.0), 90.0) * 1.1;
     } else if(u_type < 5.5){                                 // métal brossé
       float ln = sin(rp.y*80.0)*0.5 + 0.5;
       float an = pow(max(dot(N, Hv), 0.0), 4.0 + 36.0*ln);
@@ -1006,6 +1172,118 @@ void main(){
       float star = (smoothstep(0.1, 0.0, d) * step(0.55, hash1(gi+1.7)) + cross) * (0.35 + 1.65*blink);
       f = neb;
       fx = vec3(star*1.8);
+    } else if(abs(u_type - 12.0) < 0.5){
+      // plaid : bandes diagonales irisées, losanges aux anneaux pixélisés
+      vec2 q = vec2(rp.x + rp.y, rp.x - rp.y)*0.42;
+      vec2 id = floor(q), cf = fract(q), d = abs(cf - 0.5);
+      float dl = min(min(cf.x, 1.0 - cf.x), min(cf.y, 1.0 - cf.y));
+      float band = smoothstep(0.16, 0.04, dl);
+      float lvl = floor(max(d.x, d.y)*10.0)/10.0;
+      float px = hash1(floor(cf*10.0) + id);
+      vec3 bc = pal(dot(hT, vec2(0.7, 0.7))*2.4 + hash1(id)*0.5*u_spread + dl*2.0);
+      f = bc*(0.12 + 1.9*band*(0.5 + spot)) + pal(lvl*0.8 + sweep)*(0.05 + 0.5*lvl*lvl)*(0.8 + 0.4*px);
+      fx = vec3(band*pow(spot, 2.0)*0.4);
+    } else if(abs(u_type - 13.0) < 0.5){
+      // éclats de cristal : chaque éclat est un réseau d'orientation propre
+      vec2 vp = rp*2.4; vp.x += vp.y*0.35;
+      vec2 vi = floor(vp), vf = fract(vp);
+      float d1 = 8.0, d2 = 8.0; vec2 id = vi;
+      for(int j = -1; j <= 1; j++) for(int i = -1; i <= 1; i++){
+        vec2 g = vec2(float(i), float(j));
+        vec2 r = g + hash2(vi + g)*0.95 - vf;
+        float d = dot(r, r);
+        if(d < d1){ d2 = d1; d1 = d; id = vi + g; } else if(d < d2) d2 = d;
+      }
+      float gap = smoothstep(0.0, 0.03, sqrt(d2) - sqrt(d1));
+      float a = hash1(id)*6.2831853;
+      vec2 fn = (hash2(id + 3.0) - 0.5)*2.0;
+      vec3 nn = normalize(tx*fn.x + ty*fn.y + N);
+      float lt = max(dot(nn, Hv), 0.0);
+      float dk = step(0.7, hash1(id + 9.0));
+      f = pal(dot(hT, vec2(cos(a), sin(a)))*2.8 + hash1(id + 5.0)*0.6*u_spread)*(0.12 + 2.2*pow(lt, 6.0))*(1.0 - 0.85*dk)*gap;
+      fx = pal(hash1(id)*3.0)*pow(lt, 70.0)*0.8*gap;
+    } else if(abs(u_type - 14.0) < 0.5){
+      // sable : amas organiques irréguliers, chacun un petit réseau
+      vec2 gi = floor(rp*23.0);
+      float blob = smoothstep(0.5, 0.62, vnoise(rp*46.0 + hash1(gi)*3.0));
+      float a = hash1(gi + 2.0)*6.2831853;
+      vec2 fn = (hash2(gi + 7.0) - 0.5)*1.6;
+      vec3 nn = normalize(tx*fn.x + ty*fn.y + N);
+      float lt = max(dot(nn, Hv), 0.0);
+      f = mix(vec3(0.10, 0.11, 0.14), pal(dot(hT, vec2(cos(a), sin(a)))*2.6 + hash1(gi)*0.8*u_spread)*(0.45 + 1.8*pow(lt, 10.0)), blob);
+      fx = pal(hash1(gi)*2.0)*pow(lt, 90.0)*blob*0.9;
+    } else if(abs(u_type - 15.0) < 0.5){
+      // prisme damier : cellules rectangulaires, dégradé inversé une colonne sur deux
+      vec2 pc = rp*vec2(2.2, 1.9), cell = floor(pc), pf = fract(pc);
+      float chk = mod(cell.x + cell.y, 2.0), sg = chk*2.0 - 1.0;
+      vec3 pcol = pal((pf.x - 0.5)*0.6 + hT.x*2.0*sg + hash1(cell)*0.3*u_spread);
+      float edge = smoothstep(0.0, 0.06, min(min(pf.x, 1.0 - pf.x), min(pf.y, 1.0 - pf.y)));
+      f = mix(vec3(0.32, 0.33, 0.37), pcol*(0.5 + 1.4*smoothstep(0.5, 0.1, abs(pf.y - 0.5)*0.8)), chk)*edge;
+      fx = vec3(smoothstep(0.1, 0.03, length(pf - 0.5))*0.5*(0.4 + spot));
+    } else if(abs(u_type - 16.0) < 0.5){                      // argent froissé étoilé
+      float cr = fbm(rp*1.4 + 3.0);
+      vec2 cg = vec2(fbm(rp*1.4 + 3.4) - cr, fbm(rp*1.4 + vec2(3.0, 3.4)) - cr)*6.0;
+      vec3 nn = normalize(N + tx*cg.x + ty*cg.y);
+      float sh = pow(max(dot(nn, Hv), 0.0), 5.0);
+      vec2 s2 = fract(rp*0.8) - 0.5;
+      float star = smoothstep(0.02, 0.0, abs(s2.x))*smoothstep(0.2, 0.0, abs(s2.y)) + smoothstep(0.02, 0.0, abs(s2.y))*smoothstep(0.2, 0.0, abs(s2.x));
+      f = mix(vec3(0.5), vec3(0.95, 0.97, 1.0)*1.15, sh) * (1.0 - 0.25*star) + pal(sweep*2.0)*star*0.5;
+    } else if(abs(u_type - 17.0) < 0.5){                      // faisceau horizontal et flare orange
+      vec2 bn = rp/u_scale;
+      float bd = bn.y - sweep*0.22;
+      float core = exp(-bd*bd*220.0), halo = exp(-bd*bd*20.0);
+      float wedge = step(abs(bd), max(0.0, 0.18 - bn.x)*0.14) * step(bn.x, 0.18) * step(-0.6, bn.x);
+      f = vec3(0.12) + pal(bd*6.0*u_spread + 0.3)*(0.15 + 1.9*core + 0.5*halo) + vec3(1.0, 0.55, 0.15)*wedge*1.4;
+      fx = vec3(step(0.8, hash1(floor(rp*110.0)))*halo*0.5);
+    } else if(abs(u_type - 18.0) < 0.5){                      // rayures arc-en-ciel irrégulières (angle réglable)
+      float X = rp.x*1.3;
+      float w1 = vnoise(vec2(X*0.9, 4.0)), w2 = vnoise(vec2(X*5.0, 9.0));
+      float bar = smoothstep(0.42, 0.5, w1);
+      f = mix(vec3(0.3, 0.31, 0.34), pal(X*0.8*u_spread + sweep*2.2 + w2*0.3)*(0.8 + w2), bar) * (0.8 + 0.5*spot);
+    } else if(abs(u_type - 19.0) < 0.5){                      // bandes douces
+      float bb = pow(0.5 + 0.5*sin(rp.y*1.2 + 2.2*vnoise(rp*0.35) + sweep*4.0), 3.0);
+      f = mix(vec3(0.45, 0.46, 0.5), pal(rp.y*0.14*u_spread + sweep*1.5)*1.6, bb) * (0.8 + 0.4*spot);
+    } else if(abs(u_type - 20.0) < 0.5){                      // flux liquide
+      vec2 lq = rp*0.45; vec2 w = vec2(fbm(lq), fbm(lq + 5.2));
+      float n = fbm(lq + 2.0*w);
+      vec3 nn = normalize(N + (tx*(w.x - 0.5) + ty*(w.y - 0.5))*1.2);
+      f = mix(vec3(0.62, 0.63, 0.68), pal(n*2.0*u_spread + sweep*1.2)*1.4, smoothstep(0.4, 0.75, n)) * (0.5 + 0.9*pow(max(dot(nn, Hv), 0.0), 4.0));
+    } else if(abs(u_type - 21.0) < 0.5){                      // argent brossé, bords arc-en-ciel
+      float ee = min(uv.x, 1.0 - uv.x);
+      float brush = 0.85 + 0.15*sin(uv.y*400.0 + vnoise(uv*30.0)*6.0);
+      f = mix(vec3(0.78, 0.8, 0.85)*(0.65 + 0.5*spot)*brush, pal(ee*5.0*u_spread + sweep*2.0)*1.4, smoothstep(0.2, 0.0, ee)*0.85);
+    } else if(abs(u_type - 22.0) < 0.5){                      // miroir argent
+      float gm = dot(uv - 0.5, vec2(0.75, 0.65)) + sweep*0.9;
+      f = vec3(0.9, 0.93, 1.0) * mix(0.28, 1.15, smoothstep(-0.2, 0.2, gm)) * (0.9 + 0.2*pow(max(dot(N, Hv), 0.0), 3.0));
+    } else if(abs(u_type - 23.0) < 0.5){                      // tinsel : brins fins qui s'allument un à un
+      float ph = hash1(vec2(floor(rp.y*70.0), 1.0));
+      float bd = smoothstep(0.14, 0.0, abs(fract(sweep*0.8 + ph) - 0.5));
+      f = pal(ph*2.0*u_spread + sweep)*(0.2 + 2.4*bd)*(0.6 + 0.4*vnoise(vec2(rp.x*8.0, rp.y*70.0)));
+    } else if(abs(u_type - 24.0) < 0.5){                      // gravé (etched) : lignes en volutes
+      float ln = 0.5 + 0.5*sin(rp.y*14.0 + fbm(rp*0.7)*18.0);
+      f = pal(ln*0.8*u_spread + sweep*1.5)*(0.25 + 1.7*ln*ln)*(0.6 + spot);
+    } else if(abs(u_type - 25.0) < 0.5){                      // starlight : étoiles prismatiques
+      vec2 gp = rp*3.2, gi = floor(gp), gf = fract(gp);
+      vec2 dv = gf - 0.2 - hash2(gi)*0.6;
+      float kp = step(0.35, hash1(gi + 4.0)), sz = 0.4 + 0.6*hash1(gi + 2.0);
+      float star = (smoothstep(0.03, 0.0, abs(dv.x)) + smoothstep(0.03, 0.0, abs(dv.y)))*smoothstep(0.5*sz, 0.0, length(dv))*kp;
+      float glow = exp(-dot(dv, dv)*30.0)*kp;
+      f = vec3(0.18) + pal(hash1(gi)*3.0*u_spread + sweep*1.4)*(glow + star*2.5)*(0.4 + 1.6*spot);
+      fx = vec3(star*pow(spot, 2.0));
+    } else if(abs(u_type - 26.0) < 0.5){                      // rainbow rare : or irisé
+      float n = fbm(rp*0.8);
+      f = mix(u_foilCol*(0.6 + 1.4*spot), pal(n*3.0*u_spread + sweep*2.0)*1.6, 0.5)*(0.7 + 0.6*fbm(rp*6.0));
+    } else if(abs(u_type - 27.0) < 0.5){                      // motif perso : l'image est le relief du film
+      // échelle et orientation valent dans les deux modes ; proportions de l'image respectées
+      vec2 pu = vec2(rp.x*0.2*(u_patTexel.x/u_patTexel.y), rp.y*0.2) + 0.5;
+      float pin = u_patRep > 0.5 ? 1.0 : step(0.0, pu.x)*step(pu.x, 1.0)*step(0.0, pu.y)*step(pu.y, 1.0);
+      float h0 = patH(pu)*pin;
+      vec2 e = u_patTexel*1.5;
+      vec2 g = vec2(patH(pu + vec2(e.x, 0.0)) - patH(pu - vec2(e.x, 0.0)), patH(pu + vec2(0.0, e.y)) - patH(pu - vec2(0.0, e.y)))*pin;
+      vec3 nn = normalize(N - (tx*g.x + ty*g.y)*u_patRelief);
+      float lt = max(dot(nn, Hv), 0.0);
+      f = pal(dot(hT + g*u_patRelief*0.25, vec2(0.8, 0.6))*2.6 + h0*1.5*u_spread + rp.y*0.05)*(0.3 + 1.6*pow(lt, 6.0) + 0.4*h0);
+      fx = pal(h0*2.0 + sweep)*pow(lt, 60.0)*0.7;
     } else {                                                 // nacre
       float n = fbm(rp*0.6);
       f = mix(vec3(1.0), pal((n*0.8 + fres*1.2)*u_spread*0.6 + sweep*0.9), 0.55)
@@ -1023,6 +1301,7 @@ void main(){
     float fcov = clamp(u_amt * zmask, 0.0, 1.0);
     col = mix(col, mix(under, over, u_cover), fcov);
     col += fx * fcov;
+    col += glint(rp, N, tx, ty, Hv) * u_glint * 8.0 * fcov;
 
     // relief d'encre : l'encre forme un léger dépôt là où il n'y a pas de foil.
     // On en tire une normale de surface qui modèle les bords, porte une petite ombre
@@ -1044,7 +1323,8 @@ void main(){
       col += pow(max(dot(nm, Hv), 0.0), 70.0) * u_inkGloss * h0 * 0.9;
     }
 
-    col += pow(max(dot(N, Hv), 0.0), 110.0) * u_gloss * alpha * (u_maskGloss > 0.5 ? mk : 1.0);
+    col += pow(max(dot(N, Hv), 0.0), 110.0) * u_gloss * alpha * (u_maskGloss > 0.5 ? mk : 1.0)
+            * mix(vec3(1.0), pal(sweep*1.2 + rp.y*0.08*u_spread + 0.15)*1.7, u_irid);
     col *= 1.0 - u_grain * (hash1(floor(uv * 1400.0)) - 0.5);
     if(u_maskShow > 0.5) col = mix(col, vec3(1.0, 0.12, 0.35), mk * 0.65 * alpha);
   }
@@ -1093,7 +1373,8 @@ function initGL(){
    "u_stick","u_type","u_amt","u_scale","u_ang","u_con","u_zone","u_gloss","u_grain","u_aspect","u_bordUV","u_bordCol","u_foilCol","u_tx","u_ty","u_light",
    "u_sat","u_spread","u_cover","u_glare","u_time","u_hover","u_p0","u_p1","u_p2","u_p3",
    "u_maskTex","u_mask","u_maskMode","u_maskInv","u_maskHard","u_maskShow","u_maskGloss",
-   "u_ink","u_inkSoft","u_inkTone","u_inkGloss","u_inkShadow","u_texel","u_mask2Tex","u_maskSrc"]
+   "u_ink","u_inkSoft","u_inkTone","u_inkGloss","u_inkShadow","u_texel","u_mask2Tex","u_maskSrc",
+   "u_depth","u_pat","u_patTexel","u_patRep","u_patRelief","u_patInv","u_glint","u_wave","u_irid","u_nz","u_eLight","u_eCore","u_eMat","u_eRound","u_eGloss","u_eRough","u_eMetal","u_eContrast","u_eGrain","u_eFade","u_ePages","u_eSkin","u_eBlur","u_eDepth"]
     .forEach(n => loc[n] = gl.getUniformLocation(prog, n));
   buf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -1156,7 +1437,7 @@ function buildGeometry(st, h){
   };
   const nR = edgeN(1,3), nL = edgeN(2,0), nB = edgeN(0,1), nT = edgeN(3,2);
   const v = (i, z, n) => [P[i][0], P[i][1], z, QUV[i][0]*q[i], QUV[i][1]*q[i], q[i], n[0], n[1], n[2]];
-  const e = (i, z, n) => [P[i][0], P[i][1], z, 0, 0, 1, n[0], n[1], n[2]];
+  const e = (i, z, n) => [P[i][0], P[i][1], z, QUV[i][0], QUV[i][1], h > 0 ? (h - z) / (2*h) : 0, n[0], n[1], n[2]];
   const F = [0,0,1], K = [0,0,-1];
   const faces = [
     [v(0,h,F),  v(1,h,F),  v(2,h,F),  v(3,h,F) ],                 // avant  (+z)
@@ -1357,6 +1638,18 @@ function computeContour(){
     loops = loops.map(L => fromU(rdpLoop(toU(L), 1.0 * cellU))).filter(L => L.length >= 3);
     total = loops.reduce((a,L) => a + L.length, 0);
   }
+  // point de l'image juste à l'intérieur du contour : c'est là qu'on lit la couleur de la tranche
+  {
+    const bordU2 = ST.on ? (ST.bord/100) * Math.min(W,H) * 2 / big : 0;
+    const inset = 0.3 * cellU + bordU2 + 2.0 * cellU;
+    for(const L of loops){
+      const pu = toU(L), vn = vertexNormals(pu);
+      L.uvIn = pu.map((p, i) => {
+        const x = (p[0] - vn[i][0]*inset) / ax, y = (p[1] - vn[i][1]*inset) / ay;
+        return [clamp((x + 1)/2, 0.003, 0.997), clamp((1 - y)/2, 0.003, 0.997)];
+      });
+    }
+  }
   contour = loops;
   wallSig = "";
   wallVerts = total * 6;
@@ -1376,15 +1669,16 @@ function buildWalls(st, h){
     const n = L.length;
     const P = L.map(p => df(p[0], p[1]));
     const vn = vertexNormals(P);
-    const put = (p, z, nn) => {
+    const U = L.uvIn || L.map(() => [0.5, 0.5]);
+    const put = (p, z, nn, uv) => {
       WDATA[o++] = p[0]; WDATA[o++] = p[1]; WDATA[o++] = z;
-      WDATA[o++] = 0; WDATA[o++] = 0; WDATA[o++] = 1;
+      WDATA[o++] = uv[0]; WDATA[o++] = uv[1]; WDATA[o++] = z > 0 ? 0 : 1;
       WDATA[o++] = nn[0]; WDATA[o++] = nn[1]; WDATA[o++] = 0;
     };
     for(let i = 0; i < n; i++){
-      const j = (i+1)%n, A = P[i], B = P[j], na = vn[i], nb = vn[j];
-      put(A, h, na); put(A, -h, na); put(B, h, nb);
-      put(A, -h, na); put(B, -h, nb); put(B, h, nb);
+      const j = (i+1)%n, A = P[i], B = P[j], na = vn[i], nb = vn[j], ua = U[i], ub = U[j];
+      put(A, h, na, ua); put(A, -h, na, ua); put(B, h, nb, ub);
+      put(A, -h, na, ua); put(B, -h, nb, ub); put(B, h, nb, ub);
     }
   }
   gl.bindBuffer(gl.ARRAY_BUFFER, bufWall);
@@ -1533,21 +1827,43 @@ function render(st){
   const ec = hex2rgb($("#edgeColor").value);
   gl.uniform3f(loc.u_edge, ec[0], ec[1], ec[2]);
 
+  // lumière : calculée à chaque rendu, la finition et la tranche s'en servent
+  const phase = fxPhaseOverride !== null ? fxPhaseOverride
+              : ((performance.now()/1000) / Math.max(0.5, ST.lspeed)) % 1;
+  const hov = exporting ? [0,0] : hoverC;
+  const lightFor = (azB, elB) => {
+    let azD = azB, elD = elB;
+    if(ST.lanim){ azD += Math.sin(phase*Math.PI*2) * ST.lswing; elD += Math.cos(phase*Math.PI*2) * ST.lswing * 0.3; }
+    if(ST.follow && !exporting){ azD += hov[0]*55; elD -= hov[1]*25; }
+    elD = clamp(elD, 2, 88);
+    const az = azD*Math.PI/180, el = elD*Math.PI/180;
+    return [Math.cos(el)*Math.cos(az), Math.cos(el)*Math.sin(az), Math.sin(el)];
+  };
+  const lv = lightFor(ST.azi, ST.elev);
+  const le = ET.link ? lv : lightFor(ET.azi, ET.elev);
+  gl.uniform3f(loc.u_light, lv[0], lv[1], lv[2]);
+  gl.uniform3f(loc.u_eLight, le[0], le[1], le[2]);
+  gl.uniform3f(loc.u_nz, model[8], model[9], model[10]);
+  { const cc = hex2rgb(ET.core); gl.uniform3f(loc.u_eCore, cc[0], cc[1], cc[2]); }
+  gl.uniform1f(loc.u_eMat, ET.mat);
+  gl.uniform1f(loc.u_eRound, ET.round/100);
+  gl.uniform1f(loc.u_eGloss, ET.gloss/100);
+  gl.uniform1f(loc.u_eRough, ET.rough/100);
+  gl.uniform1f(loc.u_eMetal, ET.metal/100);
+  gl.uniform1f(loc.u_eContrast, ET.contrast/100);
+  gl.uniform1f(loc.u_eGrain, ET.grain/100);
+  gl.uniform1f(loc.u_eFade, ET.fade/100);
+  gl.uniform1f(loc.u_ePages, ET.pages);
+  gl.uniform1f(loc.u_eSkin, ET.skin/100);
+  gl.uniform1f(loc.u_eBlur, ET.blur);
+  gl.uniform1f(loc.u_eDepth, Math.max(h*2, 1));
+
   gl.uniform1f(loc.u_stick, ST.on ? 1 : 0);
   if(ST.on){
     const tl = Math.hypot(model[0], model[1], model[2]) || 1;
     const bl = Math.hypot(model[4], model[5], model[6]) || 1;
     gl.uniform3f(loc.u_tx, model[0]/tl, model[1]/tl, model[2]/tl);
     gl.uniform3f(loc.u_ty, model[4]/bl, model[5]/bl, model[6]/bl);
-    const phase = fxPhaseOverride !== null ? fxPhaseOverride
-                : ((performance.now()/1000) / Math.max(0.5, ST.lspeed)) % 1;
-    const hov = exporting ? [0,0] : hoverC;
-    let azD = ST.azi, elD = ST.elev;
-    if(ST.lanim){ azD += Math.sin(phase*Math.PI*2) * ST.lswing; elD += Math.cos(phase*Math.PI*2) * ST.lswing * 0.3; }
-    if(ST.follow && !exporting){ azD += hov[0]*55; elD -= hov[1]*25; }
-    elD = clamp(elD, 2, 88);
-    const az = azD*Math.PI/180, el = elD*Math.PI/180;
-    gl.uniform3f(loc.u_light, Math.cos(el)*Math.cos(az), Math.cos(el)*Math.sin(az), Math.sin(el));
     gl.uniform1f(loc.u_time, phase * Math.PI * 2);
     gl.uniform2f(loc.u_hover, ST.follow ? hov[0] : 0, ST.follow ? -hov[1] : 0);
     const P = paletteRGB();
@@ -1559,6 +1875,17 @@ function render(st){
     gl.uniform1f(loc.u_spread, ST.spread/100);
     gl.uniform1f(loc.u_cover, ST.cover/100);
     gl.uniform1f(loc.u_glare, ST.glare/100);
+    gl.uniform1f(loc.u_depth, ST.depth/100);
+    gl.uniform1f(loc.u_glint, ST.glint/100);
+    gl.uniform1f(loc.u_wave, ST.wave/100);
+    gl.uniform1f(loc.u_irid, ST.irid/100);
+    gl.uniform1i(loc.u_pat, 5);
+    gl.activeTexture(gl.TEXTURE5);
+    gl.bindTexture(gl.TEXTURE_2D, PAT.tex || tex);
+    gl.uniform2f(loc.u_patTexel, 1/PAT.w, 1/PAT.h);
+    gl.uniform1f(loc.u_patRep, ST.patRep ? 1 : 0);
+    gl.uniform1f(loc.u_patRelief, ST.patRelief/100*16.0);
+    gl.uniform1f(loc.u_patInv, ST.patInv ? 1 : 0);
     gl.uniform1i(loc.u_maskTex, 3);
     gl.activeTexture(gl.TEXTURE3);
     gl.bindTexture(gl.TEXTURE_2D, MK.tex || tex);
@@ -2299,6 +2626,85 @@ $("#btnResetDeform").addEventListener("click", () => {
 });
 $("#edgeColor").addEventListener("input", draw);
 
+/* ---------- tranche : matière, forme, lumière ---------- */
+const ET_ROWS = [
+  ["g", "Matière"],
+  ["pages", "Feuilles", 4, 200, 1, "", "Nombre de feuilles empilées dans l'épaisseur", "2"],
+  ["skin",  "Peaux",    2, 45, 1, "%", "Épaisseur de chaque peau extérieure, en % de l'épaisseur totale", "3"],
+  ["blur",  "Flou",     0, 6, 1, "", "Adoucit la couleur reprise sur l'image : 0 net, 6 très fondu", "1,4"],
+  ["fade",  "Fondu",    0, 100, 1, "%", "Assombrit la tranche en profondeur, du recto vers le verso", ""],
+  ["grain", "Grain",    0, 100, 1, "%", "Texture fine de la matière", ""],
+  ["g", "Forme et reflets"],
+  ["round", "Arrondi",  0, 100, 1, "%", "Profil de l'arête : 0 vive, 100 demi-rond. Agit sur la lumière de l'arête, pas sur la silhouette", ""],
+  ["gloss", "Brillance", 0, 100, 1, "%", "Intensité des reflets sur la tranche", ""],
+  ["rough", "Rugosité", 0, 100, 1, "%", "0 poli, miroir · 100 mat, reflets larges et diffus", ""],
+  ["metal", "Métal",    0, 100, 1, "%", "Le reflet prend la couleur de la matière, la part diffuse s'efface", ""],
+  ["contrast", "Contraste", 0, 100, 1, "%", "Écart entre le côté éclairé et le côté dans l'ombre", ""]
+];
+function buildEdgeUI(){
+  const H = $("#edgeCtl");
+  let html = "";
+  for(const r of ET_ROWS){
+    if(r[0] === "g"){ html += '<div class="grp">' + r[1] + '</div>'; continue; }
+    const [k, l, mn, mx, st, u, tip, mats] = r;
+    html += '<div class="prop" data-mat="' + mats + '"><label class="scrub" for="et_' + k + '" title="' + tip + '">' + l + '</label>' +
+      '<input type="range" id="et_' + k + 'R" min="' + mn + '" max="' + mx + '" step="' + st + '" value="' + ET[k] + '" aria-label="' + l + ' de la tranche">' +
+      '<span class="num"><input type="number" id="et_' + k + '" min="' + mn + '" max="' + mx + '" step="' + st + '" value="' + ET[k] + '"><i>' + u + '</i></span></div>';
+  }
+  H.innerHTML = html;
+  for(const r of ET_ROWS){
+    if(r[0] === "g") continue;
+    const [k, , mn, mx] = r;
+    bindPair("#et_" + k, "#et_" + k + "R", 1, v => { ET[k] = clamp(v, mn, mx); draw(); });
+  }
+}
+function updateEdgeUI(){
+  document.querySelectorAll("#edgeCtl [data-mat]").forEach(el => {
+    const m = el.dataset.mat;
+    el.classList.toggle("hidden", m !== "" && !m.split(",").includes(String(ET.mat)));
+  });
+  $("#edgeCoreRow").classList.toggle("hidden", ET.mat !== 3);
+  $("#edgeColorRow").classList.toggle("hidden", ET.mat === 1 || ET.mat === 4);
+  $("#edgeColorLbl").textContent = ET.mat === 3 ? "Peaux" : "Couleur";
+  $("#eLightOpts").classList.toggle("hidden", ET.link);
+}
+function syncEdgeUI(){
+  for(const r of ET_ROWS){
+    if(r[0] === "g") continue;
+    $("#et_" + r[0]).value = ET[r[0]]; $("#et_" + r[0] + "R").value = ET[r[0]];
+  }
+  $("#edgeMat").value = String(ET.mat);
+  $("#edgeCore").value = ET.core;
+  $("#eLink").checked = ET.link;
+  $("#eAzi").value = ET.azi; $("#eAziR").value = ET.azi;
+  $("#eElev").value = ET.elev; $("#eElevR").value = ET.elev;
+  updateEdgeUI();
+}
+buildEdgeUI();
+updateEdgeUI();
+$("#edgeMat").addEventListener("change", e => { ET.mat = parseInt(e.target.value); updateEdgeUI(); draw(); });
+$("#edgeCore").addEventListener("input", e => { ET.core = e.target.value; draw(); });
+$("#eLink").addEventListener("change", e => { ET.link = e.target.checked; updateEdgeUI(); kickLive(); draw(); });
+bindPair("#eAzi", "#eAziR", 1, v => { ET.azi = clamp(v, -180, 180); draw(); });
+bindPair("#eElev", "#eElevR", 1, v => { ET.elev = clamp(v, 0, 89); draw(); });
+$("#edgeAuto").addEventListener("click", () => {
+  if(!srcImg || !img) return;
+  const c = document.createElement("canvas"); c.width = c.height = 48;
+  const cx = c.getContext("2d", {willReadFrequently:true});
+  cx.drawImage(srcImg, 0, 0, 48, 48);
+  let d; try { d = cx.getImageData(0, 0, 48, 48).data; } catch(err){ return; }
+  let r = 0, g = 0, b = 0, w = 0;
+  for(let i = 0; i < d.length; i += 4){
+    const a = d[i+3] / 255; if(a < 0.5) continue;
+    r += d[i]*a; g += d[i+1]*a; b += d[i+2]*a; w += a;
+  }
+  if(w < 1) return;
+  $("#edgeColor").value = rgbHex([r/w, g/w, b/w]); draw();
+});
+$("#btnResetEdge").addEventListener("click", () => {
+  Object.assign(ET, ET_DEF); $("#edgeColor").value = "#e2e0da"; syncEdgeUI(); kickLive(); draw();
+});
+
 /* ---------- détourage : recalcul, aperçu cliquable ---------- */
 function drawBgPreview(){
   const cv = $("#bgrPrev");
@@ -2439,6 +2845,27 @@ bindPair("#fscale", "#fscaleR", 10, v => { ST.scale = clamp(v, 0.5, 30); draw();
 bindPair("#fang", "#fangR", 1, v => { ST.ang = clamp(v, 0, 180); draw(); });
 bindPair("#fcon", "#fconR", 100, v => { ST.con = clamp(v, 0.4, 3); draw(); });
 bindPair("#glare", "#glareR", 1, v => { ST.glare = clamp(v, 0, 100); draw(); });
+bindPair("#fdepth", "#fdepthR", 1, v => { ST.depth = clamp(v, 0, 100); draw(); });
+bindPair("#fglint", "#fglintR", 1, v => { ST.glint = clamp(v, 0, 100); draw(); });
+bindPair("#fwave", "#fwaveR", 1, v => { ST.wave = clamp(v, 0, 100); draw(); });
+$("#foilType").addEventListener("change", e => $("#patOpts").classList.toggle("hidden", e.target.value !== "27"));
+$("#patLoad").addEventListener("click", () => $("#patFile").click());
+bindPair("#patRelief", "#patReliefR", 1, v => { ST.patRelief = clamp(v, 0, 200); draw(); });
+$("#patInv").addEventListener("change", e => { ST.patInv = e.target.checked; draw(); });
+$("#patRep").addEventListener("change", e => { ST.patRep = e.target.checked; draw(); });
+$("#patFile").addEventListener("change", e => {
+  const f = e.target.files[0]; if(!f) return;
+  const im = new Image();
+  im.onload = () => {
+    if(PAT.tex) gl.deleteTexture(PAT.tex);
+    PAT.tex = makeTexture(im, im.naturalWidth, im.naturalHeight);
+    PAT.w = im.naturalWidth; PAT.h = im.naturalHeight; PAT.name = f.name;
+    $("#patName").textContent = f.name;
+    URL.revokeObjectURL(im.src); draw();
+  };
+  im.src = URL.createObjectURL(f); e.target.value = "";
+});
+bindPair("#firid", "#firidR", 1, v => { ST.irid = clamp(v, 0, 100); draw(); });
 bindPair("#gloss", "#glossR", 1, v => { ST.gloss = clamp(v, 0, 100); draw(); });
 bindPair("#grain", "#grainR", 1, v => { ST.grain = clamp(v, 0, 30); draw(); });
 bindPair("#lazi", "#laziR", 1, v => { ST.azi = clamp(v, -180, 180); draw(); });
@@ -2518,9 +2945,10 @@ $("#slotMask2").addEventListener("click", e => {
 // le survol s'amortit. On ne redessine en continu que si l'un d'eux est actif.
 let liveRaf = 0;
 function needsLive(){
-  if(!ST.on || !img) return false;
+  if(!img) return false;
+  if(!ST.on && !(S.thick > 0)) return false;
   const easing = Math.abs(hoverC[0]-hoverT[0]) > 1e-3 || Math.abs(hoverC[1]-hoverT[1]) > 1e-3;
-  return ST.lanim || ST.type === 3 || ST.type === 10 || (ST.follow && easing);
+  return (ST.on && (ST.type === 3 || ST.type === 10)) || ST.lanim || (ST.follow && easing);
 }
 function kickLive(){ if(!liveRaf && needsLive()) liveRaf = requestAnimationFrame(liveTick); }
 function liveTick(){
@@ -3737,5 +4165,6 @@ if(!gl){
 })();
 })();
 </script>
+<!-- toolbox-back --><a href="../toolbox.html" aria-label="Retour toolbox" style="position:fixed;top:max(12px,env(safe-area-inset-top));left:12px;z-index:2147483647;padding:8px 14px;border-radius:999px;background:rgba(20,20,20,.8);color:#fff;font:600 14px system-ui,sans-serif;text-decoration:none;backdrop-filter:blur(6px)">← Toolbox</a>
 </body>
 </html>
