@@ -15,7 +15,9 @@
     --check-a: #fdfdfd;
     --check-b: #efefef;
     --check: 11px;      /* taille d'une case du damier */
-    --trame: 1150px;    /* largeur de la trame ASCII (assets/trame.svg) */
+    --trame: 720px;     /* largeur d'UNE occurrence de la trame (assets/trame.svg) */
+    --trame-x: -30px;   /* décalage : la trame dépasse en haut à gauche */
+    --trame-y: -20px;
     --ink: #0f0f0f;
     --line: rgba(15, 15, 15, 0.14);
     --ease: cubic-bezier(0.77, 0, 0.175, 1);
@@ -27,9 +29,18 @@
     background-color: var(--check-a);
     background-image:
       url('assets/trame.svg'),
+      url('assets/trame.svg'),
       conic-gradient(var(--check-b) 25%, var(--check-a) 0 50%, var(--check-b) 0 75%, var(--check-a) 0);
-    background-size: var(--trame) auto, calc(var(--check) * 2) calc(var(--check) * 2);
-    background-repeat: repeat, repeat;
+    /* trame en quinconce : chaque occurrence est entourée de vide, de la taille du SVG */
+    background-size:
+      calc(var(--trame) * 2) auto,
+      calc(var(--trame) * 2) auto,
+      calc(var(--check) * 2) calc(var(--check) * 2);
+    background-position:
+      var(--trame-x) var(--trame-y),
+      calc(var(--trame-x) + var(--trame)) calc(var(--trame-y) + var(--trame) * 0.5176),
+      0 0;
+    background-repeat: repeat, repeat, repeat;
     color: var(--ink);
     font-family: 'Instrument Serif', serif;
     min-height: 100vh;
