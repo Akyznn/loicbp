@@ -1,6 +1,7 @@
 // gate.js — mini-protection par mot de passe (côté navigateur, PAS sécurisé à 100 %)
 // À inclure dans le <head> de la toolbox ET de chaque outil :
-// <script src="gate.js"></script>
+//   toolbox.html (racine) : <script src="gate.js"></script>
+//   tools/*.html          : <script src="../gate.js"></script>
 (function () {
   // SHA-256 du mot de passe. Par défaut : "changeme"
   // Pour changer : ouvre la console du navigateur et lance
