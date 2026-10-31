@@ -33,14 +33,17 @@
       user-select: none;
     }
 
-    /* ── Curseur Mac OS Classic ── */
+    /* ── Curseur main (PNG) ── */
     #cursor {
       position: fixed;
       top: 0; left: 0;
+      width: 32px;
+      height: auto;
       pointer-events: none;
       z-index: 9999;
-      /* hotspot = pointe en haut à gauche */
-      transform: translate(0px, 0px);
+      /* hotspot = bout de l'index (≈ 5px, 1px) */
+      transform: translate(-5px, -1px);
+      will-change: left, top;
     }
 
     /* ── Follower ── */
@@ -169,6 +172,43 @@
 
     .icon-at { font-style: normal; font-size: 0.9em; opacity: 0.55; }
 
+    /* ── Bouton Toolbox ── */
+    .toolbox-link {
+      position: fixed;
+      top: clamp(1rem, 2.5vw, 1.8rem);
+      right: clamp(1rem, 2.5vw, 1.8rem);
+      z-index: 10;
+      font-size: clamp(0.6rem, 1vw, 0.72rem);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      text-decoration: none;
+      font-style: italic;
+      color: var(--ink);
+      cursor: none;
+      padding: 0.5em 0;
+      opacity: 0;
+      transform: translateY(6px);
+      animation: fadeUp 0.5s ease forwards 1.7s;
+    }
+
+    .toolbox-link::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 0; height: 1px;
+      background: var(--ink);
+      transition: width 0.3s ease;
+    }
+
+    .toolbox-link:hover::after,
+    .toolbox-link:focus-visible::after { width: 100%; }
+
+    /* Écrans tactiles : pas de curseur custom */
+    @media (hover: none) {
+      html, body, .links a, .toolbox-link { cursor: auto; }
+      #cursor, #follower { display: none; }
+    }
+
     @keyframes wipe    { to { clip-path: inset(0 0% 0 0); } }
     @keyframes expand  { to { width: 100%; } }
     @keyframes fadeUp  { to { opacity: 1; transform: translateY(0); } }
@@ -180,37 +220,11 @@
 </head>
 <body>
 
-  <!--
-    Curseur Mac OS Classic (System 1–6)
-    Flèche 16×16 px, hotspot en (0,0)
-    Dessinée pixel par pixel : contour blanc 1px + remplissage noir
-  -->
-  <svg id="cursor" width="16" height="21" viewBox="0 0 16 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- Ombre / contour blanc -->
-    <path d="
-      M1 0
-      L1 16
-      L4 13
-      L6.5 19.5
-      L9.5 18.5
-      L7 12
-      L11 12
-      Z
-    " fill="white" stroke="white" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    <!-- Corps noir -->
-    <path d="
-      M1 0
-      L1 16
-      L4 13
-      L6.5 19.5
-      L9.5 18.5
-      L7 12
-      L11 12
-      Z
-    " fill="#0f0f0f"/>
-  </svg>
+  <img id="cursor" src="assets/curseur-main.png" alt="" width="32" height="30" aria-hidden="true" />
 
   <div id="follower"></div>
+
+  <a class="toolbox-link" href="toolbox.html">Toolbox</a>
 
   <div class="container">
     <p class="label">Loic Bosse-Platière — loicbp.fr</p>
