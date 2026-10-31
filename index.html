@@ -11,7 +11,11 @@
     }
 
     :root {
-      --bg: #f5f5f3;
+      --bg: #fdfdfd;
+    --check-a: #fdfdfd;
+    --check-b: #efefef;
+    --check: 11px;      /* taille d'une case du damier */
+    --trame: 1150px;    /* largeur de la trame ASCII (assets/trame.svg) */
       --ink: #0f0f0f;
     }
 
@@ -21,7 +25,12 @@
     }
 
     body {
-      background: var(--bg);
+      background-color: var(--check-a);
+    background-image:
+      url('assets/trame.svg'),
+      conic-gradient(var(--check-b) 25%, var(--check-a) 0 50%, var(--check-b) 0 75%, var(--check-a) 0);
+    background-size: var(--trame) auto, calc(var(--check) * 2) calc(var(--check) * 2);
+    background-repeat: repeat, repeat;
       color: var(--ink);
       font-family: 'Instrument Serif', serif;
       display: flex;
