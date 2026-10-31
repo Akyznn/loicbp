@@ -4,41 +4,270 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Toolbox</title>
+<title>lbp — toolbox</title>
 <script src="gate.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#fff; --fg:#111; --card:#f3f3f3; --line:#ddd; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#111; --fg:#f2f2f2; --card:#1c1c1c; --line:#333; } }
-  * { box-sizing: border-box; }
-  body { margin:0; padding:32px 20px; background:var(--bg); color:var(--fg); font-family:system-ui,sans-serif; }
-  h1 { margin:0 0 24px; font-size:28px; }
-  .grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
-  a.tool { display:block; padding:18px; background:var(--card); border:1px solid var(--line); border-radius:14px; color:inherit; text-decoration:none; }
-  a.tool:hover { border-color:var(--fg); }
-  a.tool b { display:block; font-size:17px; margin-bottom:6px; }
-  a.tool span { font-size:14px; opacity:.7; }
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #f5f5f3;
+    --ink: #0f0f0f;
+    --line: rgba(15, 15, 15, 0.14);
+    --ease: cubic-bezier(0.77, 0, 0.175, 1);
+  }
+
+  html, body { cursor: none; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Instrument Serif', serif;
+    min-height: 100vh;
+    user-select: none;
+  }
+
+  /* ── Curseur main (PNG) ── */
+  #cursor {
+    position: fixed;
+    top: 0; left: 0;
+    width: 32px;
+    height: auto;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-5px, -1px);
+    will-change: left, top;
+  }
+
+  /* ── Follower ── */
+  #follower {
+    position: fixed;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--ink);
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    opacity: 0.35;
+    transition: width 0.25s ease, height 0.25s ease, opacity 0.25s ease;
+  }
+  body.hovering #follower { width: 42px; height: 42px; opacity: 0.12; }
+
+  /* ── Lien retour (haut droite) ── */
+  .back-link {
+    position: fixed;
+    top: clamp(1rem, 2.5vw, 1.8rem);
+    right: clamp(1rem, 2.5vw, 1.8rem);
+    z-index: 10;
+    font-size: clamp(0.6rem, 1vw, 0.72rem);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-decoration: none;
+    font-style: italic;
+    color: var(--ink);
+    cursor: none;
+    padding: 0.5em 0;
+    opacity: 0;
+    transform: translateY(6px);
+    animation: fadeUp 0.5s ease forwards 1.2s;
+  }
+  .back-link::after, .tool .name::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 0; height: 1px;
+    background: var(--ink);
+    transition: width 0.3s ease;
+  }
+  .back-link:hover::after, .back-link:focus-visible::after { width: 100%; }
+
+  /* ── En-tête ── */
+  .wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: clamp(4rem, 9vw, 7rem) clamp(1.2rem, 4vw, 3rem) 4rem;
+  }
+
+  .label {
+    font-size: clamp(0.6rem, 1vw, 0.72rem);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-style: italic;
+    opacity: 0;
+    transform: translateY(6px);
+    animation: fadeUp 0.6s ease forwards 0.2s;
+  }
+
+  .title-wrap { overflow: hidden; margin: 1.4rem 0 1.6rem; }
+  .title {
+    font-size: clamp(3rem, 11vw, 8rem);
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    display: block;
+    clip-path: inset(0 100% 0 0);
+    animation: wipe 0.9s var(--ease) forwards 0.5s;
+  }
+
+  .rule {
+    width: 0;
+    height: 1px;
+    background: var(--ink);
+    margin-bottom: clamp(2rem, 5vw, 3.5rem);
+    animation: expand 0.6s ease forwards 1.1s;
+  }
+
+  /* ── Grille ── */
+  .grid {
+    display: grid;
+    gap: clamp(1.8rem, 3.5vw, 2.8rem) clamp(1.2rem, 2.5vw, 2rem);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  }
+
+  a.tool {
+    display: block;
+    color: var(--ink);
+    text-decoration: none;
+    cursor: none;
+    opacity: 0;
+    transform: translateY(8px);
+    animation: fadeUp 0.6s ease forwards;
+    animation-delay: calc(1.3s + var(--i) * 0.07s);
+  }
+
+  .thumb {
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: #e9e9e6;
+    border: 1px solid var(--line);
+  }
+  .thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top left;
+    transition: transform 0.7s var(--ease);
+  }
+  a.tool:hover .thumb img, a.tool:focus-visible .thumb img { transform: scale(1.04); }
+  a.tool:focus-visible { outline: 1px solid var(--ink); outline-offset: 4px; }
+
+  .meta { display: flex; gap: 0.9rem; align-items: baseline; margin-top: 0.9rem; }
+  .num {
+    font-size: clamp(0.6rem, 1vw, 0.72rem);
+    letter-spacing: 0.2em;
+    font-style: italic;
+    opacity: 0.45;
+    flex: none;
+  }
+  .txt { min-width: 0; }
+  .name {
+    position: relative;
+    display: inline-block;
+    font-size: clamp(1.25rem, 2vw, 1.55rem);
+    line-height: 1.15;
+    letter-spacing: -0.005em;
+  }
+  .tool .name { position: relative; }
+  a.tool:hover .name::after, a.tool:focus-visible .name::after { width: 100%; }
+  .desc {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: clamp(0.6rem, 1vw, 0.72rem);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-style: italic;
+    opacity: 0.55;
+  }
+
+  /* ── Animations ── */
+  @keyframes wipe   { to { clip-path: inset(0 0% 0 0); } }
+  @keyframes expand { to { width: 100%; } }
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+  /* ── Tactile / mouvement réduit ── */
+  @media (hover: none) {
+    html, body, a.tool, .back-link { cursor: auto; }
+    #cursor, #follower { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .label, .back-link, a.tool { animation-duration: 0.01s; animation-delay: 0s; }
+    .title { animation-duration: 0.01s; animation-delay: 0s; }
+    .rule { animation-duration: 0.01s; animation-delay: 0s; }
+    .thumb img { transition: none; }
+  }
 </style>
 </head>
 <body>
-<h1>Toolbox</h1>
-<div class="grid" id="grid"></div>
-<script>
-  // Ajoute tes outils ici : un objet par outil
-  var TOOLS = [
-    { name: "Outils GIF et Perspective", file: "tools/stickers.html", desc: "cf titre lol" },
-    { name: "Motion · animation de logos", file: "tools/motion-logo.html", desc: "" },
-    { name: "Motion Studio", file: "tools/motion-studio.html", desc: "" },
-    { name: "PNG/SVG vers STL — extruder une image en STL imprimable", file: "tools/relief1.html", desc: "3D en gros" },
-    { name: "TRAME — image → ASCII/PIXEL", file: "tools/pixascii.html", desc: "" },
-    { name: "Découpe en bloc", file: "tools/padc.html", desc: "" },
-    { name: "Perspective — outil de mockup", file: "tools/perspemock.html", desc: "" },
-    { name: "Atelier typo", file: "tools/typo.html", desc: "" },
-    
-    
-  ];
-  document.getElementById('grid').innerHTML = TOOLS.map(function (t) {
-    return '<a class="tool" href="' + t.file + '"><b>' + t.name + '</b><span>' + t.desc + '</span></a>';
-  }).join('');
-</script>
+
+  <img id="cursor" src="assets/curseur-main.png" alt="" width="32" height="30" aria-hidden="true">
+  <div id="follower"></div>
+
+  <a class="back-link" href="index.html">← Accueil</a>
+
+  <main class="wrap">
+    <p class="label">Loic Bosse-Platière — loicbp.fr</p>
+    <div class="title-wrap"><h1 class="title">toolbox</h1></div>
+    <div class="rule"></div>
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <script>
+    // Ajoute tes outils ici : un objet par outil
+    // img = capture 960×600 dans assets/previews/
+    var TOOLS = [
+      { name: "Outils GIF et Perspective", file: "tools/stickers.html", img: "assets/previews/stickers.webp", desc: "cf titre lol" },
+      { name: "Motion · animation de logos", file: "tools/motion-logo.html", img: "assets/previews/motion-logo.webp", desc: "" },
+      { name: "Motion Studio", file: "tools/motion-studio.html", img: "assets/previews/motion-studio.webp", desc: "" },
+      { name: "PNG/SVG vers STL — extruder une image en STL imprimable", file: "tools/relief1.html", img: "assets/previews/relief1.webp", desc: "3D en gros" },
+      { name: "TRAME — image → ASCII/PIXEL", file: "tools/pixascii.html", img: "assets/previews/pixascii.webp", desc: "" },
+      { name: "Découpe en bloc", file: "tools/padc.html", img: "assets/previews/padc.webp", desc: "" },
+      { name: "Perspective — outil de mockup", file: "tools/perspemock.html", img: "assets/previews/perspemock.webp", desc: "" },
+      { name: "Atelier typo", file: "tools/typo.html", img: "assets/previews/typo.webp", desc: "" }
+    ];
+
+    function esc(s) {
+      return String(s).replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    }
+
+    document.getElementById('grid').innerHTML = TOOLS.map(function (t, i) {
+      var n = String(i + 1).padStart(2, '0');
+      return '<a class="tool" href="' + esc(t.file) + '" style="--i:' + i + '">' +
+        '<div class="thumb">' +
+          (t.img ? '<img src="' + esc(t.img) + '" alt="" width="960" height="600" loading="lazy" decoding="async">' : '') +
+        '</div>' +
+        '<div class="meta"><span class="num">' + n + '</span>' +
+          '<div class="txt"><span class="name">' + esc(t.name) + '</span>' +
+          (t.desc ? '<span class="desc">' + esc(t.desc) + '</span>' : '') +
+        '</div></div></a>';
+    }).join('');
+
+    /* Curseur */
+    var cursorEl = document.getElementById('cursor');
+    var follower = document.getElementById('follower');
+    var mx = -100, my = -100, fx = -100, fy = -100;
+
+    document.addEventListener('mousemove', function (e) {
+      mx = e.clientX; my = e.clientY;
+      cursorEl.style.left = mx + 'px';
+      cursorEl.style.top = my + 'px';
+    });
+
+    (function animateFollower() {
+      fx += (mx - fx) * 0.11;
+      fy += (my - fy) * 0.11;
+      follower.style.left = fx + 'px';
+      follower.style.top = fy + 'px';
+      requestAnimationFrame(animateFollower);
+    })();
+
+    document.querySelectorAll('a').forEach(function (el) {
+      el.addEventListener('mouseenter', function () { document.body.classList.add('hovering'); });
+      el.addEventListener('mouseleave', function () { document.body.classList.remove('hovering'); });
+    });
+  </script>
 </body>
 </html>
