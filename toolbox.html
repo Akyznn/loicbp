@@ -122,7 +122,7 @@
   .grid {
     display: grid;
     gap: clamp(1.8rem, 3.5vw, 2.8rem) clamp(1.2rem, 2.5vw, 2rem);
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+    grid-template-columns: repeat(4, 1fr);
   }
 
   a.tool {
@@ -165,7 +165,7 @@
   .name {
     position: relative;
     display: inline-block;
-    font-size: clamp(1.25rem, 2vw, 1.55rem);
+    font-size: clamp(1.05rem, 1.55vw, 1.25rem);
     line-height: 1.15;
     letter-spacing: -0.005em;
   }
@@ -180,6 +180,9 @@
     font-style: italic;
     opacity: 0.55;
   }
+
+  @media (max-width: 960px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } .name { font-size: 1.25rem; } }
 
   /* ── Animations ── */
   @keyframes wipe   { to { clip-path: inset(0 0% 0 0); } }
@@ -218,13 +221,13 @@
     // img = capture 960×600 dans assets/previews/
     var TOOLS = [
       { name: "Outils GIF et Perspective", file: "tools/stickers.html", img: "assets/previews/stickers.webp", desc: "cf titre lol" },
-      { name: "Motion · animation de logos", file: "tools/motion-logo.html", img: "assets/previews/motion-logo.webp", desc: "" },
       { name: "Motion Studio", file: "tools/motion-studio.html", img: "assets/previews/motion-studio.webp", desc: "" },
+      { name: "Atelier typo", file: "tools/typo.html", img: "assets/previews/typo.webp", desc: "" },
       { name: "PNG/SVG vers STL — extruder une image en STL imprimable", file: "tools/relief1.html", img: "assets/previews/relief1.webp", desc: "3D en gros" },
       { name: "TRAME — image → ASCII/PIXEL", file: "tools/pixascii.html", img: "assets/previews/pixascii.webp", desc: "" },
-      { name: "Découpe en bloc", file: "tools/padc.html", img: "assets/previews/padc.webp", desc: "" },
       { name: "Perspective — outil de mockup", file: "tools/perspemock.html", img: "assets/previews/perspemock.webp", desc: "" },
-      { name: "Atelier typo", file: "tools/typo.html", img: "assets/previews/typo.webp", desc: "" }
+      { name: "Découpe en bloc", file: "tools/padc.html", img: "assets/previews/padc.webp", desc: "" },
+      { name: "Motion · animation de logos", file: "tools/motion-logo.html", img: "assets/previews/motion-logo.webp", desc: "" }
     ];
 
     function esc(s) {
