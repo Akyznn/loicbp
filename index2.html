@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow">
+  <title>lbp — index2</title>
+  <script src="gate.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #fdfdfd;
+    --check-a: #fdfdfd;
+    --check-b: #efefef;
+    --check: 11px;      /* taille d'une case du damier */
+    --trame: 720px;     /* largeur d'UNE occurrence de la trame (assets/trame.svg) */
+    --trame-x: -30px;   /* décalage : la trame dépasse en haut à gauche */
+    --trame-y: -20px;
+      --ink: #0f0f0f;
+    }
+
+    html, body {
+      height: 100%;
+      cursor: none;
+    }
+
+    body {
+      background-color: var(--check-a);
+    background-image:
+      url('assets/trame.svg?v=3'),
+      conic-gradient(var(--check-b) 25%, var(--check-a) 0 50%, var(--check-b) 0 75%, var(--check-a) 0);
+    /* une seule trame par bloc de 2×2 : vide autour (haut/bas/gauche/droite ET diagonales) de la taille du SVG */
+    background-size:
+      calc(var(--trame) * 2) auto,
+      calc(var(--check) * 2) calc(var(--check) * 2);
+    background-position:
+      var(--trame-x) var(--trame-y),
+      0 0;
+    background-repeat: repeat, repeat;
+      color: var(--ink);
+      font-family: 'Instrument Serif', serif;
+      min-height: 100vh;
+      user-select: none;
+    }
+
+    /* ── Curseur main (PNG) ── */
+    #cursor {
+      position: fixed;
+      top: 0; left: 0;
+      width: 32px;
+      height: auto;
+      pointer-events: none;
+      z-index: 9999;
+      /* hotspot = bout de l'index (≈ 5px, 1px) */
+      transform: translate(-5px, -1px);
+      will-change: left, top;
+    }
+
+    /* ── Follower ── */
+    #follower {
+      position: fixed;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1px solid var(--ink);
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      opacity: 0.35;
+      transition: width 0.25s ease, height 0.25s ease, opacity 0.25s ease;
+    }
+
+    body.hovering #follower {
+      width: 42px;
+      height: 42px;
+      opacity: 0.12;
+    }
+
+    /* ── Écrans tactiles : pas de curseur custom ── */
+    @media (hover: none) {
+      html, body { cursor: auto; }
+      #cursor, #follower { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <img id="cursor" src="assets/curseur-main.png" alt="" width="32" height="30" aria-hidden="true" />
+  <div id="follower"></div>
+
+  <!-- Page vierge : le contenu du portfolio viendra ici -->
+  <main></main>
+
+  <script>
+    /* Curseur */
+    const cursorEl = document.getElementById('cursor');
+    const follower = document.getElementById('follower');
+    let mx = -100, my = -100;
+    let fx = -100, fy = -100;
+
+    document.addEventListener('mousemove', e => {
+      mx = e.clientX;
+      my = e.clientY;
+      cursorEl.style.left = mx + 'px';
+      cursorEl.style.top  = my + 'px';
+    });
+
+    (function animateFollower() {
+      fx += (mx - fx) * 0.11;
+      fy += (my - fy) * 0.11;
+      follower.style.left = fx + 'px';
+      follower.style.top  = fy + 'px';
+      requestAnimationFrame(animateFollower);
+    })();
+
+    /* Survol : agrandit le follower sur les éléments cliquables */
+    document.querySelectorAll('a, button').forEach(el => {
+      el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+      el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+    });
+  </script>
+</body>
+</html>
