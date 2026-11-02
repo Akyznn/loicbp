@@ -148,7 +148,8 @@
     font-weight: 400;
     letter-spacing: -0.03em;
     line-height: 1;
-    display: block;
+    display: inline-block;   /* la boîte épouse le texte : le cadre pointillé aussi */
+    vertical-align: top;
     clip-path: inset(0 100% 0 0);
     animation: wipe 0.9s var(--ease) forwards 0.5s;
   }
@@ -258,7 +259,7 @@
 
   <main class="wrap">
     <p class="label">Loic Bosse-Platière — loicbp.fr</p>
-    <div class="title-wrap"><h1 class="title">toolbox</h1></div>
+    <div class="title-wrap"><h1 class="title" data-ants>toolbox</h1></div>
     <div class="rule"></div>
     <div class="grid" id="grid"></div>
   </main>
