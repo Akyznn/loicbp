@@ -88,6 +88,20 @@
       html, body { cursor: auto; }
       #cursor, #follower { display: none; }
     }
+
+    /* ── En-tête : logo centré en haut ── */
+    :root { --logo-w: clamp(140px, 15vw, 280px); }
+
+    .site-header {
+      display: flex;
+      justify-content: center;
+      padding: clamp(1.5rem, 4vw, 3.2rem) 1.2rem 0;
+    }
+    .site-header img {
+      display: block;
+      width: var(--logo-w);
+      height: auto;
+    }
   </style>
 </head>
 <body>
@@ -96,6 +110,10 @@
   <div id="follower"></div>
 
   <!-- Page vierge : le contenu du portfolio viendra ici -->
+  <header class="site-header">
+    <img src="assets/logo.svg" alt="loic.bp" width="280" height="143">
+  </header>
+
   <main></main>
 
   <script>
