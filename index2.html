@@ -63,30 +63,47 @@
       will-change: left, top;
     }
 
-    /* ── Follower ── */
-    #follower {
+    /* ── Sélection "Photoshop" : tracé pointillé noir/blanc animé (fourmis) ──
+       --ant = longueur d'un tiret (px) ; --ant-speed = durée d'un cycle            */
+    :root { --ant: 4px; --ant-speed: 0.4s; }
+
+    /* Le rond qui suit la souris : même effet, se morphe sur l'élément survolé */
+    #ring {
       position: fixed;
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      border: 1px solid var(--ink);
+      inset: 0;
+      width: 100%;
+      height: 100%;
       pointer-events: none;
       z-index: 9998;
-      transform: translate(-50%, -50%);
-      opacity: 0.35;
-      transition: width 0.25s ease, height 0.25s ease, opacity 0.25s ease;
+      overflow: visible;
     }
+    #ring rect { fill: none; stroke-width: 1; stroke-dasharray: var(--ant) var(--ant); }
+    #ring .rb { stroke: #0f0f0f; animation: march var(--ant-speed) linear infinite; }
+    #ring .rw { stroke: #fff; stroke-dashoffset: var(--ant); animation: march-w var(--ant-speed) linear infinite; }
 
-    body.hovering #follower {
-      width: 42px;
-      height: 42px;
-      opacity: 0.12;
+    /* Contour exact d'un SVG (logo) : calque de tracés clonés, visible au survol */
+    .ants { opacity: 0; pointer-events: none; transition: opacity 0.15s ease; }
+    .ants-on .ants { opacity: 1; }
+    .ants * {
+      fill: none;
+      stroke-width: 1px;
+      vector-effect: non-scaling-stroke;   /* 1px et tirets constants quelle que soit la taille du logo */
+      stroke-dasharray: var(--ant) var(--ant);
+    }
+    .ants .ab { stroke: #0f0f0f; animation: march var(--ant-speed) linear infinite; }
+    .ants .aw { stroke: #fff; stroke-dashoffset: var(--ant); animation: march-w var(--ant-speed) linear infinite; }
+
+    @keyframes march   { to { stroke-dashoffset: calc(var(--ant) * -2); } }
+    @keyframes march-w { to { stroke-dashoffset: calc(var(--ant) * -1); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      #ring .rb, #ring .rw, .ants .ab, .ants .aw { animation: none; }
     }
 
     /* ── Écrans tactiles : pas de curseur custom ── */
     @media (hover: none) {
       html, body { cursor: auto; }
-      #cursor, #follower { display: none; }
+      #cursor, #ring { display: none; }
     }
 
     /* ── En-tête : logo centré en haut ── */
@@ -128,11 +145,14 @@
 <body>
 
   <img id="cursor" src="assets/curseur-main.png" alt="" width="32" height="30" aria-hidden="true" />
-  <div id="follower"></div>
+  <svg id="ring" aria-hidden="true">
+    <rect class="rb"/>
+    <rect class="rw"/>
+  </svg>
 
   <!-- Page vierge : le contenu du portfolio viendra ici -->
   <header class="site-header">
-    <svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280.57 139.767" width="280" height="140" role="img" aria-label="loic.bp">
+    <svg class="logo" data-ants="contour" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280.57 139.767" width="280" height="140" role="img" aria-label="loic.bp">
       <defs>
         <clipPath id="logo-wipe"><rect class="wipe" x="0" y="0" width="280.57" height="139.767"/></clipPath>
       </defs>
@@ -154,11 +174,12 @@
   <main></main>
 
   <script>
-    /* Curseur */
+    /* ── Curseur main ── */
     const cursorEl = document.getElementById('cursor');
-    const follower = document.getElementById('follower');
-    let mx = -100, my = -100;
-    let fx = -100, fy = -100;
+    const ring     = document.getElementById('ring');
+    const rects    = ring.querySelectorAll('rect');
+    let mx = -100, my = -100;   // souris
+    let fx = -100, fy = -100;   // position retardée du rond
 
     document.addEventListener('mousemove', e => {
       mx = e.clientX;
@@ -167,19 +188,76 @@
       cursorEl.style.top  = my + 'px';
     });
 
-    (function animateFollower() {
+    /* ── Contour exact des SVG [data-ants="contour"] : on clone chaque tracé en 2 calques (noir + blanc) ── */
+    document.querySelectorAll('svg[data-ants="contour"]').forEach(svg => {
+      const NS = 'http://www.w3.org/2000/svg';
+      const g = document.createElementNS(NS, 'g');
+      g.setAttribute('class', 'ants');
+      svg.querySelectorAll('path, polygon').forEach(sh => {
+        if (sh.closest('defs, clipPath')) return;
+        ['ab', 'aw'].forEach(cls => {
+          const c = document.createElementNS(NS, sh.tagName);
+          ['d', 'points'].forEach(a => sh.hasAttribute(a) && c.setAttribute(a, sh.getAttribute(a)));
+          c.setAttribute('class', cls);
+          g.appendChild(c);
+        });
+      });
+      svg.appendChild(g);
+    });
+
+    /* ── Cible survolée : tout [data-ants], lien ou bouton ──
+       data-ants="contour" → contour exact (le rond disparaît)
+       sinon               → le rond se morphe en rectangle autour de l'élément */
+    const PAD = 6;
+    let target = null;
+
+    function setTarget(el) {
+      if (el === target) return;
+      if (target) target.classList.remove('ants-on');
+      target = el;
+      if (target && target.dataset.ants === 'contour') target.classList.add('ants-on');
+    }
+    const pick = el => el && el.closest ? el.closest('[data-ants], a, button') : null;
+
+    document.addEventListener('mouseover', e => setTarget(pick(e.target)));
+    document.addEventListener('mouseleave', () => setTarget(null));
+    document.addEventListener('focusin',  e => { const t = pick(e.target); if (t && t.matches(':focus-visible')) setTarget(t); });
+    document.addEventListener('focusout', () => setTarget(null));
+
+    /* ── Rond : cercle au repos → rectangle pointillé sur la cible ── */
+    const REST = 26;
+    const st = { x: -100, y: -100, w: REST, h: REST, r: REST / 2, o: 0.55 };
+
+    (function frame() {
       fx += (mx - fx) * 0.11;
       fy += (my - fy) * 0.11;
-      follower.style.left = fx + 'px';
-      follower.style.top  = fy + 'px';
-      requestAnimationFrame(animateFollower);
-    })();
 
-    /* Survol : agrandit le follower sur les éléments cliquables */
-    document.querySelectorAll('a, button').forEach(el => {
-      el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
-      el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
-    });
+      let g, k;
+      if (target && target.dataset.ants === 'contour') {
+        g = { x: fx, y: fy, w: 0, h: 0, r: 0, o: 0 };                   // le rond se résorbe, le contour prend le relais
+        k = 0.25;
+      } else if (target) {
+        const b = target.getBoundingClientRect();
+        g = { x: b.left - PAD, y: b.top - PAD, w: b.width + PAD * 2, h: b.height + PAD * 2, r: 0, o: 1 };
+        k = 0.28;                                                      // snap rapide
+      } else {
+        g = { x: fx - REST / 2, y: fy - REST / 2, w: REST, h: REST, r: REST / 2, o: 0.55 };
+        k = 0.22;
+      }
+      for (const p in g) st[p] += (g[p] - st[p]) * k;
+
+      const w = Math.max(st.w, 0), h = Math.max(st.h, 0);
+      const r = Math.min(Math.max(st.r, 0), w / 2, h / 2);
+      rects.forEach(el => {
+        el.setAttribute('x', st.x + 0.5);                              // +0.5 : trait de 1px bien net
+        el.setAttribute('y', st.y + 0.5);
+        el.setAttribute('width',  w);
+        el.setAttribute('height', h);
+        el.setAttribute('rx', r);
+      });
+      ring.style.opacity = st.o < 0.01 ? 0 : st.o;
+      requestAnimationFrame(frame);
+    })();
   </script>
 </body>
 </html>
