@@ -7,7 +7,7 @@
   // ── Réglages ────────────────────────────────────────────────
   // SHA-256 du mot de passe. Pour en changer : ouvrir la console du navigateur et lancer
   // crypto.subtle.digest('SHA-256', new TextEncoder().encode('TON_MDP')).then(b => console.log([...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('')))
-  var HASH = '057ba03d6c44104863dc7361fe4578965d1887360f90a0895882e58a6248fc86';
+  var HASH = 'bcbd76ed94ed60dadeecdaf381cd44747a8b5f668ec46f2d8aa085aa7792351c';
 
   // URL du formulaire Brevo (Formulaires → Partager → code HTML → valeur de action="…").
   // Vide = le bloc « Recevoir le mot de passe » est masqué.
