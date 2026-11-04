@@ -8,6 +8,7 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>lbp — toolbox</title>
+<script src="analytics.js"></script>
 <script src="gate.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style>
@@ -255,7 +256,7 @@
     <rect class="rw"/>
   </svg>
 
-  <a class="back-link" href="index.html">← Accueil</a>
+  <a class="back-link" href="index.html" data-umami-event="retour-accueil">← Accueil</a>
 
   <main class="wrap">
     <p class="label">Loic Bosse-Platière — loicbp.fr</p>
@@ -287,7 +288,7 @@
 
     document.getElementById('grid').innerHTML = TOOLS.map(function (t, i) {
       var n = String(i + 1).padStart(2, '0');
-      return '<a class="tool" href="' + esc(t.file) + '" style="--i:' + i + '">' +
+      return '<a class="tool" href="' + esc(t.file) + '" style="--i:' + i + '" data-umami-event="ouverture-outil" data-umami-event-outil="' + esc(t.name) + '">' +
         '<div class="thumb">' +
           (t.img ? '<img src="' + esc(t.img) + '" alt="" width="960" height="600" loading="lazy" decoding="async">' : '') +
         '</div>' +
