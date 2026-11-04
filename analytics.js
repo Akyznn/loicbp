@@ -7,7 +7,7 @@
 // ou appeler window.lbpTrack('nom', { cle: 'valeur' }) en JS.
 (function () {
   // ▼ Coller ici le « Website ID » donné par Umami Cloud (Settings → Websites)
-  var UMAMI_ID = '';
+  var UMAMI_ID = 'f5154258-66f4-4875-b80e-404e40d1cdf1';
   // Ne compte que le vrai site (pas les tests en local)
   var DOMAINS = 'loicbp.fr,www.loicbp.fr';
 
