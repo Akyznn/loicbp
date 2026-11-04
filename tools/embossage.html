@@ -633,6 +633,12 @@
         backdrop-filter: blur(6px)
     }
 
+    .viewbar {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        max-width: calc(100% - 24px)
+    }
+
     .sw-male {
         background: #dbdde6
     }
@@ -859,6 +865,11 @@
                     <div class="seg" id="vmode">
                         <button data-v="side" aria-pressed="true">Côte à côte</button>
                         <button data-v="closed" aria-pressed="false">Assemblé</button>
+                        <button data-v="render" aria-pressed="false">Rendu</button>
+                    </div>
+                    <div class="seg hidden" id="rside">
+                        <button data-v="recto" aria-pressed="true">Recto</button>
+                        <button data-v="verso" aria-pressed="false">Verso</button>
                     </div>
                 </div>
                 <div class="legend hidden" id="legend">
@@ -2104,7 +2115,10 @@
                     pins: pinPts.length,
                     maleLoops: male.loops.length,
                     lostHoles: Math.max(0, holesOf(male) - holesOf(fem)),
-                    marginShort: marginMM < off + 1.5
+                    marginShort: marginMM < off + 1.5,
+                    R,
+                    cx,
+                    cy
                 }
             };
         }
@@ -2261,6 +2275,21 @@
                 add(parts.female.tris, d, COL_FEMALE, 1);
                 sceneBox = [rw * 2 + gap, rh, Math.max(T + extMM, Tf)];
                 target = [0, 0, sceneBox[2] / 2];
+            } else if (vmode === "render") {
+                const sheet = buildSheet();
+                if (sheet) {
+                    const buf = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+                    gl.bufferData(gl.ARRAY_BUFFER, sheet.data, gl.STATIC_DRAW);
+                    bufs.push({
+                        buf,
+                        count: sheet.count,
+                        col: COL_PAPER,
+                        alpha: 1
+                    });
+                }
+                sceneBox = [rw, rh, extMM];
+                target = [0, 0, 0];
             } else {
                 add(parts.male.tris, 0, COL_MALE, 1);
                 add(parts.closed, 0, COL_FEMALE, 0.42);
@@ -2268,6 +2297,95 @@
                 target = [0, 0, sceneBox[2] / 2];
             }
             buildGrid(Math.max(sceneBox[0], sceneBox[1]));
+        }
+        /* Rendu : le support embossé. Il épouse le mâle à pleine hauteur, puis descend
+           en pente jusqu'au bord de la femelle : la largeur de cette pente, c'est l'écart. */
+        const COL_PAPER = [0.97, 0.96, 0.93];
+        let rside = "recto";
+        function sampleS(gx, gy) {
+            const {S, GW, GH} = field;
+            gx = clamp(gx, 0, GW - 1.001);
+            gy = clamp(gy, 0, GH - 1.001);
+            const x = Math.floor(gx),
+                y = Math.floor(gy),
+                fx = gx - x,
+                fy = gy - y,
+                i = y * GW + x;
+            return (S[i] * (1 - fx) + S[i + 1] * fx) * (1 - fy) + (S[i + GW] * (1 - fx) + S[i + GW + 1] * fx) * fy;
+        }
+        function buildSheet() {
+            if (!parts || !field)
+                return null;
+            const {R, cx, cy, off} = parts.info;
+            const {P, W, H} = field;
+            const k = logoMM()[0] / W,
+                sx = mirror ? -1 : 1;
+            const rw = R[2] - R[0],
+                rh = R[3] - R[1];
+            // pas de la grille : assez fin pour dessiner la pente, plafonné pour rester fluide
+            let step = Math.max(Math.min(off / 3, 0.25), k * 0.75, 0.04);
+            while ((rw / step) * (rh / step) > 160000)
+                step *= 1.15;
+            const nx = Math.ceil(rw / step) + 1,
+                ny = Math.ceil(rh / step) + 1;
+            const sgn = rside === "verso" ? -1 : 1;
+            const Z = new Float32Array(nx * ny);
+            for (let j = 0; j < ny; j++)
+                for (let i = 0; i < nx; i++) {
+                    const x = R[0] + i * rw / (nx - 1),
+                        y = R[1] + j * rh / (ny - 1);
+                    const sMM = sampleS(sx * x / k + W / 2 + P - 0.5, H / 2 + P - 0.5 - y / k) * k;
+                    let u = off > 1e-3 ? clamp((sMM + off) / off, 0, 1) : sMM >= 0 ? 1 : 0;
+                    u = u * u * (3 - 2 * u);
+                    Z[j * nx + i] = sgn * extMM * u;
+                }
+            // le verso se regarde retourné : on le dessine en miroir, creux vers le haut
+            const X = i => {
+                const x = R[0] + i * rw / (nx - 1) - cx;
+                return rside === "verso" ? -x : x;
+            };
+            const Yc = j => R[1] + j * rh / (ny - 1) - cy;
+            const dx = rw / (nx - 1),
+                dy = rh / (ny - 1);
+            const N = new Float32Array(nx * ny * 3);
+            for (let j = 0; j < ny; j++)
+                for (let i = 0; i < nx; i++) {
+                    const z = (a, b) => Z[clamp(b, 0, ny - 1) * nx + clamp(a, 0, nx - 1)];
+                    let gx = (z(i + 1, j) - z(i - 1, j)) / (2 * dx),
+                        gy = (z(i, j + 1) - z(i, j - 1)) / (2 * dy);
+                    if (rside === "verso")
+                        gx = -gx;
+                    const l = Math.hypot(gx, gy, 1);
+                    N[(j * nx + i) * 3] = -gx / l;
+                    N[(j * nx + i) * 3 + 1] = -gy / l;
+                    N[(j * nx + i) * 3 + 2] = 1 / l;
+                }
+            const data = new Float32Array((nx - 1) * (ny - 1) * 6 * 6);
+            let o = 0;
+            const put = (i, j) => {
+                const v = j * nx + i;
+                data[o++] = X(i);
+                data[o++] = Yc(j);
+                data[o++] = Z[v] + 0.02;
+                data[o++] = N[v * 3];
+                data[o++] = N[v * 3 + 1];
+                data[o++] = N[v * 3 + 2];
+            };
+            const flip = rside === "verso";
+            for (let j = 0; j < ny - 1; j++)
+                for (let i = 0; i < nx - 1; i++) {
+                    if (!flip) {
+                        put(i, j); put(i + 1, j); put(i + 1, j + 1);
+                        put(i, j); put(i + 1, j + 1); put(i, j + 1);
+                    } else {
+                        put(i, j); put(i + 1, j + 1); put(i + 1, j);
+                        put(i, j); put(i, j + 1); put(i + 1, j + 1);
+                    }
+                }
+            return {
+                data,
+                count: o / 6
+            };
         }
         function buildGrid(span) {
             const step = span > 160 ? 20 : span > 60 ? 10 : 5;
@@ -2311,7 +2429,7 @@
             const proj = mPersp(0.75, w / h, Math.max(1, dist * 0.01), dist * 8 + 2000);
             const mvp = mMul(proj, view);
 
-            if (gridCount) {
+            if (gridCount && vmode !== "render") {
                 gl.useProgram(gridProg);
                 gl.uniformMatrix4fv(gl.getUniformLocation(gridProg, "u_mvp"), false, mvp);
                 gl.uniform3f(gl.getUniformLocation(gridProg, "u_col"), dark ? 0.28 : 0.44, dark ? 0.28 : 0.44, dark ? 0.27 : 0.44);
@@ -2684,7 +2802,7 @@
             $("#stDepth").textContent = fmt(depthMM(), 2) + " mm";
             $("#tolInfo").textContent = "écart " + fmt(off, 2) + " mm";
             $("#pinCtl").classList.toggle("hidden", !pins);
-            $("#legend").classList.toggle("hidden", !parts);
+            $("#legend").classList.toggle("hidden", !parts || vmode === "render");
 
             const empty = $("#empty");
             if (fieldState === "full")
@@ -2839,10 +2957,28 @@
             schedule(true);
         }));
         $("#vmode").querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+            const was = vmode;
             vmode = b.dataset.v;
             setSeg("#vmode", vmode);
+            $("#rside").classList.toggle("hidden", vmode !== "render");
+            $("#legend").classList.toggle("hidden", !parts || vmode === "render");
             uploadParts();
             fitView();
+            // rendu : vue plongeante, lumière rasante, comme une feuille posée sur la table
+            if (vmode === "render") {
+                pitch = 1.15;
+                yaw = -0.25;
+                dist = Math.max(30, Math.hypot(sceneBox[0], sceneBox[1]) * 1.05);
+            } else if (was === "render") {
+                pitch = 0.95;
+                yaw = -0.5;
+            }
+            redraw();
+        }));
+        $("#rside").querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+            rside = b.dataset.v;
+            setSeg("#rside", rside);
+            uploadParts();
             redraw();
         }));
         $("#btnTheme").addEventListener("click", () => {
