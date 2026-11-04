@@ -11,10 +11,10 @@
 
   // URL du formulaire Brevo (Formulaires → Partager → code HTML → valeur de action="…").
   // Vide = le bloc « Recevoir le mot de passe » est masqué.
-  var BREVO_FORM_URL = '';
+  var BREVO_FORM_URL = 'https://a9eb6ac0.sibforms.com/serve/MUIFABXKavQp-5DX5iZ5M-n5NUIt40zY0Vd-9EXR2gVBWB6PgVoIE6giRvxXljMsvq3tkrlYK7IW2YSKlFzjRpYhQSw-SD4MIgsiq7rG8Lv_thWSwpE8Sb-eDYO1fJ6u5wL0tfYJQX3rIbBsnnubjzbZIjtWLq6q2aBdzzIau0b8yvs1mm9x2hb2crYO0Ir_zgGqg3vdREDeRagd0Q==';
 
   // Message affiché après l'envoi (à adapter si le double opt-in est désactivé dans Brevo)
-  var MSG_SENT = 'Envoyé. Confirmez votre adresse depuis le mail reçu&nbsp;: le mot de passe suit.';
+  var MSG_SENT = 'Envoyé. Regardez votre boîte mail (et les spams)&nbsp;: le mot de passe arrive.';
   // ────────────────────────────────────────────────────────────
 
   var KEY = 'toolbox_ok';
@@ -196,7 +196,6 @@
         msg.textContent = 'Envoi…';
         var fd = new FormData();
         fd.append('EMAIL', v);
-        fd.append('OPT_IN', '1');
         fd.append('email_address_check', '');
         fd.append('locale', 'fr');
         var url = BREVO_FORM_URL + (BREVO_FORM_URL.indexOf('?') < 0 ? '?' : '&') + 'isAjax=1';
