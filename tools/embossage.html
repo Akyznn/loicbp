@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>Gaufrage — matrices mâle et femelle</title>
+    <title>Embossage — matrices mâle et femelle</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;450;500;600&display=swap" rel="stylesheet">
@@ -652,7 +652,7 @@
     <div class="shell">
         <header class="topbar">
             <div class="wordmark">
-                <h1>Gaufrage</h1>
+                <h1>Embossage</h1>
                 <span>matrices mâle et femelle à partir d'un SVG, avec tolérance</span>
             </div>
             <button class="btn tiny" id="btnTheme" title="Clair / sombre">◐</button>
@@ -1270,7 +1270,7 @@
 
         let img = null,
             srcImg = null,
-            imgName = "gaufrage";
+            imgName = "embossage";
         let downloads = null;
         let srcMode = "alpha",
             invert = false;
@@ -2405,7 +2405,7 @@
         function buildSTL(tris) {
             const buf = new ArrayBuffer(84 + tris.length * 50);
             const dv = new DataView(buf);
-            const tag = "Gaufrage - matrice depuis logo";
+            const tag = "Embossage - matrice depuis logo";
             for (let i = 0; i < tag.length; i++)
                 dv.setUint8(i, tag.charCodeAt(i));
             dv.setUint32(80, tris.length, true);
@@ -2873,7 +2873,7 @@
             const isSvg = /svg/i.test(f.type || "") || /\.svg$/i.test(f.name || "");
             if (!isSvg && !(f.type || "").startsWith("image/"))
                 return;
-            imgName = (f.name || "gaufrage").replace(/\.[^.]+$/, "");
+            imgName = (f.name || "embossage").replace(/\.[^.]+$/, "");
             if (isSvg)
                 f.text().then(t => loadSvgText(t));
             else
