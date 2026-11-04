@@ -2014,9 +2014,28 @@
                 return;
             const male = shapeAt(0);
             const off = offMM();
-            const fem = shapeAt(off);
+            let fem = shapeAt(off);
             if (!male || !fem)
                 return;
+            // une empreinte femelle sans mâle en face (îlot filtré côté mâle) ne sert à rien : on la retire
+            {
+                const mo = male.loops.filter((_, i) => male.depth[i] === 0);
+                const root = i => {
+                    while (fem.parent[i] >= 0)
+                        i = fem.parent[i];
+                    return i;
+                };
+                const keep = fem.loops.map((L, i) => fem.depth[i] === 0 && mo.some(M => inside(M[0], L)));
+                const loops = fem.loops.filter((_, i) => keep[root(i)]);
+                if (!loops.length)
+                    return;
+                const {depth, parent} = nesting(loops);
+                fem = {
+                    loops: loops.map((L, i) => orient(L, depth[i] % 2 === 0 ? 1 : -1)),
+                    depth,
+                    parent
+                };
+            }
 
             // plaque commune, calée sur la femelle élargie
             const [x0, y0, x1, y1] = fem.loops.reduce((b, L) => {
@@ -2118,7 +2137,9 @@
                     marginShort: marginMM < off + 1.5,
                     R,
                     cx,
-                    cy
+                    cy,
+                    maleLoopsMM: male.loops,
+                    femLoopsMM: fem.loops
                 }
             };
         }
@@ -2298,69 +2319,102 @@
             }
             buildGrid(Math.max(sceneBox[0], sceneBox[1]));
         }
-        /* Rendu : le support embossé. Il épouse le mâle à pleine hauteur, puis descend
-           en pente jusqu'au bord de la femelle : la largeur de cette pente, c'est l'écart. */
+        /* Rendu : le support embossé, calculé sur les contours exacts des deux matrices
+           (ceux des STL). Le support épouse le mâle à pleine hauteur, puis descend en pente
+           dans l'espace libre entre le bord du mâle et le bord de l'empreinte femelle. */
         const COL_PAPER = [0.97, 0.96, 0.93];
         let rside = "recto";
-        function sampleS(gx, gy) {
-            const {S, GW, GH} = field;
-            gx = clamp(gx, 0, GW - 1.001);
-            gy = clamp(gy, 0, GH - 1.001);
-            const x = Math.floor(gx),
-                y = Math.floor(gy),
-                fx = gx - x,
-                fy = gy - y,
-                i = y * GW + x;
-            return (S[i] * (1 - fx) + S[i + 1] * fx) * (1 - fy) + (S[i + GW] * (1 - fx) + S[i + GW + 1] * fx) * fy;
+        function rasterLoops(loops, R, step, W, H) {
+            const c = document.createElement("canvas");
+            c.width = W;
+            c.height = H;
+            const cx = c.getContext("2d", {
+                willReadFrequently: true
+            });
+            const path = new Path2D();
+            for (const L of loops) {
+                L.forEach((p, i) => {
+                    const x = (p[0] - R[0]) / step,
+                        y = (R[3] - p[1]) / step;
+                    if (i)
+                        path.lineTo(x, y);
+                    else
+                        path.moveTo(x, y);
+                });
+                path.closePath();
+            }
+            cx.fillStyle = "#000";
+            cx.fill(path, "evenodd");
+            const d = cx.getImageData(0, 0, W, H).data,
+                m = new Float32Array(W * H);
+            // ligne 0 du tableau = bas de la feuille
+            for (let r = 0; r < H; r++)
+                for (let i = 0; i < W; i++)
+                    m[(H - 1 - r) * W + i] = d[(r * W + i) * 4 + 3] / 255;
+            return m;
         }
         function buildSheet() {
-            if (!parts || !field)
+            if (!parts)
                 return null;
-            const {R, cx, cy, off} = parts.info;
-            const {P, W, H} = field;
-            const k = logoMM()[0] / W,
-                sx = mirror ? -1 : 1;
+            const {R, cx, cy, maleLoopsMM, femLoopsMM} = parts.info;
             const rw = R[2] - R[0],
                 rh = R[3] - R[1];
-            // pas de la grille : assez fin pour dessiner la pente, plafonné pour rester fluide
-            let step = Math.max(Math.min(off / 3, 0.25), k * 0.75, 0.04);
-            while ((rw / step) * (rh / step) > 160000)
-                step *= 1.15;
-            const nx = Math.ceil(rw / step) + 1,
-                ny = Math.ceil(rh / step) + 1;
+            let step = Math.max(Math.min(parts.info.off / 4, 0.12), 0.03);
+            while ((rw / step) * (rh / step) > 220000)
+                step *= 1.12;
+            const nx = Math.max(2, Math.round(rw / step)),
+                ny = Math.max(2, Math.round(rh / step));
+            const cm = rasterLoops(maleLoopsMM, R, step, nx, ny),
+                cf = rasterLoops(femLoopsMM, R, step, nx, ny);
+            const n = nx * ny,
+                inM = new Uint8Array(n),
+                outF = new Uint8Array(n);
+            for (let i = 0; i < n; i++) {
+                inM[i] = cm[i] >= 0.5 ? 1 : 0;
+                outF[i] = cf[i] >= 0.5 ? 0 : 1;
+            }
+            const DM = sqDist(inM, nx, ny), // distance au mâle
+                DF = sqDist(outF, nx, ny); // distance au bord de l'empreinte, depuis l'intérieur
             const sgn = rside === "verso" ? -1 : 1;
-            const Z = new Float32Array(nx * ny);
-            for (let j = 0; j < ny; j++)
-                for (let i = 0; i < nx; i++) {
-                    const x = R[0] + i * rw / (nx - 1),
-                        y = R[1] + j * rh / (ny - 1);
-                    const sMM = sampleS(sx * x / k + W / 2 + P - 0.5, H / 2 + P - 0.5 - y / k) * k;
-                    let u = off > 1e-3 ? clamp((sMM + off) / off, 0, 1) : sMM >= 0 ? 1 : 0;
-                    u = u * u * (3 - 2 * u);
-                    Z[j * nx + i] = sgn * extMM * u;
+            const Z = new Float32Array(n);
+            for (let i = 0; i < n; i++) {
+                let u;
+                if (inM[i])
+                    u = 1;
+                else if (outF[i])
+                    u = 0;
+                else {
+                    const dm = Math.max(0, Math.sqrt(DM[i]) - 0.5),
+                        df = Math.max(0, Math.sqrt(DF[i]) - 0.5);
+                    u = dm + df > 0 ? df / (dm + df) : 0.5;
                 }
-            // le verso se regarde retourné : on le dessine en miroir, creux vers le haut
+                u = u * u * (3 - 2 * u);
+                Z[i] = sgn * extMM * u;
+            }
+            // le verso se regarde retourné : dessiné en miroir, creux vers le haut
+            const flip = rside === "verso";
             const X = i => {
-                const x = R[0] + i * rw / (nx - 1) - cx;
-                return rside === "verso" ? -x : x;
+                const x = R[0] + (i + 0.5) * rw / nx - cx;
+                return flip ? -x : x;
             };
-            const Yc = j => R[1] + j * rh / (ny - 1) - cy;
-            const dx = rw / (nx - 1),
-                dy = rh / (ny - 1);
-            const N = new Float32Array(nx * ny * 3);
+            const Yc = j => R[1] + (j + 0.5) * rh / ny - cy;
+            const dx = rw / nx,
+                dy = rh / ny;
+            const N = new Float32Array(n * 3);
+            const z = (a, b) => Z[clamp(b, 0, ny - 1) * nx + clamp(a, 0, nx - 1)];
             for (let j = 0; j < ny; j++)
                 for (let i = 0; i < nx; i++) {
-                    const z = (a, b) => Z[clamp(b, 0, ny - 1) * nx + clamp(a, 0, nx - 1)];
                     let gx = (z(i + 1, j) - z(i - 1, j)) / (2 * dx),
                         gy = (z(i, j + 1) - z(i, j - 1)) / (2 * dy);
-                    if (rside === "verso")
+                    if (flip)
                         gx = -gx;
-                    const l = Math.hypot(gx, gy, 1);
-                    N[(j * nx + i) * 3] = -gx / l;
-                    N[(j * nx + i) * 3 + 1] = -gy / l;
-                    N[(j * nx + i) * 3 + 2] = 1 / l;
+                    const l = Math.hypot(gx, gy, 1),
+                        v = (j * nx + i) * 3;
+                    N[v] = -gx / l;
+                    N[v + 1] = -gy / l;
+                    N[v + 2] = 1 / l;
                 }
-            const data = new Float32Array((nx - 1) * (ny - 1) * 6 * 6);
+            const data = new Float32Array((nx - 1) * (ny - 1) * 36);
             let o = 0;
             const put = (i, j) => {
                 const v = j * nx + i;
@@ -2371,7 +2425,6 @@
                 data[o++] = N[v * 3 + 1];
                 data[o++] = N[v * 3 + 2];
             };
-            const flip = rside === "verso";
             for (let j = 0; j < ny - 1; j++)
                 for (let i = 0; i < nx - 1; i++) {
                     if (!flip) {
