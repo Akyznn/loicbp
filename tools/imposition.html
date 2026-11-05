@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Imposition — PDF en livret</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;450;500;600&display=swap" rel="stylesheet">
+    <style>
+    :root {
+        box-sizing: border-box;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        color-scheme: light dark;
+        --bg: #e9e9e6;
+        --panel: #f7f7f5;
+        --field: #ffffff;
+        --line: #d4d4cf;
+        --line-soft: #e3e3de;
+        --text: #1c1c1a;
+        --dim: #6d6d66;
+        --stage: #8d8d8d;
+        --ink: #1c1c1a;
+        --ink-text: #f7f7f5;
+        --ok: #3f8f4a;
+        --warn: #cf4b46;
+        --info: #b7791f;
+        --shadow: 0 1px 2px rgba(0, 0, 0, .08);
+    }
+    @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+            --bg: #151514; --panel: #1e1e1c; --field: #292927; --line: #35352f; --line-soft: #2a2a27;
+            --text: #ebebe5; --dim: #9a9a92; --stage: #3a3a38; --ink: #ebebe5; --ink-text: #151514;
+            --ok: #57ad63; --warn: #e8615c; --info: #d9a441; --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+        }
+    }
+    :root[data-theme="dark"] {
+        --bg: #151514; --panel: #1e1e1c; --field: #292927; --line: #35352f; --line-soft: #2a2a27;
+        --text: #ebebe5; --dim: #9a9a92; --stage: #3a3a38; --ink: #ebebe5; --ink-text: #151514;
+        --ok: #57ad63; --warn: #e8615c; --info: #d9a441; --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+    }
+
+    *, *::before, *::after { box-sizing: border-box }
+    html, body { height: 100%; margin: 0 }
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.45;
+        font-feature-settings: "tnum" 1;
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+    }
+    button, input, select { font: inherit; color: inherit }
+    :focus-visible { outline: 2px solid var(--ok); outline-offset: 2px }
+
+    .shell { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) }
+
+    .topbar {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 16px 10px 122px;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+        min-height: 54px;
+    }
+    .wordmark { display: flex; align-items: baseline; gap: 9px; margin-right: auto; min-width: 0 }
+    .wordmark h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.025em; white-space: nowrap }
+    .wordmark span { color: var(--dim); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+    @media (max-width: 760px) { .wordmark span { display: none } }
+    @media (max-width: 520px) {
+        .btn .lg { display: none }
+        .wordmark h1 { font-size: 15px }
+        .topbar { gap: 6px; padding-right: 10px }
+        .topbar .btn { padding: 6px 9px }
+    }
+    @media (max-width: 400px) { .wordmark h1 { display: none } }
+    .shell { overflow: hidden }
+
+    .btn {
+        border: 1px solid var(--line); background: var(--field);
+        border-radius: 7px; padding: 7px 12px; cursor: pointer;
+        font-weight: 450; box-shadow: var(--shadow); white-space: nowrap;
+    }
+    .btn:hover { border-color: var(--dim) }
+    .btn:disabled { opacity: .4; cursor: not-allowed; box-shadow: none }
+    .btn.primary { background: var(--ink); color: var(--ink-text); border-color: var(--ink) }
+    .btn.ghost { background: transparent; box-shadow: none }
+    .btn.tiny { padding: 4px 8px; font-size: 12.5px; border-radius: 6px }
+
+    .work { display: grid; grid-template-columns: 340px minmax(0, 1fr); min-height: 0 }
+    @media (max-width: 860px) {
+        .work { grid-template-columns: 100%; grid-template-rows: minmax(260px, 48vh) minmax(0, 1fr) }
+        .panel { order: 2; border-right: 0; border-top: 1px solid var(--line) }
+        .stage { order: 1 }
+    }
+    .panel {
+        background: var(--panel); border-right: 1px solid var(--line);
+        overflow-y: auto; overscroll-behavior: contain; min-height: 0;
+    }
+    .stage { position: relative; min-width: 0; min-height: 0; background: var(--stage); overflow: hidden }
+
+    section.group { border-bottom: 1px solid var(--line-soft); padding: 14px 16px 18px }
+    section.group > h2 {
+        margin: 0 0 12px; font-size: 12.5px; font-weight: 600;
+        display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    section.group > h2 .sub { font-weight: 400; color: var(--dim); font-size: 11.5px }
+
+    .ctl { margin-bottom: 11px }
+    .ctl:last-child { margin-bottom: 0 }
+    .ctl .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 3px }
+    .ctl label, .ctl .lbl { font-size: 12.5px; color: var(--dim) }
+    .ctl .val { display: flex; align-items: center; gap: 3px }
+    .ctl input[type=number] {
+        width: 64px; text-align: right; border: 1px solid var(--line);
+        background: var(--field); border-radius: 5px; padding: 2px 5px; font-size: 12.5px;
+    }
+    .ctl .unit { font-size: 11.5px; color: var(--dim); min-width: 22px }
+    .ctl input[type=range] { width: 100%; margin: 0; height: 18px; accent-color: var(--ink) }
+    .ctl select {
+        width: 100%; border: 1px solid var(--line); background: var(--field);
+        border-radius: 6px; padding: 5px 7px; font-size: 12.5px;
+    }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
+    .row > .ctl { flex: 1; margin-bottom: 0 }
+    .note { font-size: 11.5px; color: var(--dim); margin: 8px 0 0 }
+    .check { display: flex; align-items: center; gap: 7px; font-size: 12.5px; cursor: pointer; margin-bottom: 9px }
+    .check:last-child { margin-bottom: 0 }
+    .check input { accent-color: var(--ink); width: 15px; height: 15px; margin: 0 }
+    .check.off { opacity: .45; cursor: not-allowed }
+
+    .seg { display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: var(--field) }
+    .seg button {
+        border: 0; background: transparent; padding: 6px 10px; cursor: pointer;
+        font-size: 12.5px; flex: 1; border-right: 1px solid var(--line); white-space: nowrap;
+    }
+    .seg button:last-child { border-right: 0 }
+    .seg button[aria-pressed="true"] { background: var(--ink); color: var(--ink-text) }
+
+    .stats { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 12.5px; margin: 0 }
+    .stats dt { color: var(--dim) }
+    .stats dd { margin: 0; text-align: right; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+    .stats dd.big { font-weight: 600 }
+
+    .badge { font-size: 11.5px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line); font-weight: 450 }
+    .badge.ok { color: var(--ok); border-color: var(--ok) }
+    .badge.warn { color: var(--warn); border-color: var(--warn) }
+    .badge.info { color: var(--info); border-color: var(--info) }
+
+    /* Bloc d'état pagination */
+    .status { border: 1px solid var(--line); border-radius: 8px; padding: 10px 11px; background: var(--field); font-size: 12.5px }
+    .status.ok { border-color: var(--ok) }
+    .status.warn { border-color: var(--warn) }
+    .status.info { border-color: var(--info) }
+    .status b { display: block; font-weight: 600; margin-bottom: 2px }
+    .status.ok b { color: var(--ok) } .status.warn b { color: var(--warn) } .status.info b { color: var(--info) }
+    .status p { margin: 0; color: var(--dim) }
+    .status .meter { display: flex; gap: 2px; flex-wrap: wrap; margin-top: 8px }
+    .status .meter i { width: 9px; height: 12px; border-radius: 2px; background: var(--ink); opacity: .85 }
+    .status .meter i.b { background: transparent; border: 1px dashed var(--warn); opacity: 1 }
+    .status .meter i.sep { width: 1px; background: var(--line); margin: 0 2px; opacity: 1 }
+
+    .hidden { display: none !important }
+
+    /* Scène */
+    .dropzone {
+        position: absolute; inset: 0; display: grid; place-items: center;
+        padding: 24px; text-align: center; background: rgba(0, 0, 0, .18); z-index: 5;
+    }
+    .dropzone > div {
+        max-width: 440px; color: #f2f2f0; border: 1.5px dashed rgba(255, 255, 255, .55);
+        border-radius: 12px; padding: 32px 24px; background: rgba(0, 0, 0, .2);
+    }
+    .dropzone h2 { margin: 0 0 6px; font-size: 16px; font-weight: 600; letter-spacing: -.015em }
+    .dropzone p { margin: 0 0 16px; font-size: 13px; color: rgba(255, 255, 255, .78) }
+    .dropzone .btn { background: #fff; color: #1c1c1a; border-color: #fff }
+    .dropzone .btn.ghost { background: transparent; color: #f2f2f0; border-color: rgba(255,255,255,.55) }
+    .stage.drag .dropzone, .stage.drag::after {
+        content: ""; position: absolute; inset: 10px; border: 2px dashed #fff; border-radius: 12px; z-index: 6; pointer-events: none;
+    }
+
+    .viewbar {
+        position: absolute; top: 12px; right: 12px; display: flex; gap: 8px; align-items: center;
+        z-index: 3; flex-wrap: wrap; justify-content: flex-end; max-width: calc(100% - 24px);
+    }
+    .viewbar .seg { box-shadow: var(--shadow) }
+    .viewbar .seg button { padding: 5px 10px }
+    .busy {
+        position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+        background: rgba(0, 0, 0, .5); color: #fff; font-size: 12px; padding: 5px 12px;
+        border-radius: 99px; backdrop-filter: blur(6px); z-index: 4; pointer-events: none;
+    }
+
+    /* Vue feuilles */
+    .sheets {
+        position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain;
+        padding: 60px 24px 40px; display: flex; flex-direction: column; align-items: center; gap: 30px;
+    }
+    .sheet-card { width: 100%; max-width: 1100px }
+    .sheet-card header {
+        display: flex; align-items: baseline; gap: 10px; color: #f2f2f0; font-size: 12.5px; margin-bottom: 8px;
+    }
+    .sheet-card header b { font-weight: 600 }
+    .sheet-card header span { opacity: .72 }
+    .faces { display: grid; grid-template-columns: repeat(var(--faces, 2), minmax(0, 1fr)); gap: 18px }
+    @media (max-width: 1100px) { .faces { grid-template-columns: minmax(0, 1fr) } }
+    .face figcaption { color: rgba(255,255,255,.72); font-size: 11.5px; margin-top: 6px; display: flex; justify-content: space-between }
+    .face figure { margin: 0 }
+    .paper {
+        position: relative; width: 100%; background: #fff;
+        box-shadow: 0 1px 2px rgba(0,0,0,.18), 0 8px 24px rgba(0,0,0,.18);
+    }
+    .paper canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block }
+    .ov { position: absolute; inset: 0; pointer-events: none }
+    .ov .slot { position: absolute; outline: 1px solid rgba(207, 75, 70, .0) }
+    .ov .num {
+        position: absolute; left: 6px; top: 6px; font-size: 11px; font-weight: 600; line-height: 1;
+        background: #1c1c1a; color: #fff; padding: 4px 6px; border-radius: 5px;
+    }
+    .ov .slot.rot .num { left: auto; top: auto; right: 6px; bottom: 6px }
+    .ov .slot.blank { background: repeating-linear-gradient(45deg, rgba(207,75,70,.08) 0 6px, transparent 6px 12px) }
+    .ov .slot.blank .num { background: #cf4b46 }
+    .ov .fold { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed rgba(28,28,26,.55) }
+    .ov .hfold { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed rgba(28,28,26,.55) }
+    .ov .cut { position: absolute; height: 0; border-top: 1.5px dashed #cf4b46 }
+    .paper.nonum .ov { display: none }
+
+    /* Vue lecture */
+    .reader { position: absolute; inset: 0; display: grid; grid-template-rows: minmax(0,1fr) auto; padding: 56px 16px 14px }
+    .book-wrap { display: grid; place-items: center; min-height: 0; perspective: 2400px }
+    .book { position: relative; display: grid; grid-template-columns: 1fr 1fr }
+    .half { position: relative; width: 100%; height: 100%; }
+    .half canvas, .leaf canvas { width: 100%; height: 100%; display: block }
+    .half.filled { background: #fff; box-shadow: 0 8px 28px rgba(0,0,0,.22) }
+    .half.l.filled { box-shadow: -6px 8px 28px rgba(0,0,0,.22) }
+    .half.r.filled { box-shadow: 6px 8px 28px rgba(0,0,0,.22) }
+    .half.l.filled::after, .half.r.filled::after {
+        content: ""; position: absolute; top: 0; bottom: 0; width: 14%; pointer-events: none;
+    }
+    .half.l.filled::after { right: 0; background: linear-gradient(to left, rgba(0,0,0,.14), transparent) }
+    .half.r.filled::after { left: 0; background: linear-gradient(to right, rgba(0,0,0,.14), transparent) }
+    .half .blank-mark {
+        position: absolute; inset: 0; display: grid; place-items: center; color: #b5b5ae; font-size: 12px;
+    }
+    .leaf {
+        position: absolute; top: 0; height: 100%; width: 50%; transform-style: preserve-3d; z-index: 3;
+        transition: transform .62s cubic-bezier(.45,.05,.25,1);
+    }
+    .leaf.next { left: 50%; transform-origin: left center }
+    .leaf.prev { left: 0; transform-origin: right center }
+    .leaf .f, .leaf .b { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; background: #fff }
+    .leaf .b { transform: rotateY(180deg) }
+    .pg-label { position: absolute; bottom: -22px; font-size: 11.5px; color: rgba(255,255,255,.75) }
+    .half.l .pg-label { left: 0 } .half.r .pg-label { right: 0 }
+    .readbar { display: flex; align-items: center; gap: 10px; justify-content: center; padding-top: 30px; color: #f2f2f0; font-size: 12.5px }
+    .readbar input[type=range] { flex: 1; min-width: 60px; max-width: 360px; accent-color: #f2f2f0 }
+    .readbar .btn { min-width: 38px; color: var(--text) }
+    .readbar .pos { min-width: 64px; text-align: center; white-space: nowrap }
+
+    .toast {
+        position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 20px); opacity: 0;
+        background: #1c1c1a; color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 12.5px;
+        transition: .25s; pointer-events: none; z-index: 50; max-width: 90vw; text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0) }
+
+    /* Schéma de mode */
+    .modepic { display: flex; gap: 6px; align-items: flex-end; margin-top: 10px; color: var(--dim); font-size: 11px }
+    .modepic svg { width: 100%; height: auto; display: block }
+    </style>
+</head>
+<body>
+<script src="../analytics.js"></script>
+<script src="../gate.js"></script>
+<div class="shell">
+    <header class="topbar">
+        <div class="wordmark">
+            <h1>Imposition</h1>
+            <span>PDF page à page → livret prêt à imprimer</span>
+        </div>
+        <button class="btn tiny" id="btnTheme" title="Clair / sombre">◐</button>
+        <button class="btn" id="btnOpen">Ouvrir<span class="lg"> un PDF</span></button>
+        <button class="btn primary" id="btnDl" disabled>Télécharger<span class="lg"> le PDF</span></button>
+        <input type="file" id="file" accept="application/pdf,.pdf" hidden>
+    </header>
+
+    <div class="work">
+        <aside class="panel">
+            <section class="group">
+                <h2>Document <span class="sub" id="fileName">aucun fichier</span></h2>
+                <dl class="stats" id="docStats">
+                    <dt>Pages</dt><dd>—</dd>
+                    <dt>Format fini</dt><dd>—</dd>
+                    <dt>Fond perdu</dt><dd>—</dd>
+                </dl>
+                <p class="note hidden" id="docNote"></p>
+            </section>
+
+            <section class="group">
+                <h2>Mode d'imposition</h2>
+                <div class="seg" id="segMode">
+                    <button data-v="saddle" aria-pressed="true">Livret</button>
+                    <button data-v="sig" aria-pressed="false">Cahiers</button>
+                    <button data-v="zine" aria-pressed="false">Zine 8 p.</button>
+                </div>
+                <p class="note" id="modeNote"></p>
+                <div class="ctl hidden" id="ctlSig" style="margin-top:12px">
+                    <div class="head">
+                        <label for="sigSheets">Feuilles par cahier</label>
+                        <span class="val"><input type="number" id="sigSheetsN" min="1" max="16" step="1" value="4"><span class="unit" id="sigPagesLbl">16 p.</span></span>
+                    </div>
+                    <input type="range" id="sigSheets" min="1" max="16" step="1" value="4">
+                </div>
+            </section>
+
+            <section class="group">
+                <h2>Pagination <span class="badge" id="pagBadge">—</span></h2>
+                <div class="status" id="pagStatus"><b>En attente d'un PDF</b><p>Le nombre de pages sera vérifié ici.</p></div>
+                <div class="ctl" style="margin-top:12px" id="ctlBlanks">
+                    <div class="head"><label for="blanks">Pages blanches ajoutées</label></div>
+                    <select id="blanks">
+                        <option value="beforeBack">Avant la 4ᵉ de couverture</option>
+                        <option value="end">À la fin du document</option>
+                        <option value="afterCover">Après la couverture</option>
+                    </select>
+                </div>
+            </section>
+
+            <section class="group">
+                <h2>Feuille d'impression <span class="sub" id="sheetSub"></span></h2>
+                <div class="ctl">
+                    <select id="sheet">
+                        <option value="auto">Auto — 2 × format fini</option>
+                        <option value="A4">A4 — 210 × 297</option>
+                        <option value="A3">A3 — 297 × 420</option>
+                        <option value="SRA3">SRA3 — 320 × 450</option>
+                        <option value="A5">A5 — 148 × 210</option>
+                        <option value="Letter">US Letter — 216 × 279</option>
+                        <option value="Tabloid">Tabloid — 279 × 432</option>
+                        <option value="custom">Personnalisé…</option>
+                    </select>
+                </div>
+                <div class="row hidden" id="customRow" style="margin-bottom:11px">
+                    <div class="ctl"><div class="head"><label for="cw">Largeur</label><span class="val"><input type="number" id="cw" min="20" max="2000" value="297"><span class="unit">mm</span></span></div></div>
+                    <div class="ctl"><div class="head"><label for="ch">Hauteur</label><span class="val"><input type="number" id="ch" min="20" max="2000" value="420"><span class="unit">mm</span></span></div></div>
+                </div>
+                <div class="ctl" id="ctlScale">
+                    <div class="head"><span class="lbl">Échelle</span><span class="sub note" style="margin:0" id="scaleLbl"></span></div>
+                    <div class="seg" id="segScale">
+                        <button data-v="actual" aria-pressed="true">100 %</button>
+                        <button data-v="fit" aria-pressed="false">Ajuster à la feuille</button>
+                    </div>
+                </div>
+                <div class="ctl" id="ctlFlip">
+                    <div class="head"><span class="lbl">Recto-verso, retourner sur</span></div>
+                    <div class="seg" id="segFlip">
+                        <button data-v="short" aria-pressed="true">Bord court</button>
+                        <button data-v="long" aria-pressed="false">Bord long</button>
+                    </div>
+                    <p class="note" id="flipNote">Réglage habituel des imprimantes pour un livret : le verso est posé tel quel.</p>
+                </div>
+            </section>
+
+            <section class="group">
+                <h2>Finition</h2>
+                <label class="check" id="chkBleedWrap"><input type="checkbox" id="chkBleed"> Conserver le fond perdu</label>
+                <label class="check"><input type="checkbox" id="chkMarks"> Traits de coupe et repères de pli</label>
+                <div class="ctl" id="ctlCreep" style="margin-top:12px">
+                    <div class="head">
+                        <label for="creep">Chasse (feuille centrale)</label>
+                        <span class="val"><input type="number" id="creepN" min="0" max="5" step="0.05" value="0"><span class="unit">mm</span></span>
+                    </div>
+                    <input type="range" id="creep" min="0" max="3" step="0.05" value="0">
+                    <p class="note">Rapproche le contenu des pages intérieures vers le pli pour compenser l'épaisseur du papier. 0 pour un livret fin.</p>
+                </div>
+            </section>
+
+            <section class="group">
+                <h2>Récapitulatif</h2>
+                <dl class="stats" id="sumStats">
+                    <dt>Feuilles</dt><dd class="big">—</dd>
+                    <dt>Faces à imprimer</dt><dd>—</dd>
+                    <dt>Format feuille</dt><dd>—</dd>
+                    <dt>Échelle</dt><dd>—</dd>
+                </dl>
+            </section>
+        </aside>
+
+        <main class="stage" id="stage">
+            <div class="viewbar hidden" id="viewbar">
+                <div class="seg" id="segView">
+                    <button data-v="sheets" aria-pressed="true">Feuilles</button>
+                    <button data-v="read" aria-pressed="false">Lecture</button>
+                </div>
+                <div class="seg" id="segNum">
+                    <button data-v="on" aria-pressed="true" title="Afficher numéros et repères">N°</button>
+                    <button data-v="off" aria-pressed="false" title="Masquer numéros et repères">Brut</button>
+                </div>
+            </div>
+            <div class="busy hidden" id="busy">Imposition…</div>
+
+            <div class="sheets hidden" id="sheetsView"></div>
+
+            <div class="reader hidden" id="readView">
+                <div class="book-wrap" id="bookWrap">
+                    <div class="book" id="book">
+                        <div class="half l" id="halfL"></div>
+                        <div class="half r" id="halfR"></div>
+                    </div>
+                </div>
+                <div class="readbar">
+                    <button class="btn tiny" id="rdPrev" aria-label="Page précédente">‹</button>
+                    <input type="range" id="rdRange" min="0" max="0" value="0" aria-label="Double page">
+                    <span class="pos" id="rdPos">—</span>
+                    <button class="btn tiny" id="rdNext" aria-label="Page suivante">›</button>
+                </div>
+            </div>
+
+            <div class="dropzone" id="dropzone">
+                <div>
+                    <h2>Dépose un PDF ici</h2>
+                    <p>Pages dans l'ordre de lecture 1, 2, 3, 4… — l'outil les réorganise sur les feuilles pour l'impression en livret. Tout reste dans ton navigateur.</p>
+                    <div class="row" style="justify-content:center">
+                        <button class="btn" id="btnOpen2">Choisir un PDF</button>
+                        <button class="btn ghost" id="btnDemo">PDF d'exemple</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script>
+(() => {
+"use strict";
+
+const PDFJS_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.min.mjs";
+const PDFJS_WORKER = "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs";
+
+const $ = s => document.querySelector(s);
+const MM = 72 / 25.4;
+const mm = v => v * MM;
+const toMM = v => v / MM;
+const fmtMM = v => (Math.round(toMM(v) * 10) / 10).toLocaleString("fr-FR");
+const SHEETS = { A4: [210, 297], A3: [297, 420], SRA3: [320, 450], A5: [148, 210], Letter: [215.9, 279.4], Tabloid: [279.4, 431.8] };
+
+const opts = {
+    mode: "saddle", sigSheets: 4, blanks: "beforeBack", sheet: "auto", cw: 297, ch: 420,
+    scale: "actual", flip: "short", bleed: false, marks: false, creep: 0,
+};
+
+const st = {
+    name: "", bytes: null, lib: null, js: null, pages: [], refW: 0, refH: 0, bleed: 0,
+    plan: null, out: null, outJs: null, layout: null, token: 0, view: "sheets", nums: true,
+    read: { spreads: [], i: 0, busy: false }, imgCache: new Map(),
+};
+
+/* ---------- pdf.js (chargé à la demande, worker via blob pour le cross-origin) ---------- */
+let pdfjsP = null, pdfWorker = null;
+function pdfjs() {
+    if (!pdfjsP) pdfjsP = import(PDFJS_URL).then(lib => {
+        lib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+        try {
+            const blob = new Blob([`import "${PDFJS_WORKER}";`], { type: "text/javascript" });
+            const port = new Worker(URL.createObjectURL(blob), { type: "module" });
+            pdfWorker = new lib.PDFWorker({ port });
+        } catch (e) { pdfWorker = null }
+        return lib;
+    });
+    return pdfjsP;
+}
+
+async function openDoc(lib, bytes) {
+    const task = lib.getDocument(pdfWorker ? { data: bytes.slice(0), worker: pdfWorker } : { data: bytes.slice(0) });
+    const doc = await task.promise;
+    doc.__task = task;
+    return doc;
+}
+function killDoc(doc) { try { (doc.__task || doc).destroy() } catch (e) {} }
+function vpRect(vp, [x1, y1, x2, y2]) {
+    const [a, b, c, d, e, f] = vp.transform;
+    const T = (x, y) => [a * x + c * y + e, b * x + d * y + f];
+    const p = T(x1, y1), q = T(x2, y2);
+    return [p[0], p[1], q[0], q[1]];
+}
+
+/* ---------- UI utilitaires ---------- */
+let toastT;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 3200) }
+function seg(id, key, cb) {
+    const el = $(id);
+    el.addEventListener("click", e => {
+        const b = e.target.closest("button"); if (!b) return;
+        el.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+        if (key) opts[key] = b.dataset.v;
+        cb && cb(b.dataset.v);
+    });
+}
+function setSeg(id, v) { $(id).querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.dataset.v === v ? "true" : "false")) }
+function linkRange(r, n, key, after) {
+    const R = $(r), N = $(n);
+    R.addEventListener("input", () => { N.value = R.value; opts[key] = +R.value; after && after(); schedule() });
+    N.addEventListener("change", () => {
+        let v = +N.value; if (!isFinite(v)) v = +R.min;
+        v = Math.max(+N.min, Math.min(+N.max, v)); N.value = v; R.value = v; opts[key] = v; after && after(); schedule();
+    });
+}
+function busy(on) { $("#busy").classList.toggle("hidden", !on) }
+
+/* ---------- Chargement ---------- */
+async function loadBytes(bytes, name) {
+    const { PDFDocument } = PDFLib;
+    busy(true);
+    let lib;
+    try {
+        lib = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+    } catch (e) {
+        busy(false); toast("Impossible de lire ce PDF (" + (e.message || e) + ")"); return;
+    }
+    if (lib.isEncrypted) toast("PDF protégé : le résultat peut être incomplet.");
+    st.name = name; st.bytes = bytes; st.lib = lib; st.imgCache.clear();
+    if (st.js) { killDoc(st.js); st.js = null }
+    st.pages = lib.getPages().map(p => {
+        const media = p.getMediaBox(), trim = p.getTrimBox(), bleedB = p.getBleedBox();
+        const rot = ((p.getRotation().angle % 360) + 360) % 360;
+        const sw = rot % 180 ? trim.height : trim.width, sh = rot % 180 ? trim.width : trim.height;
+        const avail = Math.max(0, Math.min(trim.x - bleedB.x, trim.y - bleedB.y,
+            bleedB.x + bleedB.width - trim.x - trim.width, bleedB.y + bleedB.height - trim.y - trim.height));
+        return { trim, media, bleedB, rot, w: sw, h: sh, avail };
+    });
+    const p0 = st.pages[0];
+    st.refW = p0.w; st.refH = p0.h;
+    st.bleed = Math.min(...st.pages.map(p => p.avail));
+    if (st.bleed < mm(0.5)) st.bleed = 0;
+    st.bleed = Math.min(st.bleed, mm(10));
+
+    $("#fileName").textContent = name;
+    const mixed = st.pages.some(p => Math.abs(p.w - p0.w) > 1 || Math.abs(p.h - p0.h) > 1);
+    const dl = $("#docStats").children;
+    dl[1].textContent = st.pages.length;
+    dl[3].textContent = `${fmtMM(p0.w)} × ${fmtMM(p0.h)} mm` + (mixed ? " *" : "");
+    dl[5].innerHTML = st.bleed ? `${fmtMM(st.bleed)} mm <span class="badge ok">détecté</span>` : "aucun";
+    const note = $("#docNote");
+    note.classList.toggle("hidden", !mixed);
+    note.textContent = mixed ? "* Formats de pages différents : chaque page est ajustée au format de la page 1." : "";
+    opts.bleed = !!st.bleed && opts.bleed;
+    $("#chkBleed").checked = opts.bleed;
+    $("#chkBleed").disabled = !st.bleed;
+    $("#chkBleedWrap").classList.toggle("off", !st.bleed);
+    $("#chkBleedWrap").title = st.bleed ? "" : "Aucun fond perdu dans ce PDF (BleedBox absente)";
+
+    $("#dropzone").classList.add("hidden");
+    $("#viewbar").classList.remove("hidden");
+    showView(st.view);
+    pdfjs().then(lib => openDoc(lib, bytes)).then(doc => {
+        st.js = doc; if (st.view === "read") renderRead(true);
+    }).catch(e => console.warn(e));
+    await run();
+}
+
+async function openFile(f) {
+    if (!f) return;
+    if (!/pdf$/i.test(f.type) && !/\.pdf$/i.test(f.name)) { toast("Choisis un fichier PDF."); return }
+    const buf = new Uint8Array(await f.arrayBuffer());
+    loadBytes(buf, f.name);
+}
+
+/* ---------- Plan d'imposition ---------- */
+function sequence(n, total, pos) {
+    const src = Array.from({ length: Math.min(n, total) }, (_, i) => i);
+    const blanks = Array(Math.max(0, total - src.length)).fill(-1);
+    if (!blanks.length) return src;
+    if (pos === "end" || src.length < 2) return src.concat(blanks);
+    if (pos === "afterCover") return [src[0], ...blanks, ...src.slice(1)];
+    return [...src.slice(0, -1), ...blanks, src[src.length - 1]];
+}
+
+function plan() {
+    const n = st.pages.length;
+    const o = opts;
+    if (o.mode === "zine") {
+        const seq = sequence(n, 8, o.blanks);
+        // 2 rangées × 4 colonnes. Haut (pivoté 180°) : 2 3 4 5 — bas : 1 8 7 6
+        const top = [2, 3, 4, 5], bot = [1, 8, 7, 6];
+        const slots = [];
+        top.forEach((p, c) => slots.push({ col: c, row: 0, p: seq[p - 1], n: p, rot: true, dx: 0 }));
+        bot.forEach((p, c) => slots.push({ col: c, row: 1, p: seq[p - 1], n: p, rot: false, dx: 0 }));
+        return { cols: 4, rows: 2, seq, total: 8, n, sheets: [{ label: "Feuille unique", sides: [{ name: "Recto seul", slots }] }], blanks: seq.filter(x => x < 0).length, dropped: Math.max(0, n - 8) };
+    }
+    const total = Math.max(4, Math.ceil(n / 4) * 4);
+    const seq = sequence(n, total, o.blanks);
+    let blocks = [];
+    if (o.mode === "sig") {
+        const per = o.sigSheets * 4;
+        for (let i = 0; i < total; i += per) blocks.push(seq.slice(i, i + per));
+    } else blocks = [seq];
+    const sheets = [];
+    const creep = mm(o.creep);
+    blocks.forEach((P, bi) => {
+        const L = P.length, S = L / 4;
+        const nOf = idx => (bi === 0 ? 0 : blocks.slice(0, bi).reduce((a, b) => a + b.length, 0)) + idx + 1;
+        for (let i = 0; i < S; i++) {
+            const c = S > 1 ? creep * i / (S - 1) : 0;
+            const mk = (idx, col, rot) => ({ col, row: 0, p: P[idx], n: nOf(idx), rot, dx: col === 0 ? c : -c });
+            const front = [mk(L - 1 - 2 * i, 0, false), mk(2 * i, 1, false)];
+            const back = o.flip === "long"
+                ? [mk(L - 2 - 2 * i, 0, true), mk(2 * i + 1, 1, true)]
+                : [mk(2 * i + 1, 0, false), mk(L - 2 - 2 * i, 1, false)];
+            sheets.push({
+                label: o.mode === "sig" ? `Cahier ${bi + 1} · feuille ${i + 1}/${S}` : `Feuille ${i + 1}/${S}`,
+                sides: [{ name: "Recto", slots: front }, { name: "Verso", slots: back }],
+                block: bi, inBlock: i, creep: c,
+            });
+        }
+    });
+    return { cols: 2, rows: 1, seq, total, n, sheets, blocks: blocks.map(b => b.length), blanks: total - n, dropped: 0 };
+}
+
+/* ---------- Géométrie ---------- */
+function geometry(P) {
+    const o = opts;
+    const gw = P.cols * st.refW, gh = P.rows * st.refH;
+    const b = o.bleed ? st.bleed : 0;
+    const markRoom = o.marks ? b + mm(2) + mm(5) + mm(2) : b;
+    const needW = gw + 2 * markRoom, needH = gh + 2 * markRoom + (o.marks ? mm(4) : 0);
+    let SW, SH, label;
+    if (o.sheet === "auto") {
+        SW = needW; SH = needH;
+        label = o.marks || b ? "Auto + marges" : "Auto";
+    } else {
+        let [a, c] = o.sheet === "custom" ? [o.cw, o.ch] : SHEETS[o.sheet];
+        a = mm(a); c = mm(c);
+        const land = needW > needH;
+        SW = land ? Math.max(a, c) : Math.min(a, c);
+        SH = land ? Math.min(a, c) : Math.max(a, c);
+        label = o.sheet === "custom" ? "Personnalisé" : o.sheet;
+    }
+    let k = 1;
+    if (o.sheet !== "auto" && o.scale === "fit") k = Math.min(SW / needW, SH / needH);
+    const overflow = k * needW > SW + 0.5 || k * needH > SH + 0.5;
+    const ox = (SW - gw * k) / 2, oy = (SH - gh * k) / 2 + (o.marks ? mm(2) * k : 0);
+    return { SW, SH, k, ox, oy, gw, gh, b, label, overflow, needW, needH };
+}
+
+/* ---------- Génération du PDF imposé ---------- */
+const RC = { 0: [1, 0], 90: [0, 1], 180: [-1, 0], 270: [0, -1] };
+function placeOps(pg, T, extraRot, b) {
+    // pg: infos source ; T: rectangle cible du format fini (coordonnées feuille)
+    const theta = (((extraRot - pg.rot) % 360) + 360) % 360;
+    const [cs, sn] = RC[theta];
+    const tox = pg.trim.x - pg.box.x, toy = pg.trim.y - pg.box.y, tw = pg.trim.width, th = pg.trim.height;
+    const rw0 = theta % 180 ? th : tw, rh0 = theta % 180 ? tw : th;
+    const k = Math.min(T.w / rw0, T.h / rh0);
+    const pts = [[tox, toy], [tox + tw, toy], [tox, toy + th], [tox + tw, toy + th]].map(([u, v]) =>
+        [k * (u * cs - v * sn), k * (u * sn + v * cs)]);
+    const mx = Math.min(...pts.map(p => p[0])), my = Math.min(...pts.map(p => p[1]));
+    const tx = T.x + (T.w - rw0 * k) / 2, ty = T.y + (T.h - rh0 * k) / 2;
+    return { x: tx - mx, y: ty - my, xScale: k, yScale: k, rotate: PDFLib.degrees(theta) };
+}
+
+function latin(s) { return String(s).replace(/[^\x20-\x7E -ÿ]/g, "?") }
+
+async function buildPdf(P, G) {
+    const { PDFDocument, cmyk, StandardFonts, pushGraphicsState, popGraphicsState, rectangle, clip, endPath } = PDFLib;
+    const out = await PDFDocument.create();
+    out.setTitle(st.name.replace(/\.pdf$/i, "") + " — imposé");
+    out.setCreator("loicbp.fr — Imposition");
+    const used = [...new Set(P.sheets.flatMap(s => s.sides.flatMap(sd => sd.slots.map(x => x.p))).filter(x => x >= 0))].sort((a, b) => a - b);
+    const srcPages = st.lib.getPages();
+    const b = G.b;
+    const boxes = used.map(i => {
+        const pg = st.pages[i];
+        const t = pg.trim, m = pg.media;
+        let x1 = t.x - b, y1 = t.y - b, x2 = t.x + t.width + b, y2 = t.y + t.height + b;
+        x1 = Math.max(x1, m.x); y1 = Math.max(y1, m.y); x2 = Math.min(x2, m.x + m.width); y2 = Math.min(y2, m.y + m.height);
+        pg.box = { x: x1, y: y1 };
+        return { left: x1, bottom: y1, right: x2, top: y2 };
+    });
+    const emb = await out.embedPages(used.map(i => srcPages[i]), boxes);
+    const E = new Map(used.map((i, j) => [i, emb[j]]));
+    const font = G.marks ? await out.embedFont(StandardFonts.Helvetica) : null;
+    const reg = cmyk(1, 1, 1, 1);
+    const k = G.k, cw = st.refW * k, ch = st.refH * k, bk = b * k;
+    const layout = [];
+
+    P.sheets.forEach((sheet, si) => {
+        const sidesOut = [];
+        sheet.sides.forEach(side => {
+            const page = out.addPage([G.SW, G.SH]);
+            const slotsOut = [];
+            side.slots.forEach(s => {
+                const x = G.ox + s.col * cw, y = G.oy + (P.rows - 1 - s.row) * ch;
+                slotsOut.push({ x, y, w: cw, h: ch, p: s.p, n: s.n, rot: s.rot });
+                if (s.p < 0) return;
+                const cx1 = x - (s.col === 0 ? bk : 0), cx2 = x + cw + (s.col === P.cols - 1 ? bk : 0);
+                const cy1 = y - (s.row === P.rows - 1 ? bk : 0), cy2 = y + ch + (s.row === 0 ? bk : 0);
+                const T = { x: x + s.dx * k, y, w: cw, h: ch };
+                page.pushOperators(pushGraphicsState(), rectangle(cx1, cy1, cx2 - cx1, cy2 - cy1), clip(), endPath());
+                page.drawPage(E.get(s.p), placeOps(st.pages[s.p], T, s.rot ? 180 : 0, b));
+                page.pushOperators(popGraphicsState());
+            });
+            if (G.marks) drawMarks(page, P, G, reg, font, `${sheet.label} · ${side.name}`, si);
+            sidesOut.push({ name: side.name, slots: slotsOut });
+        });
+        layout.push({ label: sheet.label, sides: sidesOut, creep: sheet.creep || 0 });
+    });
+    return { bytes: await out.save(), layout };
+}
+
+function drawMarks(page, P, G, color, font, label) {
+    const k = G.k, x1 = G.ox, y1 = G.oy, x2 = G.ox + G.gw * k, y2 = G.oy + G.gh * k;
+    const off = (G.b + mm(2)) * k, len = mm(5) * k, t = 0.3;
+    const L = (a, bb, c, d, dash) => page.drawLine({ start: { x: a, y: bb }, end: { x: c, y: d }, thickness: t, color, dashArray: dash });
+    // traits de coupe
+    [[x1, y1, -1, -1], [x2, y1, 1, -1], [x1, y2, -1, 1], [x2, y2, 1, 1]].forEach(([x, y, sx, sy]) => {
+        L(x + sx * off, y, x + sx * (off + len), y);
+        L(x, y + sy * off, x, y + sy * (off + len));
+    });
+    // repères de pli (tirets)
+    const cw = st.refW * k, ch = st.refH * k;
+    for (let c = 1; c < P.cols; c++) {
+        const x = x1 + c * cw;
+        L(x, y2 + off, x, y2 + off + len, [1.5, 1.5]);
+        L(x, y1 - off, x, y1 - off - len, [1.5, 1.5]);
+    }
+    for (let r = 1; r < P.rows; r++) {
+        const y = y1 + r * ch;
+        L(x1 - off, y, x1 - off - len, y, [1.5, 1.5]);
+        L(x2 + off, y, x2 + off + len, y, [1.5, 1.5]);
+    }
+    if (P.cols === 4 && P.rows === 2) {
+        // fente centrale du zine : repère de coupe rouge
+        const y = y1 + ch, a = x1 + cw, c2 = x1 + 3 * cw;
+        L(a, y - 0, c2, y, [4, 2.5]);
+    }
+    if (font) {
+        try {
+            const size = Math.max(4.5, 6 * k);
+            const txt = latin(`${st.name} - ${label}`);
+            const ty = Math.max(mm(1.5), y1 - off - len - size - mm(1));
+            if (ty > 0) page.drawText(txt, { x: x1, y: ty, size, font, color });
+        } catch (e) {}
+    }
+}
+
+/* ---------- Exécution ---------- */
+let schedT;
+function schedule() { clearTimeout(schedT); schedT = setTimeout(run, 220) }
+
+async function run() {
+    if (!st.lib) { updateStatusEmpty(); return }
+    const token = ++st.token;
+    busy(true);
+    const P = plan(), G = geometry(P);
+    G.marks = opts.marks;
+    st.plan = P; st.geo = G;
+    updateStatus(P, G);
+    let res;
+    try { res = await buildPdf(P, G) } catch (e) { console.error(e); busy(false); toast("Erreur d'imposition : " + (e.message || e)); return }
+    if (token !== st.token) return;
+    st.out = res.bytes; st.layout = res.layout;
+    $("#btnDl").disabled = false;
+    const lib = await pdfjs().catch(() => null);
+    if (token !== st.token) return;
+    if (st.outJs) { killDoc(st.outJs); st.outJs = null }
+    if (lib) {
+        try { st.outJs = await openDoc(lib, res.bytes) } catch (e) { console.warn(e) }
+    } else toast("Aperçu indisponible (pdf.js n'a pas pu se charger) — le PDF reste téléchargeable.");
+    if (token !== st.token) return;
+    busy(false);
+    renderSheets();
+    buildSpreads();
+    if (st.view === "read") renderRead(true);
+}
+
+/* ---------- Panneau : état ---------- */
+const MODE_NOTES = {
+    saddle: "Piqûre à cheval : toutes les feuilles s'emboîtent, pliées au centre puis agrafées. Multiple de 4 pages.",
+    sig: "Cahiers pour dos carré cousu ou collé : le document est découpé en cahiers emboîtés, empilés ensuite dans l'ordre.",
+    zine: "Une seule feuille, impression recto seul : 8 pages, un pli en accordéon et une fente au centre.",
+};
+function updateModeUI() {
+    const z = opts.mode === "zine";
+    $("#modeNote").textContent = MODE_NOTES[opts.mode];
+    $("#ctlSig").classList.toggle("hidden", opts.mode !== "sig");
+    $("#ctlFlip").classList.toggle("hidden", z);
+    $("#ctlCreep").classList.toggle("hidden", z);
+    $("#sigPagesLbl").textContent = opts.sigSheets * 4 + " p.";
+    const o = $("#sheet").options[0];
+    o.textContent = z ? "Auto — 4 × 2 formats finis" : "Auto — 2 × format fini";
+}
+
+function updateStatusEmpty() {
+    $("#pagBadge").className = "badge"; $("#pagBadge").textContent = "—";
+}
+
+function meterHTML(P) {
+    const seq = P.seq; let h = "";
+    const cut = new Set();
+    if (P.blocks) { let a = 0; P.blocks.slice(0, -1).forEach(b => { a += b; cut.add(a) }) }
+    if (seq.length > 160) return "";
+    seq.forEach((p, i) => { if (cut.has(i)) h += '<i class="sep"></i>'; h += p < 0 ? '<i class="b" title="page blanche"></i>' : `<i title="page ${p + 1}"></i>` });
+    return `<div class="meter">${h}</div>`;
+}
+
+function updateStatus(P, G) {
+    const n = P.n, el = $("#pagStatus"), bd = $("#pagBadge");
+    let cls, title, txt;
+    if (opts.mode === "zine") {
+        if (P.dropped) { cls = "warn"; title = `${n} pages — trop pour un zine`; txt = `Seules les 8 premières pages sont imposées, ${P.dropped} page${P.dropped > 1 ? "s sont ignorées" : " est ignorée"}.` }
+        else if (P.blanks) { cls = "warn"; title = `Il manque ${P.blanks} page${P.blanks > 1 ? "s" : ""}`; txt = `Le zine compte 8 pages : ${P.blanks} page${P.blanks > 1 ? "s blanches ajoutées" : " blanche ajoutée"}.` }
+        else { cls = "ok"; title = "8 pages — compte parfait"; txt = "Le zine est complet." }
+    } else if (n < 4) {
+        cls = "warn"; title = `${n} page${n > 1 ? "s" : ""} — nombre insuffisant`; txt = `Un livret demande au moins 4 pages : ${P.blanks} blanche${P.blanks > 1 ? "s" : ""} ajoutée${P.blanks > 1 ? "s" : ""}.`;
+    } else if (P.blanks) {
+        cls = "warn"; title = `${n} pages : il manque ${P.blanks} page${P.blanks > 1 ? "s" : ""}`;
+        const rm = n % 4;
+        txt = `Il faut un multiple de 4. ${P.blanks} page${P.blanks > 1 ? "s blanches sont ajoutées" : " blanche est ajoutée"} pour arriver à ${P.total}` + (rm && n > 4 ? ` — ou retire ${rm} page${rm > 1 ? "s" : ""} pour tomber à ${n - rm}.` : ".");
+    } else { cls = "ok"; title = `${n} pages — compte parfait`; txt = `Multiple de 4 : aucune page blanche ajoutée.` }
+    if (opts.mode === "sig" && P.blocks) {
+        const last = P.blocks[P.blocks.length - 1], per = opts.sigSheets * 4;
+        txt += ` ${P.blocks.length} cahier${P.blocks.length > 1 ? "s" : ""}` + (P.blocks.length > 1 && last !== per ? `, le dernier en ${last / 4} feuille${last > 4 ? "s" : ""} (${last} p.).` : ".");
+        if (P.blocks.length > 1 && last !== per && cls === "ok") cls = "info";
+    }
+    el.className = "status " + cls;
+    el.innerHTML = `<b>${title}</b><p>${txt}</p>${meterHTML(P)}`;
+    bd.className = "badge " + cls;
+    bd.textContent = cls === "warn" ? (P.dropped ? `−${P.dropped} p.` : `+${P.blanks} blanche${P.blanks > 1 ? "s" : ""}`) : cls === "info" ? "cahier court" : "OK";
+    $("#ctlBlanks").classList.toggle("hidden", !P.blanks);
+
+    const sides = P.sheets.reduce((a, s) => a + s.sides.length, 0);
+    const d = $("#sumStats").children;
+    d[1].textContent = P.sheets.length;
+    d[3].textContent = sides + (opts.mode === "zine" ? " (recto seul)" : " (recto-verso)");
+    d[5].textContent = `${G.label} · ${fmtMM(G.SW)} × ${fmtMM(G.SH)} mm`;
+    d[7].innerHTML = G.overflow ? `<span class="badge warn">dépasse la feuille</span>` : `${Math.round(G.k * 1000) / 10} %`;
+    $("#scaleLbl").textContent = opts.sheet === "auto" ? "" : (G.overflow ? "le contenu dépasse" : (opts.scale === "fit" ? Math.round(G.k * 100) + " %" : ""));
+    $("#ctlScale").classList.toggle("hidden", opts.sheet === "auto");
+    $("#sheetSub").textContent = opts.sheet === "auto" ? `${fmtMM(G.SW)} × ${fmtMM(G.SH)} mm` : "";
+    if (G.overflow) $("#scaleLbl").style.color = "var(--warn)"; else $("#scaleLbl").style.color = "";
+}
+
+/* ---------- Vue Feuilles ---------- */
+let io;
+function renderSheets() {
+    const wrap = $("#sheetsView");
+    wrap.innerHTML = "";
+    if (io) io.disconnect();
+    if (!st.layout) return;
+    const G = st.geo, P = st.plan, token = st.token;
+    const ratio = G.SH / G.SW;
+    let pageIdx = 0;
+    io = new IntersectionObserver(ents => ents.forEach(e => {
+        if (e.isIntersecting) { io.unobserve(e.target); paintPaper(e.target, token) }
+    }), { root: wrap, rootMargin: "600px 0px" });
+    st.layout.forEach((sheet, si) => {
+        const card = document.createElement("article");
+        card.className = "sheet-card";
+        const creepTxt = sheet.creep ? `chasse ${fmtMM(sheet.creep)} mm` : "";
+        card.innerHTML = `<header><b>${sheet.label}</b><span>${creepTxt}</span></header>`;
+        const faces = document.createElement("div");
+        faces.className = "faces"; faces.style.setProperty("--faces", sheet.sides.length);
+        sheet.sides.forEach(side => {
+            const fig = document.createElement("figure");
+            fig.className = "face";
+            const paper = document.createElement("div");
+            paper.className = "paper" + (st.nums ? "" : " nonum");
+            paper.style.aspectRatio = `${G.SW} / ${G.SH}`;
+            paper.dataset.page = pageIdx++;
+            paper.appendChild(document.createElement("canvas"));
+            paper.appendChild(overlay(side, G, P));
+            const nums = side.slots.map(s => s.n).join(" · ");
+            fig.appendChild(paper);
+            const cap = document.createElement("figcaption");
+            cap.innerHTML = `<span>${side.name}</span><span>folios ${nums}</span>`;
+            fig.appendChild(cap);
+            faces.appendChild(fig);
+            io.observe(paper);
+        });
+        card.appendChild(faces);
+        wrap.appendChild(card);
+    });
+}
+
+function overlay(side, G, P) {
+    const ov = document.createElement("div");
+    ov.className = "ov";
+    const pct = (v, tot) => (v / tot * 100) + "%";
+    side.slots.forEach(s => {
+        const d = document.createElement("div");
+        d.className = "slot" + (s.p < 0 ? " blank" : "") + (s.rot ? " rot" : "");
+        d.style.left = pct(s.x, G.SW); d.style.width = pct(s.w, G.SW);
+        d.style.top = pct(G.SH - s.y - s.h, G.SH); d.style.height = pct(s.h, G.SH);
+        d.innerHTML = `<span class="num">${s.p < 0 ? "blanche" : "p. " + (s.p + 1)}${s.rot ? " ↻" : ""}</span>`;
+        ov.appendChild(d);
+    });
+    const k = G.k, cw = st.refW * k, ch = st.refH * k;
+    const topY = G.SH - G.oy - G.gh * k;
+    for (let c = 1; c < P.cols; c++) {
+        const f = document.createElement("div"); f.className = "fold";
+        f.style.left = pct(G.ox + c * cw, G.SW); f.style.top = pct(topY, G.SH); f.style.bottom = pct(G.oy, G.SH);
+        ov.appendChild(f);
+    }
+    for (let r = 1; r < P.rows; r++) {
+        const f = document.createElement("div"); f.className = "hfold";
+        f.style.top = pct(topY + r * ch, G.SH); f.style.left = pct(G.ox, G.SW); f.style.right = pct(G.ox, G.SW);
+        ov.appendChild(f);
+    }
+    if (P.cols === 4) {
+        const c = document.createElement("div"); c.className = "cut";
+        c.style.top = pct(topY + ch, G.SH); c.style.left = pct(G.ox + cw, G.SW); c.style.width = pct(2 * cw, G.SW);
+        c.title = "fente à découper";
+        ov.appendChild(c);
+    }
+    return ov;
+}
+
+async function paintPaper(paper, token) {
+    if (!st.outJs || token !== st.token) return;
+    const doc = st.outJs;
+    const i = +paper.dataset.page;
+    try {
+        const pg = await doc.getPage(i + 1);
+        if (token !== st.token) return;
+        const cssW = paper.clientWidth || 600;
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        const vp0 = pg.getViewport({ scale: 1 });
+        const vp = pg.getViewport({ scale: cssW * dpr / vp0.width });
+        const cv = paper.querySelector("canvas");
+        cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+        await pg.render({ canvasContext: cv.getContext("2d"), viewport: vp, background: "#ffffff" }).promise;
+    } catch (e) { if (token === st.token) console.warn(e) }
+}
+
+/* ---------- Vue Lecture ---------- */
+function buildSpreads() {
+    if (!st.plan) return;
+    const last = st.plan.seq.length - 1;
+    const sp = [[null, 0]];
+    for (let i = 1; i < last; i += 2) sp.push([i, i + 1]);
+    sp.push([last, null]);
+    st.read.spreads = sp;
+    st.read.i = Math.min(st.read.i, sp.length - 1);
+    const r = $("#rdRange"); r.max = sp.length - 1; r.value = st.read.i;
+}
+
+function bookSize() {
+    const wrap = $("#bookWrap");
+    const W = wrap.clientWidth - 8, H = wrap.clientHeight - 30;
+    const ar = st.refW / st.refH;
+    let ph = H, pw = ph * ar;
+    if (pw * 2 > W) { pw = W / 2; ph = pw / ar }
+    return { pw: Math.max(40, Math.floor(pw)), ph: Math.max(40, Math.floor(ph)) };
+}
+
+async function pageImage(seqIdx, pxH) {
+    const p = st.plan.seq[seqIdx];
+    if (p == null || p < 0) return null;
+    const key = p + ":" + pxH;
+    if (st.imgCache.has(key)) return st.imgCache.get(key);
+    const prom = (async () => {
+        if (!st.js) return null;
+        const pg = await st.js.getPage(p + 1);
+        const info = st.pages[p];
+        const vp1 = pg.getViewport({ scale: 1 });
+        const r1 = vpRect(vp1, [info.trim.x, info.trim.y, info.trim.x + info.trim.width, info.trim.y + info.trim.height]);
+        const th1 = Math.abs(r1[3] - r1[1]);
+        const scale = pxH / th1;
+        const vp = pg.getViewport({ scale });
+        const r = vpRect(vp, [info.trim.x, info.trim.y, info.trim.x + info.trim.width, info.trim.y + info.trim.height]);
+        const full = document.createElement("canvas");
+        full.width = Math.ceil(vp.width); full.height = Math.ceil(vp.height);
+        await pg.render({ canvasContext: full.getContext("2d"), viewport: vp, background: "#ffffff" }).promise;
+        const x = Math.min(r[0], r[2]), y = Math.min(r[1], r[3]), w = Math.abs(r[2] - r[0]), h = Math.abs(r[3] - r[1]);
+        const c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h));
+        c.getContext("2d").drawImage(full, x, y, w, h, 0, 0, c.width, c.height);
+        return c;
+    })();
+    st.imgCache.set(key, prom);
+    return prom;
+}
+
+function cloneCanvas(src) {
+    const c = document.createElement("canvas");
+    if (!src) return c;
+    c.width = src.width; c.height = src.height; c.getContext("2d").drawImage(src, 0, 0); return c;
+}
+
+function fillHalf(el, seqIdx, img) {
+    el.innerHTML = "";
+    if (seqIdx == null) { el.classList.remove("filled"); return }
+    el.classList.add("filled");
+    const p = st.plan.seq[seqIdx];
+    if (p < 0) { el.innerHTML = `<span class="blank-mark">page blanche</span>` }
+    else el.appendChild(cloneCanvas(img));
+    const lab = document.createElement("span"); lab.className = "pg-label";
+    lab.textContent = p < 0 ? `${seqIdx + 1} · blanche` : seqIdx === p ? `${seqIdx + 1}` : `${seqIdx + 1} (p. ${p + 1})`;
+    el.appendChild(lab);
+}
+
+function faceEl(cls, seqIdx, img) {
+    const d = document.createElement("div"); d.className = cls;
+    if (seqIdx != null && st.plan.seq[seqIdx] >= 0 && img) d.appendChild(cloneCanvas(img));
+    else if (seqIdx != null) d.innerHTML = `<span class="blank-mark" style="position:absolute;inset:0;display:grid;place-items:center;color:#b5b5ae;font-size:12px">page blanche</span>`;
+    else d.style.background = "transparent";
+    return d;
+}
+
+async function renderRead(force) {
+    if (!st.plan || !st.read.spreads.length) return;
+    const { pw, ph } = bookSize();
+    const book = $("#book");
+    book.style.width = pw * 2 + "px"; book.style.height = ph + "px";
+    const pxH = Math.round(ph * Math.min(2, window.devicePixelRatio || 1));
+    const [l, r] = st.read.spreads[st.read.i];
+    const [il, ir] = await Promise.all([pageImage(l, pxH), pageImage(r, pxH)]);
+    fillHalf($("#halfL"), l, il); fillHalf($("#halfR"), r, ir);
+    updReadBar();
+}
+
+function updReadBar() {
+    const s = st.read.spreads, i = st.read.i, [l, r] = s[i] || [];
+    const lab = [l, r].filter(x => x != null).map(x => x + 1).join("–");
+    $("#rdPos").textContent = `${lab} / ${st.plan.seq.length}`;
+    $("#rdRange").value = i;
+    $("#rdPrev").disabled = i <= 0; $("#rdNext").disabled = i >= s.length - 1;
+}
+
+async function turn(dir) {
+    const s = st.read.spreads, i = st.read.i, j = i + dir;
+    if (j < 0 || j >= s.length || st.read.busy) return;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const { ph } = bookSize();
+    const pxH = Math.round(ph * Math.min(2, window.devicePixelRatio || 1));
+    const [cl, cr] = s[i], [nl, nr] = s[j];
+    const imgs = await Promise.all([cl, cr, nl, nr].map(x => pageImage(x, pxH)));
+    st.read.i = j;
+    if (reduce) { renderRead(); return }
+    st.read.busy = true;
+    const book = $("#book");
+    const leaf = document.createElement("div");
+    if (dir > 0) {
+        leaf.className = "leaf next";
+        leaf.appendChild(faceEl("f", cr, imgs[1]));
+        leaf.appendChild(faceEl("b", nl, imgs[2]));
+        fillHalf($("#halfR"), nr, imgs[3]);
+    } else {
+        leaf.className = "leaf prev";
+        leaf.appendChild(faceEl("f", cl, imgs[0]));
+        leaf.appendChild(faceEl("b", nr, imgs[3]));
+        leaf.querySelector(".b").style.transform = "rotateY(-180deg)";
+        fillHalf($("#halfL"), nl, imgs[2]);
+    }
+    book.appendChild(leaf);
+    updReadBar();
+    leaf.getBoundingClientRect();
+    requestAnimationFrame(() => { leaf.style.transform = dir > 0 ? "rotateY(-180deg)" : "rotateY(180deg)" });
+    const done = () => {
+        if (dir > 0) fillHalf($("#halfL"), nl, imgs[2]); else fillHalf($("#halfR"), nr, imgs[3]);
+        leaf.remove(); st.read.busy = false;
+    };
+    leaf.addEventListener("transitionend", done, { once: true });
+    setTimeout(() => { if (leaf.isConnected) done() }, 900);
+}
+
+/* ---------- Vues ---------- */
+function showView(v) {
+    st.view = v;
+    setSeg("#segView", v);
+    $("#sheetsView").classList.toggle("hidden", v !== "sheets");
+    $("#readView").classList.toggle("hidden", v !== "read");
+    $("#segNum").classList.toggle("hidden", v !== "sheets");
+    if (v === "read") renderRead(true);
+}
+
+/* ---------- PDF d'exemple ---------- */
+async function demo() {
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+    const d = await PDFDocument.create();
+    const f = await d.embedFont(StandardFonts.HelveticaBold), f2 = await d.embedFont(StandardFonts.Helvetica);
+    const W = mm(148), H = mm(210), B = mm(3);
+    const N = 18;
+    for (let i = 1; i <= N; i++) {
+        const p = d.addPage([W + 2 * B, H + 2 * B]);
+        p.setTrimBox(B, B, W, H); p.setBleedBox(0, 0, W + 2 * B, H + 2 * B);
+        const hue = (i - 1) / N;
+        const col = rgb(.55 + .4 * Math.cos(6.28 * hue), .55 + .4 * Math.cos(6.28 * (hue + .33)), .55 + .4 * Math.cos(6.28 * (hue + .66)));
+        p.drawRectangle({ x: 0, y: 0, width: W + 2 * B, height: mm(26) + B, color: col });
+        const txt = String(i), size = mm(70);
+        const tw = f.widthOfTextAtSize(txt, size);
+        p.drawText(txt, { x: B + (W - tw) / 2, y: B + H / 2 - size / 3, size, font: f, color: rgb(.11, .11, .1) });
+        const lbl = i === 1 ? "COUVERTURE" : i === N ? "4E DE COUVERTURE" : "PAGE " + i;
+        const lw = f2.widthOfTextAtSize(lbl, 10);
+        p.drawText(lbl, { x: B + (W - lw) / 2, y: B + H - mm(16), size: 10, font: f2, color: rgb(.3, .3, .28) });
+        // flèche "haut" et repère côté pli
+        const ax = B + W / 2, ay = B + H - mm(28);
+        p.drawLine({ start: { x: ax, y: ay - mm(10) }, end: { x: ax, y: ay }, thickness: 1.2, color: rgb(.3, .3, .28) });
+        p.drawLine({ start: { x: ax - mm(3), y: ay - mm(3) }, end: { x: ax, y: ay }, thickness: 1.2, color: rgb(.3, .3, .28) });
+        p.drawLine({ start: { x: ax + mm(3), y: ay - mm(3) }, end: { x: ax, y: ay }, thickness: 1.2, color: rgb(.3, .3, .28) });
+        p.drawRectangle({ x: B + mm(8), y: B + mm(8), width: W - mm(16), height: H - mm(16), borderColor: rgb(.75, .75, .72), borderWidth: .6, borderDashArray: [3, 3] });
+        p.drawText("marge 8 mm", { x: B + mm(9), y: B + mm(9.5), size: 6.5, font: f2, color: rgb(.6, .6, .57) });
+    }
+    loadBytes(await d.save(), "exemple-18-pages.pdf");
+}
+
+/* ---------- Événements ---------- */
+$("#btnOpen").addEventListener("click", () => $("#file").click());
+$("#btnOpen2").addEventListener("click", () => $("#file").click());
+$("#btnDemo").addEventListener("click", demo);
+$("#file").addEventListener("change", e => { openFile(e.target.files[0]); e.target.value = "" });
+const stage = $("#stage");
+["dragenter", "dragover"].forEach(t => document.addEventListener(t, e => { e.preventDefault(); stage.classList.add("drag") }));
+["dragleave", "drop"].forEach(t => document.addEventListener(t, e => { e.preventDefault(); if (t === "drop" || e.target === document.documentElement || !e.relatedTarget) stage.classList.remove("drag") }));
+document.addEventListener("drop", e => { const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) openFile(f) });
+
+$("#btnDl").addEventListener("click", () => {
+    if (!st.out) return;
+    const suf = { saddle: "livret", sig: "cahiers", zine: "zine" }[opts.mode];
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([st.out], { type: "application/pdf" }));
+    a.download = st.name.replace(/\.pdf$/i, "") + "_" + suf + ".pdf";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+});
+$("#btnTheme").addEventListener("click", () => {
+    const dark = document.documentElement.getAttribute("data-theme") === "dark" ||
+        (!document.documentElement.getAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
+});
+
+seg("#segMode", "mode", () => { updateModeUI(); schedule() });
+seg("#segScale", "scale", schedule);
+seg("#segFlip", "flip", v => {
+    $("#flipNote").textContent = v === "short"
+        ? "Réglage habituel des imprimantes pour un livret : le verso est posé tel quel."
+        : "Le verso est pivoté de 180° pour une imprimante réglée sur le bord long.";
+    schedule();
+});
+seg("#segView", null, showView);
+seg("#segNum", null, v => { st.nums = v === "on"; document.querySelectorAll(".paper").forEach(p => p.classList.toggle("nonum", !st.nums)) });
+linkRange("#sigSheets", "#sigSheetsN", "sigSheets", updateModeUI);
+linkRange("#creep", "#creepN", "creep");
+$("#blanks").addEventListener("change", e => { opts.blanks = e.target.value; schedule() });
+$("#sheet").addEventListener("change", e => { opts.sheet = e.target.value; $("#customRow").classList.toggle("hidden", opts.sheet !== "custom"); schedule() });
+["#cw", "#ch"].forEach(id => $(id).addEventListener("change", e => { opts[id.slice(1)] = Math.max(20, +e.target.value || 20); schedule() }));
+$("#chkBleed").addEventListener("change", e => { opts.bleed = e.target.checked; schedule() });
+$("#chkMarks").addEventListener("change", e => { opts.marks = e.target.checked; schedule() });
+
+$("#rdPrev").addEventListener("click", () => turn(-1));
+$("#rdNext").addEventListener("click", () => turn(1));
+$("#rdRange").addEventListener("input", e => { st.read.i = +e.target.value; renderRead() });
+document.addEventListener("keydown", e => {
+    if (st.view !== "read" || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+    if (e.key === "ArrowRight") turn(1); else if (e.key === "ArrowLeft") turn(-1);
+});
+let sx = null;
+$("#bookWrap").addEventListener("pointerdown", e => { sx = e.clientX });
+$("#bookWrap").addEventListener("pointerup", e => {
+    if (sx == null) return; const dx = e.clientX - sx; sx = null;
+    if (Math.abs(dx) > 40) turn(dx < 0 ? 1 : -1);
+    else { const r = $("#book").getBoundingClientRect(); if (e.clientX > r.left + r.width / 2) turn(1); else turn(-1) }
+});
+
+let rsT;
+window.addEventListener("resize", () => {
+    clearTimeout(rsT);
+    rsT = setTimeout(() => { st.imgCache.clear(); if (st.view === "read") renderRead(); else renderSheets() }, 250);
+});
+
+updateModeUI();
+pdfjs().catch(() => {});
+})();
+</script>
+<!-- toolbox-back --><a href="../toolbox.html" aria-label="Retour toolbox" style="position:fixed;top:max(12px,env(safe-area-inset-top));left:12px;z-index:2147483647;padding:8px 14px;border-radius:999px;background:rgba(20,20,20,.8);color:#fff;font:600 14px system-ui,sans-serif;text-decoration:none;backdrop-filter:blur(6px)">← Toolbox</a>
+</body>
+</html>
