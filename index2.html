@@ -8,6 +8,7 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <title>lbp — index2</title>
+  <meta name="description" content="Loïc BP — portfolio de design graphique : identités visuelles, éditions, direction artistique." />
   <script src="gate.js"></script>
   <style>
     @font-face {
@@ -215,6 +216,7 @@
       clip-path: inset(0 100% 0 0);           /* état initial : se dévoile à l'entrée */
     }
     .media:focus-visible { outline: none; }
+    .media.noimg::after { content: attr(aria-label); position: absolute; inset: 0; display: grid; place-items: center; padding: 1rem; text-align: center; font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
     .par { position: absolute; inset: 0 -18px; will-change: transform; }   /* calque de parallaxe */
     .media img {
       display: block;
@@ -471,6 +473,7 @@
 
   <main class="rail" id="rail" aria-label="Projets">
     <div class="track" id="track"></div>
+    <noscript><p style="padding:2rem">Cette galerie nécessite JavaScript.</p></noscript>
   </main>
 
   <section class="grid" id="grid" aria-label="Galerie des projets"><div class="gcols" id="gcols"></div></section>
@@ -631,6 +634,9 @@
       img.complete && img.naturalWidth ? ok() : img.addEventListener('load', ok, { once: true });
     });
 
+    document.querySelectorAll('.card img').forEach(img => img.addEventListener('error', () => {
+      const m = img.closest('.media'); m.classList.add('noimg'); img.remove();
+    }));
     const cards = [...track.children];
     const pars  = cards.map(c => c.querySelector('.par'));
     cards.forEach(c => {
@@ -715,7 +721,7 @@
     }, { passive: true });
 
     window.addEventListener('wheel', e => {
-      if (panelOpen || view === 'grid') return;
+      if (panelOpen || view === 'grid' || e.ctrlKey) return;
       e.preventDefault();
       let d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
       if (e.deltaMode === 1) d *= 32;
@@ -752,7 +758,10 @@
       if (Math.abs(dx) > 6) dragged = true;
       if (dragged) to(drag.tx - dx);
     });
-    window.addEventListener('pointerup', () => {  drag = null; setTimeout(() => dragged = false, 0); });
+    const endDrag = () => { drag = null; setTimeout(() => dragged = false, 0); };
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+    window.addEventListener('blur', endDrag);
     rail.addEventListener('click', e => { if (dragged) { e.stopPropagation(); e.preventDefault(); } }, true);
 
     const centerOn = (i, instant) => {
