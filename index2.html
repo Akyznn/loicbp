@@ -41,7 +41,7 @@
       calc(var(--trame) * 2) auto,
       calc(var(--check) * 2) calc(var(--check) * 2);
     background-position:
-      var(--trame-x) var(--trame-y),
+      calc(var(--trame-x) - var(--bgx, 0px)) var(--trame-y),
       0 0;
     background-repeat: repeat, repeat;
       color: var(--ink);
@@ -140,6 +140,269 @@
     @media (prefers-reduced-motion: reduce) {
       .logo .wipe, .logo .lt { animation-duration: 0.01s; animation-delay: 0s; }
     }
+
+    /* ═════════════ Galerie horizontale ═════════════ */
+    :root {
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --gutter: clamp(1.2rem, 4vw, 3rem);
+      --gap: clamp(1rem, 2.2vw, 2rem);
+      --vpad: clamp(0.6rem, 2vh, 1.4rem);
+      --cap-h: 66px;               /* hauteur réservée à la légende sous l'image */
+      --card-max: 720px;           /* hauteur max d'une image sur très grand écran */
+      --line: rgba(15, 15, 15, 0.14);
+    }
+
+    /* La page ne défile pas : le logo en haut, la bande de projets au milieu, la barre en bas */
+    html, body { height: 100%; overflow: hidden; }
+    body { display: flex; flex-direction: column; min-height: 0; height: 100dvh; }
+
+    .site-header { flex: none; padding: clamp(1rem, 2.6vh, 2.2rem) 1.2rem 0; }
+    :root { --logo-w: clamp(120px, min(15vw, 17vh), 240px); }
+
+    .rail {
+      flex: 1;
+      min-height: 0;
+      container-type: size;                 /* permet d'utiliser 100cqh = hauteur de la bande */
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      overscroll-behavior-x: contain;
+      touch-action: pan-x;
+    }
+    .rail::-webkit-scrollbar { display: none; }
+
+    .track {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: var(--gap);
+      width: max-content;
+      height: 100%;
+      padding: 0 var(--gutter);
+    }
+
+    .card {
+      flex: none;
+      --img-h: min(calc(100cqh - var(--cap-h) - var(--vpad) * 2), 74cqh, var(--card-max));
+      width: calc(var(--img-h) * var(--ar));
+      transition: opacity 0.45s ease;
+    }
+
+    /* ── Image ── */
+    .media {
+      position: relative;
+      display: block;
+      width: 100%;
+      height: var(--img-h);
+      padding: 0;
+      border: 1px solid var(--line);
+      background: #fff;
+      overflow: hidden;
+      cursor: none;
+      font: inherit;
+      color: inherit;
+      clip-path: inset(0 100% 0 0);           /* état initial : se dévoile à l'entrée */
+    }
+    .media:focus-visible { outline: none; }
+    .par { position: absolute; inset: 0 -18px; will-change: transform; }   /* calque de parallaxe */
+    .media img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transform: scale(1.18);
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+    .media img.contain { object-fit: contain; padding: 10%; }
+    .media img.ok { opacity: 1; }
+
+    /* Révélation : le cadre se dévoile (même "wipe" que les titres), l'image se pose */
+    .card.in .media {
+      clip-path: inset(0 0 0 0);
+      transition: clip-path 0.95s var(--ease) var(--rd, 0s);
+    }
+    .card.in .media img {
+      transform: scale(var(--s, 1));
+      transition: transform 1.4s var(--ease-out) var(--rd, 0s), opacity 0.5s ease var(--rd, 0s);
+    }
+    .card.done .media { transition: none; }
+    .card.done .media img { transition: transform 0.9s var(--ease-out), opacity 0.4s ease; }
+
+    /* ── Légende ── */
+    .cap {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      height: var(--cap-h);
+      padding-top: 0.75rem;
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    .card.in .cap {
+      opacity: 1;
+      transform: none;
+      transition: opacity 0.6s ease calc(var(--rd, 0s) + 0.4s), transform 0.6s var(--ease-out) calc(var(--rd, 0s) + 0.4s);
+    }
+    .cap-l { min-width: 0; }
+    .cap-t {
+      display: inline;
+      font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+      font-weight: 400;
+      line-height: 1.15;
+      letter-spacing: -0.005em;
+      background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
+      transition: background-size 0.4s ease;
+    }
+    .cap-m, .cap-y {
+      font-size: clamp(0.6rem, 1vw, 0.72rem);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-style: italic;
+    }
+    .cap-m { margin-top: 0.35rem; opacity: 0.55; }
+    .cap-y { flex: none; opacity: 0.55; padding-top: 0.25em; }
+
+    @media (hover: hover) {
+      .card:hover .media img { --s: 1.045; }
+      .card:hover .cap-t { background-size: 100% 1px; }
+      .track:has(.card:hover) .card:not(:hover) { opacity: 0.42; }
+    }
+
+    /* ── Barre du bas : compteur, progression, indication ── */
+    .hud {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 1.4rem;
+      padding: 0.9rem var(--gutter) clamp(0.9rem, 2.4vh, 1.5rem);
+      font-size: clamp(0.6rem, 1vw, 0.72rem);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-style: italic;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 1.6s;
+    }
+    .count { display: inline-block; min-width: 6.5ch; overflow: hidden; font-variant-numeric: tabular-nums; }
+    .count b { display: inline-block; font-weight: 400; }
+    .count b.tick { animation: tick 0.45s var(--ease-out); }
+    .bar { position: relative; flex: 1; height: 1px; background: var(--line); }
+    .bar i { position: absolute; inset: 0; background: var(--ink); transform-origin: 0 50%; transform: scaleX(var(--p, 0)); }
+    .hint { display: inline-flex; gap: 0.6em; align-items: center; transition: opacity 0.5s ease; }
+    .hint span { display: inline-block; animation: nudge 1.6s ease-in-out infinite; }
+    body.moved .hint { opacity: 0; }
+    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+    @keyframes tick  { from { transform: translateY(70%); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(6px); } }
+
+    /* ═════════════ Fiche projet (panneau) ═════════════ */
+    .panel {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      background-color: var(--check-a);
+      background-image: conic-gradient(var(--check-b) 25%, var(--check-a) 0 50%, var(--check-b) 0 75%, var(--check-a) 0);
+      background-size: calc(var(--check) * 2) calc(var(--check) * 2);
+      clip-path: inset(0 0 0 0);
+    }
+    .panel[hidden] { display: none; }
+
+    .pn-media { padding: clamp(4rem, 9vh, 6rem) 0 var(--gutter) var(--gutter); min-height: 0; }
+    .pn-frame {
+      position: relative;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      background: #fff;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      clip-path: inset(100% 0 0 0);
+    }
+    .panel.open .pn-frame { clip-path: inset(0 0 0 0); transition: clip-path 0.9s var(--ease) 0.25s; }
+    .pn-frame img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; }
+    .pn-frame img.contain { padding: 8%; }
+
+    .pn-body {
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: clamp(4rem, 9vh, 6rem) var(--gutter) var(--gutter) clamp(1.4rem, 3.5vw, 3.5rem);
+      scrollbar-width: thin;
+      scrollbar-color: var(--line) transparent;
+    }
+    .rv { opacity: 0; transform: translateY(10px); }
+    .panel.open .rv {
+      opacity: 1;
+      transform: none;
+      transition: opacity 0.6s ease calc(0.5s + var(--i, 0) * 0.07s), transform 0.6s var(--ease-out) calc(0.5s + var(--i, 0) * 0.07s);
+    }
+    .pn-meta, .pn-liv, .pn-nav, .pn-close {
+      font-size: clamp(0.6rem, 1vw, 0.72rem);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-style: italic;
+    }
+    .pn-meta { color: rgba(15, 15, 15, 0.6); }
+    .pn-title-wrap { overflow: hidden; margin: 1.1rem 0 1.4rem; }
+    .pn-title {
+      display: block;
+      font-size: clamp(2.2rem, 5.2vw, 4.6rem);
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      clip-path: inset(0 100% 0 0);
+    }
+    .panel.open .pn-title { clip-path: inset(0 0 0 0); transition: clip-path 0.9s var(--ease) 0.5s; }
+    .pn-lead { font-size: clamp(1.25rem, 1.9vw, 1.7rem); line-height: 1.25; font-style: italic; margin-bottom: 1.6rem; max-width: 34ch; }
+    .pn-text p { font-size: clamp(1.02rem, 1.25vw, 1.2rem); line-height: 1.45; max-width: 46ch; margin-bottom: 1em; }
+    .pn-liv { margin: 1.8rem 0 0; padding-top: 1.1rem; border-top: 1px solid var(--line); line-height: 1.9; color: rgba(15, 15, 15, 0.72); }
+    .pn-nav { display: flex; align-items: center; gap: 1.4rem; margin-top: 2.2rem; }
+    .pn-nav button, .pn-close {
+      position: relative;
+      background: none;
+      border: 0;
+      padding: 0.5em 0;
+      color: var(--ink);
+      font-family: inherit;
+      cursor: none;
+    }
+    .pn-nav button::after, .pn-close::after {
+      content: '';
+      position: absolute;
+      bottom: 0.1em; left: 0;
+      width: 0; height: 1px;
+      background: var(--ink);
+      transition: width 0.3s ease;
+    }
+    .pn-nav button:hover::after, .pn-close:hover::after,
+    .pn-nav button:focus-visible::after, .pn-close:focus-visible::after { width: 100%; }
+    .pn-nav button:focus-visible, .pn-close:focus-visible { outline: none; }
+    .pn-n { opacity: 0.5; font-variant-numeric: tabular-nums; }
+    .pn-close { position: absolute; top: clamp(1rem, 2.5vw, 1.8rem); right: clamp(1rem, 2.5vw, 1.8rem); z-index: 2; }
+
+    .panel.closing .pn-media, .panel.closing .pn-body, .panel.closing .pn-close { opacity: 0; transition: opacity 0.25s ease; }
+
+    @media (max-width: 760px) {
+      .panel { grid-template-columns: 1fr; grid-template-rows: 40dvh minmax(0, 1fr); }
+      .pn-media { padding: 3.6rem var(--gutter) 0; }
+      .pn-body { padding: 1.4rem var(--gutter) var(--gutter); }
+    }
+
+    @media (hover: none) {
+      .media, .pn-nav button, .pn-close { cursor: auto; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .media { clip-path: none !important; }
+      .media img { transform: none !important; transition: opacity 0.3s ease !important; }
+      .cap { opacity: 1 !important; transform: none !important; transition: none !important; }
+      .hint span, .count b.tick { animation: none; }
+      .pn-frame, .pn-title { clip-path: none !important; }
+      .rv { opacity: 1 !important; transform: none !important; transition: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -171,7 +434,32 @@
     </svg>
   </header>
 
-  <main></main>
+  <main class="rail" id="rail" aria-label="Projets">
+    <div class="track" id="track"></div>
+  </main>
+
+  <footer class="hud" id="hud">
+    <span class="count" aria-live="polite"><b id="count">01 / 25</b></span>
+    <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+    <span class="hint">Faire défiler <span aria-hidden="true">→</span></span>
+  </footer>
+
+  <div class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="pn-t" hidden>
+    <button class="pn-close" id="pn-close" type="button" data-ants>Fermer</button>
+    <div class="pn-media"><div class="pn-frame"><img id="pn-img" alt="" draggable="false"></div></div>
+    <div class="pn-body" id="pn-body">
+      <p class="pn-meta rv" id="pn-meta" style="--i:0"></p>
+      <div class="pn-title-wrap"><h2 class="pn-title" id="pn-t"></h2></div>
+      <p class="pn-lead rv" id="pn-lead" style="--i:2"></p>
+      <div class="pn-text rv" id="pn-text" style="--i:3"></div>
+      <p class="pn-liv rv" id="pn-liv" style="--i:4"></p>
+      <nav class="pn-nav rv" style="--i:5" aria-label="Navigation entre projets">
+        <button type="button" id="pn-prev" data-ants>← Précédent</button>
+        <span class="pn-n" id="pn-n"></span>
+        <button type="button" id="pn-next" data-ants>Suivant →</button>
+      </nav>
+    </div>
+  </div>
 
   <script>
     /* ── Curseur main ── */
@@ -258,6 +546,249 @@
       ring.style.opacity = st.o < 0.01 ? 0 : st.o;
       requestAnimationFrame(frame);
     })();
+  </script>
+  <script>
+  /* ═════════════ Galerie horizontale ═════════════ */
+  (async function () {
+    const rail  = document.getElementById('rail');
+    const track = document.getElementById('track');
+    const bar   = document.getElementById('bar');
+    const countEl = document.getElementById('count');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+    const pad2 = n => String(n).padStart(2, '0');
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    /* ── Données ── */
+    let data = [];
+    try { data = await (await fetch('assets/projets.json')).json(); }
+    catch (e) { console.error('projets.json introuvable', e); return; }
+    const N = data.length;
+    countEl.textContent = '01 / ' + pad2(N);
+
+    /* ── Cartes ── */
+    track.innerHTML = data.map((p, i) => {
+      const contain = p.cover.fit === 'contain';
+      const ar = contain ? 1.7 : clamp(p.cover.w / p.cover.h, 0.62, 1.6);
+      return '<article class="card" data-i="' + i + '" style="--ar:' + ar.toFixed(3) + '">' +
+        '<button class="media" type="button" data-ants aria-label="Ouvrir le projet ' + esc(p.titre) + '">' +
+          '<div class="par"><img src="' + esc(p.cover.src) + '" alt="' + esc(p.titre) + '" width="' + p.cover.w + '" height="' + p.cover.h + '"' +
+          (i < 4 ? '' : ' loading="lazy"') + ' decoding="async" draggable="false"' + (contain ? ' class="contain"' : '') + '></div>' +
+        '</button>' +
+        '<div class="cap"><div class="cap-l"><h2 class="cap-t">' + esc(p.titre) + '</h2>' +
+          '<p class="cap-m">' + esc(p.disciplines.join(' / ')) + '</p></div>' +
+          '<span class="cap-y">' + (p.annee || '') + '</span></div>' +
+      '</article>';
+    }).join('');
+
+    const cards = [...track.children];
+    const pars  = cards.map(c => c.querySelector('.par'));
+    cards.forEach(c => {
+      const img = c.querySelector('img');
+      const ok = () => img.classList.add('ok');
+      img.complete && img.naturalWidth ? ok() : img.addEventListener('load', ok, { once: true });
+    });
+
+    /* ── Révélation à l'entrée dans l'écran ── */
+    const t0 = performance.now();
+    const io = new IntersectionObserver(entries => {
+      const first = performance.now() - t0 < 2800;
+      let rank = 0;
+      entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.left - b.boundingClientRect.left).forEach(e => {
+        const c = e.target; io.unobserve(c);
+        const d = (first ? 1.15 : 0) + rank++ * 0.1;
+        c.style.setProperty('--rd', d + 's');
+        c.classList.add('in');
+        setTimeout(() => c.classList.add('done'), (d + 1.8) * 1000);
+      });
+    }, { root: rail, threshold: 0.08 });
+    cards.forEach(c => io.observe(c));
+
+    /* ── Géométrie mise en cache ── */
+    let lefts = [], widths = [], maxScroll = 0;
+    function measure() {
+      lefts = cards.map(c => c.offsetLeft);
+      widths = cards.map(c => c.offsetWidth);
+      maxScroll = Math.max(0, rail.scrollWidth - rail.clientWidth);
+    }
+    new ResizeObserver(measure).observe(track);
+    new ResizeObserver(measure).observe(rail);
+    measure();
+
+    /* ── Défilement fluide : molette verticale → horizontal, glisser, clavier ── */
+    let tx = 0, cx = 0, lastSet = 0, running = false, lastT = 0, panelOpen = false;
+    const setScroll = v => { lastSet = v; rail.scrollLeft = v; };
+
+    function visuals() {
+      const sl = rail.scrollLeft, vw = rail.clientWidth, mid = sl + vw / 2;
+      const p = maxScroll ? clamp(sl / maxScroll, 0, 1) : 0;
+      bar.style.setProperty('--p', p.toFixed(4));
+      document.body.style.setProperty('--bgx', (sl * 0.22).toFixed(1) + 'px');       // la trame glisse plus lentement que la bande
+      let best = 0, bd = Infinity;
+      for (let i = 0; i < N; i++) {
+        const cc = lefts[i] + widths[i] / 2;
+        const off = cc - mid;
+        if (Math.abs(off) < bd) { bd = Math.abs(off); best = i; }
+        if (cc + widths[i] < sl - 200 || cc - widths[i] > sl + vw + 200) continue;   // hors écran : pas de calcul
+        pars[i].style.transform = 'translate3d(' + clamp(off * -0.03, -14, 14).toFixed(1) + 'px,0,0)';
+      }
+      const label = pad2(best + 1) + ' / ' + pad2(N);
+      if (countEl.textContent !== label) {
+        countEl.textContent = label;
+        countEl.classList.remove('tick'); void countEl.offsetWidth; countEl.classList.add('tick');
+      }
+      if (sl > 8) document.body.classList.add('moved');
+    }
+
+    function loop(now) {
+      const dt = Math.min((now - lastT) / 1000 || 0.016, 0.05); lastT = now;
+      const k = reduce ? 1 : 1 - Math.exp(-dt * 9);
+      cx += (tx - cx) * k;
+      if (Math.abs(tx - cx) < 0.3) cx = tx;
+      setScroll(cx);
+      visuals();
+      if (cx !== tx) requestAnimationFrame(loop); else running = false;
+    }
+    function kick() { if (!running) { running = true; lastT = performance.now(); requestAnimationFrame(loop); } }
+    const to = v => { tx = clamp(v, 0, maxScroll); kick(); };
+
+    rail.addEventListener('scroll', () => {                      // défilement natif (tactile, barre...) : on resynchronise
+      if (Math.abs(rail.scrollLeft - lastSet) > 1.5) { tx = cx = rail.scrollLeft; lastSet = cx; }
+      visuals();
+    }, { passive: true });
+
+    window.addEventListener('wheel', e => {
+      if (panelOpen) return;
+      e.preventDefault();
+      let d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (e.deltaMode === 1) d *= 32;
+      to(tx + d);
+    }, { passive: false });
+
+    /* glisser à la souris */
+    let drag = null, dragged = false;
+    rail.addEventListener('pointerdown', e => {
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      drag = { x: e.clientX, tx: tx };
+    });
+    window.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x;
+      if (Math.abs(dx) > 6) dragged = true;
+      if (dragged) to(drag.tx - dx);
+    });
+    window.addEventListener('pointerup', () => { drag = null; setTimeout(() => dragged = false, 0); });
+    rail.addEventListener('click', e => { if (dragged) { e.stopPropagation(); e.preventDefault(); } }, true);
+
+    const centerOn = (i, instant) => {
+      const v = clamp(lefts[i] + widths[i] / 2 - rail.clientWidth / 2, 0, maxScroll);
+      if (instant) { tx = cx = v; setScroll(v); visuals(); } else to(v);
+    };
+
+    /* ── Fiche projet ── */
+    const panel = document.getElementById('panel');
+    const $ = id => document.getElementById(id);
+    const inertEls = [document.querySelector('.site-header'), rail, $('hud')];
+    let cur = 0, opener = null, closing = false;
+
+    function fill(i) {
+      const p = data[i];
+      $('pn-meta').textContent = [p.client, p.annee, p.cadre].filter(Boolean).join('  ·  ');
+      $('pn-t').textContent = p.titre;
+      $('pn-lead').textContent = p.accroche;
+      $('pn-text').innerHTML = p.texte.map(t => '<p>' + esc(t) + '</p>').join('');
+      $('pn-liv').innerHTML = [p.disciplines.join(' / '), p.livrables.join(' / ')].filter(Boolean).map(esc).join('<br>');
+      const img = $('pn-img');
+      img.src = p.cover.src; img.alt = p.titre;
+      img.className = p.cover.fit === 'contain' ? 'contain' : '';
+      $('pn-n').textContent = pad2(i + 1) + ' / ' + pad2(N);
+      $('pn-body').scrollTop = 0;
+    }
+    const insetOf = el => {
+      const r = el.getBoundingClientRect();
+      return 'inset(' + r.top + 'px ' + (innerWidth - r.right) + 'px ' + (innerHeight - r.bottom) + 'px ' + r.left + 'px)';
+    };
+
+    function openPanel(i) {
+      if (panelOpen) return;
+      cur = i; opener = cards[i].querySelector('.media');
+      fill(i);
+      panelOpen = true; closing = false;
+      panel.hidden = false;
+      inertEls.forEach(el => el.inert = true);
+      panel.classList.remove('open', 'closing');
+      panel.style.opacity = '';
+      if (reduce) { panel.style.clipPath = 'inset(0 0 0 0)'; }
+      else {
+        panel.style.transition = 'none';
+        panel.style.opacity = '';
+        panel.style.clipPath = insetOf(opener);                      // part du cadre de l'image cliquée…
+        void panel.offsetWidth;
+        panel.style.transition = 'clip-path 0.85s var(--ease)';
+        panel.style.clipPath = 'inset(0px 0px 0px 0px)';             // …et occupe tout l'écran
+      }
+      panel.classList.add('open');
+      $('pn-close').focus({ preventScroll: true });
+    }
+
+    function closePanel() {
+      if (!panelOpen || closing) return;
+      closing = true;
+      centerOn(cur, true);                                           // la carte courante est visible pour le retour
+      opener = cards[cur].querySelector('.media');
+      panel.classList.add('closing');
+      const done = () => {
+        panel.classList.remove('open', 'closing');
+        panel.hidden = true; panelOpen = false; closing = false;
+        inertEls.forEach(el => el.inert = false);
+        opener.focus({ preventScroll: true });
+      };
+      if (reduce) { done(); return; }
+      panel.style.transition = 'clip-path 0.7s var(--ease), opacity 0.3s ease 0.4s';
+      panel.style.clipPath = insetOf(opener);
+      panel.style.opacity = '0';
+      let fired = false;
+      const fin = () => { if (fired) return; fired = true; done(); };
+      panel.addEventListener('transitionend', e => { if (e.target === panel) fin(); }, { once: true });
+      setTimeout(fin, 900);
+    }
+
+    function go(d) {
+      cur = (cur + d + N) % N;
+      fill(cur);
+      centerOn(cur, true);
+      $('pn-body').querySelectorAll('.rv').forEach(el => { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; });
+    }
+
+    track.addEventListener('click', e => {
+      const m = e.target.closest('.media');
+      if (m) openPanel(+m.closest('.card').dataset.i);
+    });
+    $('pn-close').addEventListener('click', closePanel);
+    $('pn-prev').addEventListener('click', () => go(-1));
+    $('pn-next').addEventListener('click', () => go(1));
+
+    window.addEventListener('keydown', e => {
+      if (panelOpen) {
+        if (e.key === 'Escape') { e.preventDefault(); closePanel(); }
+        else if (e.key === 'ArrowLeft')  { e.preventDefault(); go(-1); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
+        else if (e.key === 'Tab') {                                  // le focus reste dans la fiche
+          const f = [...panel.querySelectorAll('button')];
+          const a = document.activeElement, first = f[0], last = f[f.length - 1];
+          if (e.shiftKey && a === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
+        }
+        return;
+      }
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); to(tx + rail.clientWidth * 0.6); }
+      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); to(tx - rail.clientWidth * 0.6); }
+      else if (e.key === 'Home') { e.preventDefault(); to(0); }
+      else if (e.key === 'End')  { e.preventDefault(); to(maxScroll); }
+    });
+
+    visuals();
+  })();
   </script>
 </body>
 </html>

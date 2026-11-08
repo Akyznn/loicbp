@@ -1,0 +1,643 @@
+[
+ {
+  "slug": "technofrigo",
+  "titre": "Technofrigo by Clauger",
+  "annee": 2026,
+  "cadre": "Projet professionnel",
+  "client": "Clauger Group",
+  "disciplines": [
+   "Identité visuelle",
+   "Branding",
+   "Charte graphique"
+  ],
+  "accroche": "Identité de la marque d’ingénierie industrielle du groupe Clauger, dédiée aux marchés de l’énergie et des procédés.",
+  "texte": [
+   "Technofrigo by Clauger réunit les équipes d’ingénierie italiennes, ancrées à Bologne depuis le XIXᵉ siècle, et françaises, basées à Brignais et Strasbourg. La marque adresse la chimie, la pétrochimie, le gaz, la compression, le captage du CO₂ et l’hydrogène.",
+   "Le logotype prolonge le dessin historique de la marque et le croise avec une réinterprétation de l’emblème Technofrigo Europa. Leur rencontre donne l’insigne TF, signe autonome utilisé seul lorsque la marque est déjà identifiée ou aux côtés des autres marques du groupe.",
+   "La palette, construite sur une gamme de verts et un crème, rompt avec les codes habituels du secteur. DM Sans porte les titres ; IBM Plex Sans, dessinée pour la lisibilité technique, accompagne les documents d’ingénierie. Le système est consigné dans une charte graphique complète."
+  ],
+  "livrables": [
+   "Logotype",
+   "Insigne TF",
+   "Motif",
+   "Palette",
+   "Système typographique",
+   "Charte graphique",
+   "Photographie"
+  ],
+  "brouillon": true,
+  "cover": {
+   "src": "assets/projets/technofrigo.webp",
+   "w": 1500,
+   "h": 843
+  }
+ },
+ {
+  "slug": "clauger-group",
+  "titre": "Clauger Group",
+  "annee": 2025,
+  "cadre": "Projet professionnel",
+  "client": "Clauger Group",
+  "disciplines": [
+   "Identité visuelle",
+   "Architecture de marque"
+  ],
+  "accroche": "Marque corporate d’un groupe industriel présent dans plus de cent pays, fédérant trois marques métier.",
+  "texte": [
+   "Le groupe structure son organisation autour de trois marques de marché : Clauger pour l’agroalimentaire et la chaîne du froid, Technofrigo pour les procédés et l’énergie, Valtria pour les sciences de la vie. Il lui fallait une signature institutionnelle, distincte de chacune d’elles.",
+   "Le logotype associe le nom à un monogramme CG et se décline en versions horizontale et verticale. Un système de pastilles permet d’apposer chaque marque métier sous la bannière du groupe, en maintenant une hiérarchie lisible."
+  ],
+  "livrables": [
+   "Logotype horizontal et vertical",
+   "Pastilles de marques",
+   "Déclinaisons couleur"
+  ],
+  "brouillon": true,
+  "cover": {
+   "src": "assets/projets/clauger-group.webp",
+   "w": 1500,
+   "h": 153,
+   "fit": "contain"
+  }
+ },
+ {
+  "slug": "polaris",
+  "titre": "Polaris",
+  "annee": null,
+  "cadre": "Projet professionnel",
+  "client": "Clauger Group",
+  "disciplines": [
+   "Logotype",
+   "Identité visuelle"
+  ],
+  "accroche": "Logotype et icônes d’application pour Polaris by Clauger.",
+  "texte": [
+   "Le nom renvoie à l’étoile polaire, point de repère fixe. Le logotype en reprend l’idée : une constellation de points gravite autour du mot, ponctuée d’un astérisque qui évoque à la fois l’étoile et le flocon, en écho au métier du froid.",
+   "La marque se décline en icônes d’application sur trois fonds — bleu glacier, bleu nuit et blanc — et en version extrudée pour les usages en volume."
+  ],
+  "livrables": [
+   "Logotype",
+   "Icônes d’application",
+   "Version 3D"
+  ],
+  "brouillon": true,
+  "cover": {
+   "src": "assets/projets/polaris.webp",
+   "w": 1500,
+   "h": 1500
+  }
+ },
+ {
+  "slug": "green-finance",
+  "titre": "Green Finance",
+  "annee": null,
+  "cadre": "Projet professionnel",
+  "client": "Clauger Group",
+  "disciplines": [
+   "Logotype"
+  ],
+  "accroche": "Logotype de Green Finance by Clauger.",
+  "texte": [
+   "Le signe trace une initiale ouverte d’où s’échappe une feuille : un dessin simple qui associe le registre financier à l’engagement environnemental. Le logotype existe en version horizontale et verticale, en couleur et en monochrome, avec la signature « by Clauger »."
+  ],
+  "livrables": [
+   "Logotype horizontal et vertical",
+   "Déclinaisons couleur et monochrome"
+  ],
+  "brouillon": true,
+  "cover": {
+   "src": "assets/projets/green-finance.webp",
+   "w": 1013,
+   "h": 1500
+  }
+ },
+ {
+  "slug": "process-3d",
+  "titre": "Process industriels",
+  "annee": null,
+  "cadre": "Projet professionnel",
+  "client": "Clauger",
+  "disciplines": [
+   "Illustration 3D",
+   "Infographie"
+  ],
+  "accroche": "Illustrations isométriques des lignes de production en boulangerie et viennoiserie industrielles.",
+  "texte": [
+   "Chaque usine est modélisée en vue isométrique, de la réception des matières premières au conditionnement. Les réseaux de froid et de chaleur sont différenciés par la couleur, pour rendre lisible ce qui reste habituellement invisible.",
+   "Les vues servent de base à des planches légendées qui situent, étape par étape, les solutions de Clauger dans le process."
+  ],
+  "livrables": [
+   "Modélisation 3D",
+   "Rendus isométriques",
+   "Planches légendées"
+  ],
+  "brouillon": true,
+  "cover": {
+   "src": "assets/projets/process-3d.webp",
+   "w": 1500,
+   "h": 844
+  }
+ },
+ {
+  "slug": "cta",
+  "titre": "Centrale de traitement d’air",
+  "annee": null,
+  "cadre": "Projet professionnel",
+  "client": "Clauger",
+  "disciplines": [
+   "Illustration 3D"
+  ],
+  "accroche": "Rendus 3D d’une centrale de traitement d’air.",
+  "texte": [
+   "Modélisation de l’équipement et série de rendus : vue isométrique d’ensemble, coupes et vue de dessus. Les parois s’effacent pour montrer l’agencement interne des composants et le parcours de l’air."
+  ],
+  "livrables": [
+   "Modélisation 3D",
+   "Vue isométrique",
+   "Coupes",
+   "Vue de dessus"
+  ],
+  "brouillon": true,
+  "cover": {
+   "src": "assets/projets/cta.webp",
+   "w": 1500,
+   "h": 844
+  }
+ },
+ {
+  "slug": "voyage-a-nantes",
+  "titre": "Voyage à Nantes",
+  "annee": 2023,
+  "cadre": "Projet d’études",
+  "client": "Le Voyage à Nantes",
+  "disciplines": [
+   "Identité visuelle",
+   "Branding",
+   "Web"
+  ],
+  "accroche": "Refonte de l’identité de l’office de tourisme nantais, construite autour d’une hermine héraldique redessinée.",
+  "texte": [
+   "Le Voyage à Nantes disposait d’une communication fonctionnelle, mais qui ne portait pas les valeurs de la ville. Le projet propose une identité plus affirmée et plus signifiante.",
+   "Le logotype s’appuie sur l’hermine du blason de Nantes, redessinée pour en faire un insigne contemporain. Son centre devient une cible qui désigne les lieux et les événements culturels. La palette reprend le vert de la ligne qui guide aujourd’hui les visiteurs à travers la ville.",
+   "Sur le web, le logo se décompose et structure l’interface : l’hermine devient barre de progression, le cercle devient menu, et le clin d’œil du signe sert d’indicateur d’interaction."
+  ],
+  "livrables": [
+   "Logotype et grille de construction",
+   "Éléments graphiques",
+   "Papeterie",
+   "Site web",
+   "E-billets",
+   "Affiches"
+  ],
+  "cover": {
+   "src": "assets/projets/voyage-a-nantes.webp",
+   "w": 1500,
+   "h": 932
+  }
+ },
+ {
+  "slug": "eiffel-phaidon",
+  "titre": "Eiffel",
+  "annee": 2023,
+  "cadre": "Projet d’études",
+  "client": "ADGE × Éditions Phaidon",
+  "disciplines": [
+   "Édition"
+  ],
+  "accroche": "Monographie en deux tomes consacrée à l’œuvre de Gustave Eiffel.",
+  "texte": [
+   "Commande de l’Association des Descendants de Gustave Eiffel pour les éditions Phaidon : rendre hommage à un ingénieur souvent éclipsé par son ouvrage le plus célèbre.",
+   "Le fer, matériau central de son œuvre, guide le parti pris. La conception du livre est pensée comme une construction : une grille apparente et évolutive structure les pages, comme l’ossature d’un ouvrage métallique.",
+   "Deux tomes au format A4, matériaux bruts et reliure bodonienne. Couvertures imprimées en quadrichromie UV, intérieur en quadrichromie sur papier Clairefontaine DCP ivoire."
+  ],
+  "livrables": [
+   "Deux tomes",
+   "Couvertures",
+   "Mise en page intérieure"
+  ],
+  "cover": {
+   "src": "assets/projets/eiffel-phaidon.webp",
+   "w": 1125,
+   "h": 1500
+  }
+ },
+ {
+  "slug": "artefact-bnf",
+  "titre": "Artefact",
+  "annee": 2023,
+  "cadre": "Projet d’études — fin de cycle",
+  "client": "Bibliothèque nationale de France",
+  "disciplines": [
+   "Identité visuelle",
+   "Branding",
+   "Direction artistique"
+  ],
+  "accroche": "Identité d’une exposition sur l’art numérique, pensée comme un lieu de rencontre entre les générations.",
+  "texte": [
+   "La BnF souhaite accueillir une exposition sur l’art numérique accessible à tous les publics, sans simplifier la richesse et la complexité de son histoire.",
+   "Le concept repose sur le double sens du mot artefact : objet façonné par l’homme d’un côté, erreur incontrôlée du signal numérique de l’autre. Le logotype et l’ensemble du système graphique jouent de cette tension.",
+   "Les compositions s’organisent selon une trame de pixels. Chaque pixel correspond à une parcelle de l’exposition ; la communication est découpée et remise gratuitement aux visiteurs sous forme de NFT, qui ouvrent l’accès à un merchandising personnalisé.",
+   "Deux systèmes colorimétriques coexistent sans se contraindre : RVB pour le numérique, une teinte CMJN pour l’imprimé. Sur place comme en ligne, des ateliers permettent de composer sa propre affiche à partir de grilles prédéfinies."
+  ],
+  "livrables": [
+   "Logotype",
+   "Affiches",
+   "Billets",
+   "Flyers",
+   "Réseaux sociaux",
+   "NFT",
+   "Merchandising"
+  ],
+  "cover": {
+   "src": "assets/projets/artefact-bnf.webp",
+   "w": 1061,
+   "h": 1500
+  }
+ },
+ {
+  "slug": "festival-lumiere-tim-burton",
+  "titre": "Festival Lumière — Tim Burton",
+  "annee": 2023,
+  "cadre": "Projet d’études",
+  "client": "Festival Lumière",
+  "disciplines": [
+   "Identité visuelle",
+   "Direction artistique"
+  ],
+  "accroche": "Direction artistique de l’édition 2022 du Festival Lumière, consacrée à Tim Burton.",
+  "texte": [
+   "Le projet redéfinit l’identité de l’édition 2022 pour la rapprocher de l’univers de son lauréat, Tim Burton.",
+   "Les visuels convoquent ses personnages emblématiques dans une atmosphère sombre et brumeuse. Le logotype du festival est lui-même réinterprété dans cet univers."
+  ],
+  "livrables": [
+   "Affiches",
+   "Affiche 4×3",
+   "Flyer",
+   "Billets"
+  ],
+  "cover": {
+   "src": "assets/projets/festival-lumiere-tim-burton.webp",
+   "w": 1500,
+   "h": 1061
+  }
+ },
+ {
+  "slug": "musee-science-fiction",
+  "titre": "Musée de la Science-Fiction",
+  "annee": 2023,
+  "cadre": "Projet d’études",
+  "client": "Musée de la Science-Fiction",
+  "disciplines": [
+   "Identité visuelle",
+   "Branding",
+   "Typographie"
+  ],
+  "accroche": "Une identité fondée sur le déchiffrement, portée par un caractère typographique dessiné pour l’occasion.",
+  "texte": [
+   "L’identité repose sur un jeu de langage : les lettres d’un caractère créé sur mesure pivotent à 45°, obligeant le regard à décoder.",
+   "Le logotype applique le même principe et se décline en version horizontale ou en bloc."
+  ],
+  "livrables": [
+   "Caractère typographique",
+   "Logotype",
+   "Billet",
+   "Affiches",
+   "Flyer",
+   "Papeterie"
+  ],
+  "cover": {
+   "src": "assets/projets/musee-science-fiction.webp",
+   "w": 1500,
+   "h": 1000
+  }
+ },
+ {
+  "slug": "le-1-cambodge",
+  "titre": "Le 1 — Cambodge",
+  "annee": 2022,
+  "cadre": "Projet d’études",
+  "client": "Le 1",
+  "disciplines": [
+   "Édition"
+  ],
+  "accroche": "Numéro spécial de l’hebdomadaire Le 1 consacré au Cambodge.",
+  "texte": [
+   "Journal au format A1 imprimé recto verso. L’imposition est pensée pour que la lecture se déploie au fil des pliages, de l’A4 à l’A1, et que le verso devienne une affiche."
+  ],
+  "livrables": [
+   "Journal A1 recto verso",
+   "Poster"
+  ],
+  "cover": {
+   "src": "assets/projets/le-1-cambodge.webp",
+   "w": 1038,
+   "h": 1500
+  }
+ },
+ {
+  "slug": "cornand",
+  "titre": "Cornand",
+  "annee": 2022,
+  "cadre": "Projet d’études",
+  "client": "Cornand",
+  "disciplines": [
+   "Packaging"
+  ],
+  "accroche": "Gamme de packaging pour une marque de pâtes haut de gamme aux saveurs inattendues.",
+  "texte": [
+   "Cornand cherchait un packaging plus responsable, à la hauteur du positionnement premium de ses produits. Le projet décline une gamme cohérente sur l’ensemble des références."
+  ],
+  "livrables": [
+   "Gamme de packaging"
+  ],
+  "cover": {
+   "src": "assets/projets/cornand.webp",
+   "w": 1500,
+   "h": 1000
+  }
+ },
+ {
+  "slug": "deserts",
+  "titre": "Déserts ?",
+  "annee": 2022,
+  "cadre": "Projet d’études",
+  "client": "Cap Sciences",
+  "disciplines": [
+   "Identité visuelle"
+  ],
+  "accroche": "Identité d’une exposition sur les biomes désertiques, construite sur le principe de la découverte.",
+  "texte": [
+   "L’exposition révèle la diversité des déserts et déconstruit les idées reçues à leur sujet. La communication reprend cette logique : chaque support se dévoile progressivement."
+  ],
+  "livrables": [
+   "Affiches",
+   "Billets",
+   "Affiche 4×3"
+  ],
+  "cover": {
+   "src": "assets/projets/deserts.webp",
+   "w": 1059,
+   "h": 1500
+  }
+ },
+ {
+  "slug": "anamosa-silence",
+  "titre": "Silence !",
+  "annee": 2022,
+  "cadre": "Projet d’études",
+  "client": "Éditions Anamosa",
+  "disciplines": [
+   "Édition"
+  ],
+  "accroche": "Collection de trois ouvrages autour de la notion de silence.",
+  "texte": [
+   "Première et quatrième de couverture s’échangent en plusieurs fragments. La lecture devient difficile, parfois impossible, et impose la manipulation de l’objet."
+  ],
+  "livrables": [
+   "Collection de trois livres"
+  ],
+  "cover": {
+   "src": "assets/projets/anamosa-silence.webp",
+   "w": 1500,
+   "h": 1125
+  }
+ },
+ {
+  "slug": "upcycling-festival",
+  "titre": "Upcycling Festival",
+  "annee": 2022,
+  "cadre": "Projet d’études",
+  "client": "Festival de l’Upcycling",
+  "disciplines": [
+   "Identité visuelle"
+  ],
+  "accroche": "Une identité qui applique au festival le principe qu’il défend.",
+  "texte": [
+   "Les supports sont imprimés sur des chutes de supports de communication destinées à la destruction. Une trame recouvre les informations d’origine et les rend illisibles."
+  ],
+  "livrables": [
+   "Billets",
+   "Affiches",
+   "Flyers"
+  ],
+  "cover": {
+   "src": "assets/projets/upcycling-festival.webp",
+   "w": 1500,
+   "h": 1187
+  }
+ },
+ {
+  "slug": "packshot-nepal",
+  "titre": "Packshot — Népal",
+  "annee": null,
+  "cadre": "Projet d’études — workshop",
+  "client": null,
+  "disciplines": [
+   "Photographie"
+  ],
+  "accroche": "Traduire un morceau en une composition photographique.",
+  "texte": [
+   "Workshop : mettre en image un titre ou un album par une composition photographique. Morceau retenu : « Lemonade », Népal."
+  ],
+  "livrables": [
+   "Série photographique"
+  ],
+  "cover": {
+   "src": "assets/projets/packshot-nepal.webp",
+   "w": 1500,
+   "h": 1000
+  }
+ },
+ {
+  "slug": "book-2023",
+  "titre": "Book 2023",
+  "annee": 2023,
+  "cadre": "Projet professionnel / personnel",
+  "client": "Autopromotion",
+  "disciplines": [
+   "Édition"
+  ],
+  "accroche": "Book imprimé de fin de cursus.",
+  "texte": [
+   "Cinq projets présentés en détail, de l’intention à la réalisation."
+  ],
+  "livrables": [
+   "Book imprimé"
+  ],
+  "cover": {
+   "src": "assets/projets/book-2023.webp",
+   "w": 1125,
+   "h": 1500
+  }
+ },
+ {
+  "slug": "la-grande-famille",
+  "titre": "La Grande Famille",
+  "annee": null,
+  "cadre": "Projet d’études",
+  "client": "LU",
+  "disciplines": [
+   "Identité visuelle",
+   "Branding"
+  ],
+  "accroche": "Identité de la gamme artisanale haut de gamme de LU.",
+  "texte": [
+   "Le brief imposait une rupture totale avec la marque mère : aucun code graphique de LU n’est repris.",
+   "Le logotype associe une empreinte à un monogramme LGF aux formes assouplies."
+  ],
+  "livrables": [
+   "Logotype",
+   "Identité visuelle"
+  ],
+  "cover": {
+   "src": "assets/projets/la-grande-famille.webp",
+   "w": 1500,
+   "h": 1067
+  }
+ },
+ {
+  "slug": "obi",
+  "titre": "OBI",
+  "annee": null,
+  "cadre": "Projet professionnel / personnel",
+  "client": "OBI",
+  "disciplines": [
+   "Direction artistique",
+   "Pochettes"
+  ],
+  "accroche": "Pochettes du premier album et du dernier EP de l’artiste OBI.",
+  "texte": [
+   "Deux pochettes pour le rappeur et chanteur OBI : son premier album, Oublier, et son dernier EP."
+  ],
+  "livrables": [
+   "Pochette d’album",
+   "Pochette d’EP"
+  ],
+  "cover": {
+   "src": "assets/projets/obi.webp",
+   "w": 1500,
+   "h": 1500
+  }
+ },
+ {
+  "slug": "mtgmb",
+  "titre": "MTGMB",
+  "annee": null,
+  "cadre": "Projet professionnel / personnel",
+  "client": "Aux Bons Sauvages",
+  "disciplines": [
+   "Identité visuelle",
+   "Direction artistique"
+  ],
+  "accroche": "Supports de communication d’un événement rap lyonnais dédié aux artistes émergents.",
+  "texte": [
+   "Direction artistique et déclinaison des supports pour les deux premières éditions de l’événement."
+  ],
+  "livrables": [
+   "Édition 1",
+   "Édition 2"
+  ],
+  "cover": {
+   "src": "assets/projets/mtgmb.webp",
+   "w": 1080,
+   "h": 1080
+  }
+ },
+ {
+  "slug": "lucette-specimen",
+  "titre": "Lucette",
+  "annee": null,
+  "cadre": "Projet d’études",
+  "client": "Yann Linguinou",
+  "disciplines": [
+   "Édition",
+   "Typographie"
+  ],
+  "accroche": "Spécimen du caractère Lucette, dessiné par Yann Linguinou.",
+  "texte": [
+   "Conception et mise en page du spécimen typographique du caractère Lucette."
+  ],
+  "livrables": [
+   "Spécimen typographique"
+  ],
+  "cover": {
+   "src": "assets/projets/lucette-specimen.webp",
+   "w": 1500,
+   "h": 1254
+  }
+ },
+ {
+  "slug": "typographie-lumiere",
+  "titre": "Typographie & Lumière",
+  "annee": null,
+  "cadre": "Projet d’études — workshop",
+  "client": null,
+  "disciplines": [
+   "Typographie",
+   "Workshop"
+  ],
+  "accroche": "Un parcours typographique qui ne se lit qu’à la lumière.",
+  "texte": [
+   "Contrainte du workshop : faire intervenir la lumière dans un dispositif typographique. Le projet prend la forme d’un jeu de piste : les participants utilisent des réglettes conçues pour l’occasion afin de révéler un message dissimulé.",
+   "Un QR code donne accès aux règles du jeu."
+  ],
+  "livrables": [
+   "Parcours typographique",
+   "Réglettes"
+  ],
+  "cover": {
+   "src": "assets/projets/typographie-lumiere.webp",
+   "w": 1500,
+   "h": 1000
+  }
+ },
+ {
+  "slug": "fablab",
+  "titre": "Fabrique d’Objets Libres",
+  "annee": 2023,
+  "cadre": "Projet d’études",
+  "client": "Fabrique d’Objets Libres",
+  "disciplines": [
+   "Affiche",
+   "Photographie"
+  ],
+  "accroche": "Série d’affiches photographiques pour le FabLab lyonnais.",
+  "texte": [
+   "Campagne d’affiches photographiques pour la promotion de la Fabrique d’Objets Libres."
+  ],
+  "livrables": [
+   "Série d’affiches"
+  ],
+  "cover": {
+   "src": "assets/projets/fablab.webp",
+   "w": 1061,
+   "h": 1500
+  }
+ },
+ {
+  "slug": "fenetre-sur-rue",
+  "titre": "Fenêtre sur rue",
+  "annee": null,
+  "cadre": "À confirmer",
+  "client": null,
+  "disciplines": [
+   "Édition"
+  ],
+  "accroche": "Une édition qui se lit comme on regarde une façade.",
+  "texte": [
+   "La couverture est percée de bandes horizontales, comme autant de fenêtres. Le texte imprimé en surface alterne avec les images qui apparaissent dans les découpes, en bleu d’un côté, en rouge de l’autre.",
+   "Une bande de papier noir ceinture l’ouvrage et en partage la lecture en deux parties."
+  ],
+  "livrables": [
+   "Édition",
+   "Couverture découpée",
+   "Bande"
+  ],
+  "brouillon": true,
+  "cover": {
+   "src": "assets/projets/fenetre-sur-rue.webp",
+   "w": 1500,
+   "h": 1303
+  }
+ }
+]
