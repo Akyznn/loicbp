@@ -305,6 +305,26 @@
     .hint span { display: inline-block; animation: nudge 1.6s ease-in-out infinite; }
     body.moved .hint { opacity: 0; }
     @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+    .views { display: inline-flex; gap: 1.2rem; flex: none; }
+    .views button {
+      background: none; border: 0; padding: 0.4em 0; font: inherit; letter-spacing: inherit; text-transform: inherit;
+      color: inherit; cursor: none; opacity: 0.5; border-bottom: 1px solid transparent; transition: opacity 0.25s ease, border-color 0.25s ease;
+    }
+    .views button:hover, .views button:focus-visible { opacity: 0.85; outline: none; }
+    .views button[aria-pressed="true"] { opacity: 1; border-bottom-color: var(--ink); }
+
+    /* ── Vue Galerie : colonnes, proportions naturelles de chaque image ── */
+    .grid { display: none; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 1.2rem var(--gutter) 1.5rem; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+    body.view-grid .grid { display: block; }
+    body.view-grid .rail { display: none; }
+    body.view-grid .hint { display: none; }
+    .gcols { column-count: 3; column-gap: var(--gap); }
+    .card.gi { display: block; width: auto; break-inside: avoid; margin-bottom: clamp(1.4rem, 3vw, 2.4rem); }
+    .gi .media { height: auto; aspect-ratio: var(--ar); }
+    .gi .cap { height: auto; min-height: var(--cap-h); }
+    @media (max-width: 1100px) { .gcols { column-count: 2; } }
+    @media (max-width: 560px)  { .gcols { column-count: 1; } }
+    @media (hover: none) { .views button { cursor: auto; } }
     @keyframes tick  { from { transform: translateY(70%); opacity: 0; } to { transform: none; opacity: 1; } }
     @keyframes nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(6px); } }
 
@@ -449,10 +469,16 @@
     <div class="track" id="track"></div>
   </main>
 
+  <section class="grid" id="grid" aria-label="Galerie des projets"><div class="gcols" id="gcols"></div></section>
+
   <footer class="hud" id="hud">
     <span class="count" aria-live="polite"><b id="count">01 / 25</b></span>
     <div class="bar" aria-hidden="true"><i id="bar"></i></div>
     <span class="hint">Faire défiler <span aria-hidden="true">→</span></span>
+    <div class="views" role="group" aria-label="Mode d'affichage">
+      <button type="button" id="v-rail" data-ants aria-pressed="true">Bande</button>
+      <button type="button" id="v-grid" data-ants aria-pressed="false">Galerie</button>
+    </div>
   </footer>
 
   <div class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="pn-t" hidden>
@@ -578,10 +604,10 @@
     countEl.textContent = '01 / ' + pad2(N);
 
     /* ── Cartes ── */
-    track.innerHTML = data.map((p, i) => {
+    const tpl = (p, i, cls, arMax) => {
       const contain = p.cover.fit === 'contain';
-      const ar = contain ? 1.7 : clamp(p.cover.w / p.cover.h, 0.62, 1.6);
-      return '<article class="card" data-i="' + i + '" style="--ar:' + ar.toFixed(3) + '">' +
+      const ar = contain ? (cls ? 1.3 : 1.7) : clamp(p.cover.w / p.cover.h, 0.62, arMax);
+      return '<article class="card' + cls + '" data-i="' + i + '" style="--ar:' + ar.toFixed(3) + '">' +
         '<button class="media" type="button" data-ants aria-label="Ouvrir le projet ' + esc(p.titre) + '">' +
           '<div class="par"><img src="' + esc(p.cover.src) + '" alt="' + esc(p.titre) + '" width="' + p.cover.w + '" height="' + p.cover.h + '"' +
           (i < 4 ? '' : ' loading="lazy"') + ' decoding="async" draggable="false"' + (contain ? ' class="contain"' : '') + '></div>' +
@@ -590,7 +616,16 @@
           '<p class="cap-m">' + esc(p.disciplines.join(' / ')) + '</p></div>' +
           '<span class="cap-y">' + (p.annee || '') + '</span></div>' +
       '</article>';
-    }).join('');
+    };
+    track.innerHTML = data.map((p, i) => tpl(p, i, '', 1.6)).join('');
+    const gcols = document.getElementById('gcols'), gridEl = document.getElementById('grid');
+    gcols.innerHTML = data.map((p, i) => tpl(p, i, ' gi', 1.85)).join('');
+    const gcards = [...gcols.children];
+    gcards.forEach(c => {
+      const img = c.querySelector('img');
+      const ok = () => img.classList.add('ok');
+      img.complete && img.naturalWidth ? ok() : img.addEventListener('load', ok, { once: true });
+    });
 
     const cards = [...track.children];
     const pars  = cards.map(c => c.querySelector('.par'));
@@ -627,10 +662,12 @@
     measure();
 
     /* ── Défilement fluide : molette verticale → horizontal, glisser, clavier ── */
+    let view = 'rail';
     let tx = 0, cx = 0, lastSet = 0, running = false, lastT = 0, panelOpen = false;
     const setScroll = v => { lastSet = v; rail.scrollLeft = v; };
 
     function visuals() {
+      if (view === 'grid') return;
       const sl = rail.scrollLeft, vw = rail.clientWidth, mid = sl + vw / 2;
       const p = maxScroll ? clamp(sl / maxScroll, 0, 1) : 0;
       bar.style.setProperty('--p', p.toFixed(4));
@@ -674,7 +711,7 @@
     }, { passive: true });
 
     window.addEventListener('wheel', e => {
-      if (panelOpen) return;
+      if (panelOpen || view === 'grid') return;
       e.preventDefault();
       let d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
       if (e.deltaMode === 1) d *= 32;
@@ -715,6 +752,7 @@
     rail.addEventListener('click', e => { if (dragged) { e.stopPropagation(); e.preventDefault(); } }, true);
 
     const centerOn = (i, instant) => {
+      if (view === 'grid') { gcards[i].scrollIntoView({ block: 'center' }); return; }
       const v = clamp(lefts[i] + widths[i] / 2 - rail.clientWidth / 2, 0, maxScroll);
       if (instant) { tx = cx = v; setScroll(v); visuals(); } else to(v);
     };
@@ -743,16 +781,9 @@
     }
     const Z = { x: 0, y: 0, rx: 0, ry: 0 };
     let hov = null;
-    if (false) {
+    if (!reduce && matchMedia('(hover: hover)').matches) {
       window.addEventListener('pointermove', e => {
-        if (e.pointerType !== 'mouse') return;
-        if (panelOpen) {
-          [$('pn-close'), $('pn-prev'), $('pn-next')].forEach(b => {
-            const r = b.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
-            magSet(b, Math.hypot(dx, dy) < 90 ? { x: dx * 0.35, y: dy * 0.35, rx: 0, ry: 0 } : Z);
-          });
-          return;
-        }
+        if (e.pointerType !== 'mouse' || panelOpen) return;
         const m = drag && dragged ? null : e.target.closest && e.target.closest('.media');
         if (hov && hov !== m) { magSet(hov, Z); hov = null; }
         if (m) {
@@ -762,13 +793,14 @@
           hov = m;
         }
       });
-      rail.addEventListener('pointerleave', () => { if (hov) { magSet(hov, Z); hov = null; } });
+      [rail, gridEl].forEach(el => el.addEventListener('pointerleave', () => { if (hov) { magSet(hov, Z); hov = null; } }));
     }
 
     /* ── Fiche projet ── */
     const panel = document.getElementById('panel');
     const $ = id => document.getElementById(id);
-    const inertEls = [document.querySelector('.site-header'), rail, $('hud')];
+    const inertEls = [document.querySelector('.site-header'), rail, gridEl, $('hud')];
+    const cur_cards = () => view === 'grid' ? gcards : cards;
     let cur = 0, opener = null, closing = false;
 
     function fill(i) {
@@ -791,7 +823,7 @@
 
     function openPanel(i) {
       if (panelOpen) return;
-      cur = i; opener = cards[i].querySelector('.media');
+      cur = i; opener = cur_cards()[i].querySelector('.media');
       fill(i);
       panelOpen = true; closing = false;
       panel.hidden = false;
@@ -815,8 +847,8 @@
       if (!panelOpen || closing) return;
       closing = true;
       centerOn(cur, true);                                           // la carte courante est visible pour le retour
-      opener = cards[cur].querySelector('.media');
-      panel.classList.add('closing'); [$('pn-close'), $('pn-prev'), $('pn-next')].forEach(b => magSet(b, Z));
+      opener = cur_cards()[cur].querySelector('.media');
+      panel.classList.add('closing');
       const done = () => {
         panel.classList.remove('open', 'closing');
         panel.hidden = true; panelOpen = false; closing = false;
@@ -840,6 +872,10 @@
       $('pn-body').querySelectorAll('.rv').forEach(el => { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; });
     }
 
+    gcols.addEventListener('click', e => {
+      const m = e.target.closest('.media');
+      if (m) openPanel(+m.closest('.card').dataset.i);
+    });
     track.addEventListener('click', e => {
       const m = e.target.closest('.media');
       if (m) openPanel(+m.closest('.card').dataset.i);
@@ -861,11 +897,48 @@
         }
         return;
       }
+      if (view === 'grid') return;
       if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); to(tx + rail.clientWidth * 0.6); }
       else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); to(tx - rail.clientWidth * 0.6); }
       else if (e.key === 'Home') { e.preventDefault(); to(0); }
       else if (e.key === 'End')  { e.preventDefault(); to(maxScroll); }
     });
+
+    /* ── Bascule Bande / Galerie ── */
+    const vb = { rail: $('v-rail'), grid: $('v-grid') };
+    const gio = new IntersectionObserver(entries => {
+      let rank = 0;
+      entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top || a.boundingClientRect.left - b.boundingClientRect.left).forEach(e => {
+        const c = e.target; gio.unobserve(c);
+        c.style.setProperty('--rd', (rank++ * 0.06) + 's');
+        c.classList.add('in');
+        setTimeout(() => c.classList.add('done'), 1300 + rank * 60);
+      });
+    }, { root: gridEl, threshold: 0.05 });
+    function gridHud() {
+      const max = gridEl.scrollHeight - gridEl.clientHeight;
+      bar.style.setProperty('--p', (max > 0 ? clamp(gridEl.scrollTop / max, 0, 1) : 0).toFixed(4));
+    }
+    gridEl.addEventListener('scroll', gridHud, { passive: true });
+    function setView(v, save) {
+      if (v === view) return;
+      view = v;
+      document.body.classList.toggle('view-grid', v === 'grid');
+      vb.rail.setAttribute('aria-pressed', v === 'rail');
+      vb.grid.setAttribute('aria-pressed', v === 'grid');
+      if (save) { try { localStorage.setItem('loicbp_view', v); } catch (e) {} }
+      if (v === 'grid') {
+        countEl.textContent = pad2(N) + ' projets';
+        gcards.forEach(c => { c.classList.remove('in', 'done'); gio.observe(c); });
+        gridEl.scrollTop = 0; gridHud();
+      } else {
+        countEl.textContent = '';
+        measure(); visuals();
+      }
+    }
+    vb.rail.addEventListener('click', () => setView('rail', true));
+    vb.grid.addEventListener('click', () => setView('grid', true));
+    try { if (localStorage.getItem('loicbp_view') === 'grid') setView('grid'); } catch (e) {}
 
     visuals();
   })();
