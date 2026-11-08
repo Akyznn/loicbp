@@ -660,7 +660,7 @@
       setScroll(cx);
       // la bande se penche selon la vitesse puis revient en ressort : sensation d'élasticité
       const vel = cx - prevCx; prevCx = cx;
-      sv += ((reduce ? 0 : clamp(-vel * 0.11, -5, 5)) - sv) * 0.22;
+      sv = 0;
       track.style.transform = Math.abs(sv) > 0.02 ? 'skewX(' + sv.toFixed(2) + 'deg)' : '';
       visuals();
       if (cx !== tx || Math.abs(sv) > 0.02) requestAnimationFrame(loop); else running = false;
@@ -678,9 +678,7 @@
       e.preventDefault();
       let d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
       if (e.deltaMode === 1) d *= 32;
-      if (snapT === null) gStart = nearest(tx);
       to(tx + d);
-      armSnap();
     }, { passive: false });
 
     /* ── Aimant : quand le geste s'arrête, la bande se cale sur le projet le plus proche (ou le suivant si on a franchi un seuil) ── */
@@ -713,7 +711,7 @@
       if (Math.abs(dx) > 6) dragged = true;
       if (dragged) to(drag.tx - dx);
     });
-    window.addEventListener('pointerup', () => { if (drag && dragged) { drag = null; snapNow(); } drag = null; setTimeout(() => dragged = false, 0); });
+    window.addEventListener('pointerup', () => {  drag = null; setTimeout(() => dragged = false, 0); });
     rail.addEventListener('click', e => { if (dragged) { e.stopPropagation(); e.preventDefault(); } }, true);
 
     const centerOn = (i, instant) => {
@@ -745,7 +743,7 @@
     }
     const Z = { x: 0, y: 0, rx: 0, ry: 0 };
     let hov = null;
-    if (!reduce && matchMedia('(hover: hover)').matches) {
+    if (false) {
       window.addEventListener('pointermove', e => {
         if (e.pointerType !== 'mouse') return;
         if (panelOpen) {
