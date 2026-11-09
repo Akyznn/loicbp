@@ -2,7 +2,7 @@
    Calé sur la grille du damier (--check). Souris uniquement, désactivé si "réduire les animations". */
 (function () {
   if (!matchMedia('(hover: hover) and (pointer: fine)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const TRAIL = 4, FADE = 450, COLOR = '42, 61, 255', MAXA = 0.45;
+  const TRAIL = 4, FADE = 450, COLOR = '42, 61, 255', MAXA = 0.8;
   const cv = document.createElement('canvas');
   cv.setAttribute('aria-hidden', 'true');
   cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none';
@@ -33,12 +33,13 @@
   }
   addEventListener('pointermove', e => {
     if (e.pointerType !== 'mouse') return;
-    const cx = Math.floor(e.clientX / S), cy = Math.floor(e.clientY / S);
+    const cx = Math.floor((e.clientX + scrollX) / S), cy = Math.floor((e.clientY + scrollY) / S);   // coordonnées de page : la grille suit le damier quand la page défile
     if (!last) { push(cx, cy); }
     else if (cx !== last[0] || cy !== last[1]) line(last[0], last[1], cx, cy);
     last = [cx, cy]; lastMove = performance.now();
     if (!raf) raf = requestAnimationFrame(draw);
   }, { passive: true });
+  addEventListener('scroll', () => { if (cells.length && !raf) raf = requestAnimationFrame(draw); }, { passive: true });
   document.addEventListener('mouseleave', () => { last = null; });
   document.addEventListener('visibilitychange', () => { cells = []; last = null; });
 
@@ -49,7 +50,7 @@
     for (let i = 0; i < n; i++) {
       const a = ((i + 1) / n) * MAXA * (1 - idle);                        // le plus ancien est le plus pâle
       ctx.fillStyle = 'rgba(' + COLOR + ',' + a.toFixed(3) + ')';
-      ctx.fillRect(cells[i][0] * S, cells[i][1] * S, S, S);
+      ctx.fillRect(cells[i][0] * S - scrollX, cells[i][1] * S - scrollY, S, S);
     }
     if (idle < 1) raf = requestAnimationFrame(draw); else { raf = 0; cells = []; }
   }
