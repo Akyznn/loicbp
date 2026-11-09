@@ -7,15 +7,13 @@
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Piazzolla:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
   <title>lbp — index2</title>
   <meta name="description" content="Loïc BP — portfolio de design graphique : identités visuelles, éditions, direction artistique." />
   <script src="gate.js"></script>
   <style>
-    @font-face {
-      font-family: 'BIZ UDKerned';
-      src: url('assets/fonts/BIZUDkerned-Regular.woff') format('woff');
-      font-weight: 400; font-style: normal; font-display: swap;
-    }
     *, *::before, *::after {
       margin: 0; padding: 0; box-sizing: border-box;
     }
@@ -50,7 +48,7 @@
       0 0;
     background-repeat: repeat, repeat;
       color: var(--ink);
-      font-family: 'BIZ UDKerned', 'BIZ UDPGothic', system-ui, sans-serif;
+      font-family: 'Piazzolla', serif;
       min-height: 100vh;
       user-select: none;
     }
@@ -270,10 +268,10 @@
       transition: background-size 0.2s ease-out;
     }
     .cap-m, .cap-y {
-      font-size: clamp(0.66rem, 1.05vw, 0.78rem);
+      font-size: clamp(0.6rem, 1vw, 0.72rem);
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      font-style: normal;
+      font-style: italic;
     }
     .cap-m { margin-top: 0.35rem; opacity: 0.55; }
     .cap-y { flex: none; opacity: 0.55; padding-top: 0.25em; }
@@ -291,10 +289,10 @@
       align-items: center;
       gap: 1.4rem;
       padding: 0.9rem var(--gutter) clamp(0.9rem, 2.4vh, 1.5rem);
-      font-size: clamp(0.66rem, 1.05vw, 0.78rem);
+      font-size: clamp(0.6rem, 1vw, 0.72rem);
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      font-style: normal;
+      font-style: italic;
       opacity: 0;
       animation: fadeUp 0.5s ease forwards 0.9s;
     }
@@ -378,10 +376,10 @@
       transition: opacity 0.3s ease calc(0.22s + var(--i, 0) * 0.045s), transform 0.4s var(--ease-out) calc(0.22s + var(--i, 0) * 0.045s);
     }
     .pn-meta, .pn-liv, .pn-nav, .pn-close {
-      font-size: clamp(0.66rem, 1.05vw, 0.78rem);
+      font-size: clamp(0.6rem, 1vw, 0.72rem);
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      font-style: normal;
+      font-style: italic;
     }
     .pn-meta { color: rgba(15, 15, 15, 0.6); }
     .pn-title-wrap { overflow: hidden; margin: 1.1rem 0 1.4rem; }
@@ -394,8 +392,8 @@
       clip-path: inset(0 100% 0 0);
     }
     .panel.open .pn-title { clip-path: inset(0 0 0 0); transition: clip-path 0.45s var(--ease-out) 0.22s; }
-    .pn-lead { font-size: clamp(1.25rem, 1.9vw, 1.7rem); line-height: 1.25; font-style: normal; margin-bottom: 1.6rem; max-width: 34ch; }
-    .pn-text p { font-size: clamp(1.1rem, 1.4vw, 1.32rem); line-height: 1.45; max-width: 46ch; margin-bottom: 1em; }
+    .pn-lead { font-size: clamp(1.25rem, 1.9vw, 1.7rem); line-height: 1.25; font-style: italic; margin-bottom: 1.6rem; max-width: 34ch; }
+    .pn-text p { font-size: clamp(1.02rem, 1.25vw, 1.2rem); line-height: 1.45; max-width: 46ch; margin-bottom: 1em; }
     .pn-liv { margin: 1.8rem 0 0; padding-top: 1.1rem; border-top: 1px solid var(--line); line-height: 1.9; color: rgba(15, 15, 15, 0.72); }
     .pn-nav { display: flex; align-items: center; gap: 1.4rem; margin-top: 2.2rem; }
     .pn-nav button, .pn-close {
