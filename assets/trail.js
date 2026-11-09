@@ -2,7 +2,7 @@
    Calé sur la grille du damier (--check). Souris uniquement, désactivé si "réduire les animations". */
 (function () {
   if (!matchMedia('(hover: hover) and (pointer: fine)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const TRAIL = 4, FADE = 380, COLOR = '42, 61, 255', MAXA = 0.16;
+  const TRAIL = 4, FADE = 450, COLOR = '42, 61, 255', MAXA = 0.45;
   const cv = document.createElement('canvas');
   cv.setAttribute('aria-hidden', 'true');
   cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none';
