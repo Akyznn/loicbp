@@ -8,12 +8,23 @@
   cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none';
   document.body.prepend(cv);
   const ctx = cv.getContext('2d');
+  /* Fiche projet (index2) : elle a son propre damier au-dessus de la page, on y ajoute un second calque */
+  const pn = document.getElementById('panel');
+  let cv2 = null, ctx2 = null;
+  if (pn) {
+    cv2 = document.createElement('canvas');
+    cv2.setAttribute('aria-hidden', 'true');
+    cv2.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none';
+    pn.prepend(cv2);
+    ctx2 = cv2.getContext('2d');
+  }
   let dpr = 1, W = 0, H = 0, S = 11;
   function size() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     W = innerWidth; H = innerHeight;
     cv.width = W * dpr; cv.height = H * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (cv2) { cv2.width = W * dpr; cv2.height = H * dpr; ctx2.setTransform(dpr, 0, 0, dpr, 0, 0); }
     S = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--check')) || 11;
   }
   size(); addEventListener('resize', size);
@@ -46,6 +57,8 @@
 
   function draw(now) {
     ctx.clearRect(0, 0, W, H);
+    const pOpen = pn && !pn.hidden;
+    if (cv2) ctx2.clearRect(0, 0, W, H);
     const o = document.documentElement.getBoundingClientRect(), ox = Math.round(o.left * dpr) / dpr, oy = Math.round(o.top * dpr) / dpr;
     const idle = Math.min(1, Math.max(0, (now - lastMove) / FADE));       // s'efface quand le curseur s'arrête
     const n = cells.length;
@@ -53,6 +66,7 @@
       const a = ((i + 1) / n) * MAXA * (1 - idle);                        // le plus ancien est le plus pâle
       ctx.fillStyle = 'rgba(' + COLOR + ',' + a.toFixed(3) + ')';
       ctx.fillRect(cells[i][0] * S + ox, cells[i][1] * S + oy, S, S);
+      if (pOpen) { ctx2.fillStyle = ctx.fillStyle; ctx2.fillRect(cells[i][0] * S + ox, cells[i][1] * S + oy, S, S); }
     }
     if (idle < 1) raf = requestAnimationFrame(draw); else { raf = 0; cells = []; }
   }
