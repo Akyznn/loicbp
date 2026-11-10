@@ -85,6 +85,11 @@ button{font:inherit}
 .part .dot{width:14px;height:14px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}
 .part .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
 .part .mt{font-size:11px;color:var(--dim);white-space:nowrap}
+.part .eye{background:none;border:0;padding:2px;color:var(--dim);cursor:pointer;display:flex;flex:none}
+.part .eye:hover{color:var(--text)}
+.part.off .nm,.part.off .dot,.part.off .mt{opacity:.4}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+.parts-tools{display:flex;gap:6px}
 .sub{border:1px solid var(--line-soft);border-radius:var(--r);padding:10px;display:flex;flex-direction:column;gap:9px;background:var(--bg)}
 .sub h3{margin:0;font-size:12px;font-weight:600}
 .hint{font-size:12px;color:var(--dim);margin:0}
@@ -164,6 +169,7 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
         <button class="btn" id="splitBtn" title="Sépare les morceaux non connectés en pièces distinctes">Séparer en pièces</button>
         <button class="btn" id="applyAll">Appliquer à tout</button>
       </div>
+      <div class="btns"><button class="btn" id="showAll">Tout afficher</button><button class="btn" id="soloBtn" title="N'affiche que la pièce sélectionnée">Isoler la sélection</button></div>
       <div id="matUI">
         <div class="group-title">Plastiques</div>
         <div class="chips" data-group="plastique"></div>
@@ -206,39 +212,53 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
           <div class="row"><label>Rugosité</label><input type="range" id="mRough" min="0" max="100"><output></output></div>
           <div class="row"><label>Transparence</label><input type="range" id="mTrans" min="0" max="100"><output></output></div>
           <div class="row" id="densRow"><label>Densité teinte</label><input type="range" id="mDens" min="0" max="100"><output></output></div>
-          <div class="group-title">Surface</div>
-          <div class="chips" id="surfChips"></div>
-          <div class="row" id="sAmpRow"><label>Relief</label><input type="range" id="sAmp" min="0" max="200"><output></output></div>
-          <div class="row" id="sScaleRow"><label>Échelle</label><input type="range" id="sScale" min="25" max="400"><output></output></div>
-          <div class="row" id="sLayerRow"><label>Couche (mm)</label><input type="range" id="sLayer" min="5" max="40"><output></output></div>
-          <div class="group-title">Imperfections</div>
-          <div class="row"><label>Traces de doigts</label><input type="range" id="iFp" min="0" max="100"><output></output></div>
-          <div class="row"><label>Rayures</label><input type="range" id="iScr" min="0" max="100"><output></output></div>
-          <div class="row"><label>Poussière</label><input type="range" id="iDust" min="0" max="100"><output></output></div>
-          <div class="row"><label>Échelle</label><input type="range" id="iScale" min="25" max="400"><output></output></div>
-          <button class="btn" id="reseed">Nouveau tirage des imperfections</button>
-          <div class="sub" style="background:var(--panel)">
-            <h3>Masques perso (PNG / SVG)</h3>
-            <span class="hint">Blanc = zone touchée, noir ou transparent = intacte. Plusieurs fichiers possibles.</span>
-            <div class="chips" id="mList"></div>
-            <button class="btn" id="cBtn">Ajouter des images…</button>
-            <input type="file" id="cFile" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" multiple hidden>
-            <div id="cOpts" class="hidden" style="display:flex;flex-direction:column;gap:9px">
-              <div class="row"><label>Disposition</label><select id="mLayout"><option value="scatter">Éparpillé aléatoire</option><option value="tile">Motif répété</option></select></div>
-              <div id="mScatter" style="display:flex;flex-direction:column;gap:9px">
-                <div class="row"><label>Nombre</label><input type="range" id="mCount" min="1" max="200"><output></output></div>
-                <div class="row"><label>Taille (mm)</label><input type="range" id="mSize" min="1" max="80"><output></output></div>
-                <div class="row"><label>Variation</label><input type="range" id="mVar" min="0" max="100"><output></output></div>
-                <label class="check"><input type="checkbox" id="mRot"> Rotation aléatoire</label>
+          <details class="adv" open><summary>Surface &amp; motif</summary><div>
+            <div class="chips" id="surfChips"></div>
+            <div class="row" id="sAmpRow"><label>Relief</label><input type="range" id="sAmp" min="0" max="200"><output></output></div>
+            <div class="row" id="sScaleRow"><label>Échelle</label><input type="range" id="sScale" min="25" max="400"><output></output></div>
+            <div class="row" id="sLayerRow"><label>Couche (mm)</label><input type="range" id="sLayer" min="5" max="40"><output></output></div>
+          </div></details>
+          <details class="adv"><summary>Usure &amp; poussière déposée</summary><div>
+            <div class="row"><label>Usure des arêtes</label><input type="range" id="wWear" min="0" max="100"><output></output></div>
+            <div class="row" id="wTypeRow"><label>Matière dessous</label><select id="wType">
+              <option value="auto">Auto (selon la matière)</option><option value="blanchi">Plastique blanchi</option>
+              <option value="metal">Métal mis à nu</option><option value="poli">Métal poli (plus brillant)</option>
+              <option value="appret">Apprêt gris</option><option value="laiton">Laiton</option><option value="sombre">Matière sombre</option></select></div>
+            <div class="row" id="wAngleRow"><label>Arêtes dès</label><input type="range" id="wAngle" min="8" max="80"><output></output></div>
+            <button class="btn" id="wSeedBtn">Nouveau tirage de l'usure</button>
+            <div class="row"><label>Poussière déposée</label><input type="range" id="wDust" min="0" max="100"><output></output></div>
+            <p class="hint">L'usure se forme sur les arêtes saillantes et les arrondis serrés, cassée par un bruit d'écaillage. La poussière se dépose sur les faces tournées vers le haut.</p>
+          </div></details>
+          <details class="adv"><summary>Imperfections</summary><div>
+            <div class="row"><label>Traces de doigts</label><input type="range" id="iFp" min="0" max="100"><output></output></div>
+            <div class="row"><label>Rayures</label><input type="range" id="iScr" min="0" max="100"><output></output></div>
+            <div class="row"><label>Voile poussiéreux</label><input type="range" id="iDust" min="0" max="100"><output></output></div>
+            <div class="row"><label>Échelle</label><input type="range" id="iScale" min="25" max="400"><output></output></div>
+            <button class="btn" id="reseed">Nouveau tirage des imperfections</button>
+          </div></details>
+          <details class="adv"><summary>Masques perso (calques)</summary><div>
+            <span class="hint">Chaque calque a ses images (PNG / SVG) et ses propres réglages. Blanc = zone touchée, noir ou transparent = intacte.</span>
+            <div class="chips" id="lList"></div>
+            <button class="btn" id="lAdd">+ Nouveau calque (choisir des images)…</button>
+            <input type="file" id="lFile" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" multiple hidden>
+            <div id="lOpts" class="hidden" style="display:flex;flex-direction:column;gap:9px">
+              <div class="row"><label>Disposition</label><select id="lLayout"><option value="scatter">Éparpillé aléatoire</option><option value="tile">Motif répété</option></select></div>
+              <div class="row" id="lDensRow"><label>Densité</label><input type="range" id="lDens" min="1" max="300"><output></output></div>
+              <div class="row"><label id="lSizeL">Taille (mm)</label><input type="range" id="lSize" min="1" max="150"><output></output></div>
+              <div id="lScatter" style="display:flex;flex-direction:column;gap:9px">
+                <div class="row"><label>Variation</label><input type="range" id="lVar" min="0" max="100"><output></output></div>
+                <label class="check"><input type="checkbox" id="lRot"> Rotation aléatoire</label>
               </div>
-              <div class="row"><label>Brillance</label><select id="cMode"><option value="mat">Rend plus mat</option><option value="brillant">Rend plus brillant</option><option value="none">Inchangée</option></select></div>
-              <div class="row" id="cAmtRow"><label>Intensité</label><input type="range" id="cAmt" min="0" max="100"><output></output></div>
-              <div class="row"><label>Relief</label><select id="mRelief"><option value="none">Aucun</option><option value="creux">Creux (rayures, gravure)</option><option value="bosse">Bosses (dépôts, gouttes)</option></select></div>
-              <div class="row" id="mDepthRow"><label>Profondeur</label><input type="range" id="mDepth" min="0" max="100"><output></output></div>
-              <label class="check"><input type="checkbox" id="cInv"> Inverser le noir et le blanc</label>
-              <p class="hint">« Nouveau tirage » redistribue aussi les motifs éparpillés.</p>
+              <div class="row"><label>Brillance</label><select id="lMode"><option value="mat">Rend plus mat</option><option value="brillant">Rend plus brillant</option><option value="none">Inchangée</option></select></div>
+              <div class="row" id="lAmtRow"><label>Intensité</label><input type="range" id="lAmt" min="0" max="100"><output></output></div>
+              <div class="row"><label>Relief</label><select id="lRelief"><option value="none">Aucun</option><option value="creux">Creux (rayures, gravure)</option><option value="bosse">Bosses (dépôts, gouttes)</option></select></div>
+              <div class="row" id="lDepthRow"><label>Profondeur</label><input type="range" id="lDepth" min="0" max="100"><output></output></div>
+              <label class="check"><input type="checkbox" id="lInv"> Inverser le noir et le blanc</label>
+              <div class="btns"><button class="btn" id="lSeed">Nouveau tirage</button><button class="btn" id="lMore">+ Images</button><button class="btn" id="lOff">Masquer</button><button class="btn" id="lDel">Supprimer</button></div>
+              <input type="file" id="lFile2" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" multiple hidden>
+              <p class="hint">Densité = nombre de motifs pour 10 × 10 cm de surface.</p>
             </div>
-          </div>
+          </div></details>
           <details class="adv"><summary>Réglages fins</summary><div>
             <div class="row"><label>Métal</label><input type="range" id="mMetal" min="0" max="100"><output></output></div>
             <div class="row"><label>Vernis</label><input type="range" id="mCoat" min="0" max="100"><output></output></div>
@@ -688,31 +708,54 @@ const Y2K = [
 ];
 const P = (o) => Object.assign({ color: '#cccccc', rough: .5, metal: 0, trans: 0, dens: .5, coat: 0, ior: 1.5, iri: 0, sheen: 0, emi: 0, emiC: '#ffffff',
   surf: 'none', sAmp: 1, sScale: 1, layer: .2, fp: 0, scr: 0, dust: 0, seed: 1,
-  iScale: 1, masks: [], mLayout: 'scatter', mCount: 25, mSize: 12, mVar: .5, mRot: true,
-  cAmt: .7, cMode: 'mat', cInv: false, mRelief: 'none', mDepth: .5 }, o);
+  iScale: 1, layers: [], wear: 0, wearType: 'auto', wearAngle: 30, wearSeed: 1, dustTop: 0 }, o);
+const newLayer = (imgs, name) => ({ id: Math.random().toString(36).slice(2), name, imgs, layout: 'scatter', density: 20, size: 12, var: .5, rot: true,
+  mode: 'mat', amt: .7, relief: 'none', depth: .5, inv: false, seed: 1 });
 const PRESETS = {
   pla:      { g: 'plastique', n: 'Mat (PLA)', p: P({ color: '#e8e4dc', rough: .6, surf: 'fdm', sAmp: 1 }) },
   satin:    { g: 'plastique', n: 'Satiné', p: P({ color: '#f2f2f2', rough: .35, coat: .1, surf: 'fin', sAmp: .5 }) },
   gloss:    { g: 'plastique', n: 'Brillant', p: P({ color: '#e83b3b', rough: .12, coat: .4 }) },
   soft:     { g: 'plastique', n: 'Soft-touch', p: P({ color: '#2a2a2c', rough: .85, surf: 'fin', sAmp: .8 }) },
   resine:   { g: 'plastique', n: 'Résine SLA', p: P({ color: '#9aa0a6', rough: .3, coat: .2, surf: 'sable', sAmp: .3 }) },
+  nylon:    { g: 'plastique', n: 'Nylon SLS', p: P({ color: '#f1efe9', rough: .85, surf: 'sable', sAmp: .7 }) },
+  nacre:    { g: 'plastique', n: 'Nacré', p: P({ color: '#f3eee6', rough: .22, coat: .5, iri: .55, sheen: .35 }) },
+  silicone: { g: 'plastique', n: 'Silicone', p: P({ color: '#e8705a', rough: .55, sheen: .3, surf: 'fin', sAmp: .3 }) },
+  poudre:   { g: 'plastique', n: 'Peinture poudre', p: P({ color: '#2d2f33', rough: .55, surf: 'orange', sAmp: .35 }) },
   y2k:      { g: 'translucide', n: 'Plastique Y2K', p: P({ color: '#7b4fd6', rough: .14, trans: 1, dens: .55, ior: 1.55, coat: .3 }) },
   givre:    { g: 'translucide', n: 'Givré', p: P({ color: '#5fb8ff', rough: .5, trans: 1, dens: .45, ior: 1.5 }) },
   irise:    { g: 'translucide', n: 'Irisé', p: P({ color: '#eef3ff', rough: .1, trans: 1, dens: .2, ior: 1.5, iri: 1 }) },
   verre:    { g: 'translucide', n: 'Verre', p: P({ color: '#ffffff', rough: 0, trans: 1, dens: 0, ior: 1.5 }) },
   gelee:    { g: 'translucide', n: 'Gelée', p: P({ color: '#ff6fb5', rough: .2, trans: 1, dens: .9, ior: 1.4 }) },
+  acry:     { g: 'translucide', n: 'Acrylique teinté', p: P({ color: '#ff8a2a', rough: .03, trans: 1, dens: .5, ior: 1.49, coat: .2 }) },
+  fume:     { g: 'translucide', n: 'Verre fumé', p: P({ color: '#3b3b47', rough: .02, trans: 1, dens: .6, ior: 1.5 }) },
+  depoli:   { g: 'translucide', n: 'Verre dépoli', p: P({ color: '#f5f8ff', rough: .45, trans: 1, dens: .05, ior: 1.5 }) },
+  cristal:  { g: 'translucide', n: 'Résine cristal', p: P({ color: '#fff3cf', rough: .04, trans: 1, dens: .12, ior: 1.56 }) },
   alu:      { g: 'metal', n: 'Alu brossé', p: P({ color: '#d4d7dc', rough: .32, metal: 1, surf: 'brosse', sAmp: .8 }) },
   chrome:   { g: 'metal', n: 'Chrome', p: P({ color: '#f4f4f4', rough: .02, metal: 1 }) },
   or:       { g: 'metal', n: 'Or', p: P({ color: '#ffcb6b', rough: .14, metal: 1 }) },
   cuivre:   { g: 'metal', n: 'Cuivre', p: P({ color: '#f0a27a', rough: .24, metal: 1 }) },
   anodise:  { g: 'metal', n: 'Anodisé', p: P({ color: '#4f7bd6', rough: .3, metal: 1, surf: 'sable', sAmp: .5 }) },
   titane:   { g: 'metal', n: 'Titane', p: P({ color: '#8b8e93', rough: .38, metal: 1, surf: 'sable', sAmp: .7 }) },
+  inox:     { g: 'metal', n: 'Acier inox', p: P({ color: '#c9cbcd', rough: .22, metal: 1, surf: 'brosse', sAmp: .4 }) },
+  alusable: { g: 'metal', n: 'Alu sablé', p: P({ color: '#cfd2d6', rough: .45, metal: 1, surf: 'sable', sAmp: .6 }) },
+  laiton:   { g: 'metal', n: 'Laiton', p: P({ color: '#e2c26f', rough: .2, metal: 1 }) },
+  orrose:   { g: 'metal', n: 'Or rose', p: P({ color: '#eab8a2', rough: .16, metal: 1 }) },
+  chromenoir:{ g: 'metal', n: 'Chrome noir', p: P({ color: '#2e2f31', rough: .08, metal: 1 }) },
+  brut:     { g: 'metal', n: 'Acier brut', p: P({ color: '#6d6f72', rough: .55, metal: 1, surf: 'sable', sAmp: 1 }) },
   lcd:      { g: 'ecran', n: 'Dalle LCD', p: P({ color: '#060708', rough: .06, coat: 1 }) },
   led:      { g: 'ecran', n: 'Lumière / LED', p: P({ color: '#ffffff', rough: .4, emi: 30, emiC: '#ffffff' }) },
   caout:    { g: 'autre', n: 'Caoutchouc', p: P({ color: '#1b1b1c', rough: .9, surf: 'gros', sAmp: 1 }) },
   ceram:    { g: 'autre', n: 'Céramique', p: P({ color: '#f6f4ef', rough: .12, coat: 1 }) },
   carro:    { g: 'autre', n: 'Peinture auto', p: P({ color: '#c1121f', rough: .4, metal: .5, coat: 1, surf: 'orange', sAmp: .5 }) },
-  tissu:    { g: 'autre', n: 'Tissu', p: P({ color: '#6b5b95', rough: .95, sheen: 1 }) },
+  tissu:    { g: 'autre', n: 'Tissu', p: P({ color: '#6b5b95', rough: .95, sheen: 1, surf: 'tissage', sAmp: .8 }) },
+  bois:     { g: 'autre', n: 'Bois verni', p: P({ color: '#a8703f', rough: .4, coat: .4, surf: 'bois', sAmp: .5 }) },
+  boisclair:{ g: 'autre', n: 'Bois clair brut', p: P({ color: '#d9b285', rough: .6, surf: 'bois', sAmp: .8 }) },
+  marbre:   { g: 'autre', n: 'Marbre', p: P({ color: '#f1efea', rough: .12, coat: .6, surf: 'marbre', sAmp: .4 }) },
+  beton:    { g: 'autre', n: 'Béton', p: P({ color: '#a7a39b', rough: .85, surf: 'beton', sAmp: 1 }) },
+  cuir:     { g: 'autre', n: 'Cuir', p: P({ color: '#5b3a26', rough: .5, sheen: .3, surf: 'cuir', sAmp: 1 }) },
+  carbone:  { g: 'autre', n: 'Fibre de carbone', p: P({ color: '#2b2c2e', rough: .35, coat: 1, surf: 'carbone', sAmp: .6 }) },
+  cerammat: { g: 'autre', n: 'Céramique mate', p: P({ color: '#e8e3d8', rough: .7, surf: 'fin', sAmp: .3 }) },
+  papier:   { g: 'autre', n: 'Papier / carton', p: P({ color: '#d8cbb3', rough: .95, surf: 'fin', sAmp: .4 }) },
   pcb:      { g: 'autre', n: 'Circuit (PCB)', p: P({ color: '#1f6b3a', rough: .45, coat: .3, surf: 'fin', sAmp: .4 }) },
 };
 const TEX_FLAGS = t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; };
@@ -751,6 +794,7 @@ function applyParams(part) {
   if (p.emi <= 0) m.emissive.set(0, 0, 0);
   if (part.preset === 'lcd') applyLCD(part);
   applySurface(part);
+  if (part.wearMesh) updateOverlayMaterials(part);
   m.needsUpdate = true;
 }
 
@@ -782,7 +826,71 @@ const SURFS = {
   brosse: { n: 'Brossé', tile: 22, amp: 1.0 },
   sable:  { n: 'Sablé', tile: 5, amp: 1.4 },
   orange: { n: "Peau d'orange", tile: 28, amp: 2.4 },
+  bois:    { n: 'Bois', tile: 60, amp: .8, albedo: true },
+  marbre:  { n: 'Marbre', tile: 140, amp: .5, albedo: true },
+  carbone: { n: 'Carbone', tile: 7, amp: 1.6, albedo: true },
+  beton:   { n: 'Béton', tile: 60, amp: 2.2, albedo: true },
+  cuir:    { n: 'Cuir', tile: 12, amp: 2.4, albedo: true },
+  tissage: { n: 'Tissage', tile: 4, amp: 2.0, albedo: true },
 };
+/** bruit cellulaire périodique (distance aux 2 points les plus proches) */
+function worley(u, v, K, s) {
+  const x = u * K, y = v * K, xi = Math.floor(x), yi = Math.floor(y);
+  let f1 = 9, f2 = 9;
+  for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+    const cx = xi + i, cy = yi + j, wx = ((cx % K) + K) % K, wy = ((cy % K) + K) % K;
+    const px = cx + hash3(wx, wy, s), py = cy + hash3(wx, wy, s + 1);
+    const d = Math.hypot(px - x, py - y);
+    if (d < f1) { f2 = f1; f1 = d; } else if (d < f2) f2 = d;
+  }
+  return [f1, f2];
+}
+const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+/** motif : hauteur h et couleur a (0..1, multiplie la couleur du matériau) */
+function patternAt(type, u, v, x, y) {
+  if (type === 'bois') {
+    const t = v * 6 + .9 * fbm(u, v, 2, 3, 3, 51) + .12 * fbm(u, v, 4, 24, 2, 52);
+    const ring = t - Math.floor(t), late = sstep(.62, .92, ring) * (1 - sstep(.96, 1, ring));
+    const streak = fbm(u, v, 3, 160, 2, 53);
+    return { h: .5 * late + .35 * streak, a: 1 - .42 * late - .16 * streak + .06 * fbm(u, v, 3, 6, 2, 54) };
+  }
+  if (type === 'marbre') {
+    const t = u * 3 + v + 2.4 * fbm(u, v, 3, 3, 5, 61);
+    const line = Math.pow(1 - Math.abs(Math.sin(Math.PI * t)), 22), soft = Math.pow(1 - Math.abs(Math.sin(Math.PI * t * .5 + 1)), 6);
+    return { h: -.4 * line, a: 1 - .6 * line - .12 * soft - .06 * fbm(u, v, 8, 8, 3, 62) };
+  }
+  if (type === 'carbone' || type === 'tissage') {
+    const C = type === 'carbone' ? 4 : 12, cx = Math.floor(u * C), cy = Math.floor(v * C), fx = u * C - cx, fy = v * C - cy;
+    const warp = type === 'carbone' ? ((cx + cy) % 4 + 4) % 4 < 2 : (cx + cy) % 2 === 0;
+    const across = warp ? fx : fy, along = warp ? fy : fx;
+    const bump = Math.sin(Math.PI * across) * (.75 + .25 * Math.sin(Math.PI * along));
+    const fib = fbm(warp ? u : v, warp ? v : u, 64, 4, 2, 71);
+    return { h: bump + .1 * fib, a: (warp ? .78 : .52) + .25 * bump + .08 * fib };
+  }
+  if (type === 'beton') {
+    const pit = sstep(.7, .78, fbm(u, v, 40, 40, 2, 81)), base = fbm(u, v, 6, 6, 4, 82);
+    return { h: -pit + .35 * fbm(u, v, 24, 24, 2, 83), a: .78 + .3 * base - .35 * pit + .05 * hash3(x, y, 84) };
+  }
+  if (type === 'cuir') {
+    const [f1, f2] = worley(u, v, 14, 91);
+    const dome = Math.sqrt(Math.max(0, 1 - Math.pow(f1 / .62, 2))), crease = 1 - sstep(0, .12, f2 - f1);
+    return { h: dome - .6 * crease + .1 * fbm(u, v, 48, 48, 2, 92), a: .9 + .12 * dome - .15 * crease };
+  }
+  return { h: 0, a: 1 };
+}
+const albCache = new Map();
+function albedoCanvas(type) {
+  if (albCache.has(type)) return albCache.get(type);
+  const N = TN, cv = document.createElement('canvas'); cv.width = cv.height = N;
+  const ctx = cv.getContext('2d'), img = ctx.createImageData(N, N), d = img.data;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const a = clamp(patternAt(type, x / N, y / N, x, y).a, 0, 1), g = Math.pow(a, 1 / 2.2) * 255, o = (y * N + x) * 4;
+    d[o] = d[o + 1] = d[o + 2] = g; d[o + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  albCache.set(type, cv);
+  return cv;
+}
 const FDM_LAYERS = 32;
 function surfTileMM(p) { return (p.surf === 'fdm' ? FDM_LAYERS * p.layer : SURFS[p.surf].tile) * p.sScale; }
 function heightField(type) {
@@ -802,6 +910,7 @@ function heightField(type) {
       else if (type === 'brosse') { h = fbm(u, v, 2, 220, 3, 13) * .8 + .2 * fbm(u, v, 8, 512, 1, 17); }
       else if (type === 'sable') { h = .6 * fbm(u, v, 128, 128, 2, 19) + .4 * hash3(x, y, 23); }
       else if (type === 'orange') { h = fbm(u, v, 9, 9, 3, 29); }
+      else if (SURFS[type] && SURFS[type].albedo) { h = patternAt(type, u, v, x, y).h; }
       H[y * N + x] = h;
     }
   }
@@ -828,8 +937,8 @@ function normalCanvas(type) {
 }
 const IMP_TILE = 90; // mm couverts par une tuile d'imperfections
 /** carte de rugosité : rapport rugosité locale / rugosité max (R) */
-function imperfCanvas(p, base, R, L) {
-  const N = L ? MASK_N : TN, mmPx = N / IMP_TILE, sd = p.seed * 101, px = N / 512;
+function imperfCanvas(p, base, R, lays) {
+  const N = lays && lays.length ? MASK_N : TN, mmPx = N / IMP_TILE, sd = p.seed * 101, px = N / 512;
   const val = new Float32Array(N * N).fill(base);
   const mixTo = (i, target, w) => { if (w > 0) val[i] += (target - val[i]) * Math.min(1, w); };
   // traces de doigts : ovales de crêtes + halo gras
@@ -861,10 +970,10 @@ function imperfCanvas(p, base, R, L) {
       if (hash3(x, y, sd + 41) > 1 - p.dust * .035 / (px * px)) mixTo(i, 1, 1);
     }
   }
-  // masques perso
-  if (L && p.cMode !== 'none' && p.cAmt > 0) {
-    const target = p.cMode === 'brillant' ? .02 : .75;
-    for (let i = 0; i < N * N; i++) mixTo(i, target, p.cAmt * L[i]);
+  // calques de masques perso
+  for (const ly of lays || []) {
+    const target = ly.mode === 'brillant' ? .02 / R : .75;
+    for (let i = 0; i < N * N; i++) mixTo(i, target, ly.amt * ly.L[i]);
   }
   // rayures : traits fins dessinés sur un canevas (raccordables)
   let scr = null;
@@ -913,49 +1022,54 @@ function stampOf(img, inv) {
   c.putImageData(id, 0, 0);
   return (img._st[inv] = cv);
 }
-/** luminance (0..1) des masques sur une tuile d'imperfections, MASK_N² */
-function maskData(part, tileMM) {
-  const p = part.p;
-  const key = [p.masks.map(m => m._id).join(','), p.mLayout, p.mCount, p.mSize, p.mVar, p.mRot, p.cInv, p.seed, tileMM.toFixed(2)].join('|');
-  if (part.maskKey === key) return part.maskL;
+/** luminance (0..1) d'un calque de masques sur une tuile, MASK_N² (mis en cache sur le calque) */
+function layerMask(ly, tileMM) {
+  const key = [ly.imgs.map(m => m._id).join(','), ly.layout, ly.density, ly.size, ly.var, ly.rot, ly.inv, ly.seed, tileMM.toFixed(2)].join('|');
+  if (ly._key === key) return ly._L;
   const N = MASK_N, cv = document.createElement('canvas'); cv.width = cv.height = N;
   const c = cv.getContext('2d'); c.fillStyle = '#000'; c.fillRect(0, 0, N, N);
-  const stamps = p.masks.map(m => stampOf(m, !!p.cInv));
-  if (p.mLayout === 'tile') {
-    for (const st of stamps) c.drawImage(st, 0, 0, N, N);
+  const stamps = ly.imgs.map(m => stampOf(m, !!ly.inv)), pxPerMM = N / tileMM;
+  const draw = (st, x, y, w, h, rot) => {
+    const ext = Math.hypot(w, h) / 2;
+    for (const ox of [-N, 0, N]) for (const oy of [-N, 0, N]) {
+      const cx = x + ox, cy = y + oy;
+      if (cx + ext < 0 || cx - ext > N || cy + ext < 0 || cy - ext > N) continue;
+      c.save(); c.translate(cx, cy); c.rotate(rot); c.drawImage(st, -w / 2, -h / 2, w, h); c.restore();
+    }
+  };
+  if (ly.layout === 'tile') {
+    // motif répété : une image tous les « taille » mm (arrondi pour rester raccordable)
+    const n = Math.max(1, Math.round(tileMM / Math.max(.5, ly.size))), cell = N / n;
+    for (const st of stamps) for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) draw(st, (i + .5) * cell, (j + .5) * cell, cell, cell, 0);
   } else {
-    const sd = p.seed * 977 + 5, pxPerMM = N / tileMM;
-    for (let k = 0; k < p.mCount; k++) {
+    const sd = ly.seed * 977 + 5, count = Math.max(1, Math.round(ly.density * Math.pow(tileMM / 100, 2)));
+    for (let k = 0; k < Math.min(count, 3000); k++) {
       const st = stamps[Math.floor(hash3(k, 1, sd) * stamps.length) % stamps.length];
-      const size = p.mSize * pxPerMM * (1 - p.mVar * .8 * hash3(k, 2, sd));
+      const size = ly.size * pxPerMM * (1 - ly.var * .8 * hash3(k, 2, sd));
       const asp = st.width / st.height, w = asp >= 1 ? size : size * asp, h = asp >= 1 ? size / asp : size;
-      const x = hash3(k, 3, sd) * N, y = hash3(k, 4, sd) * N, rot = p.mRot ? hash3(k, 5, sd) * Math.PI * 2 : 0;
-      c.globalAlpha = 1 - p.mVar * .45 * hash3(k, 6, sd);
-      const ext = Math.hypot(w, h) / 2;
-      for (const ox of [-N, 0, N]) for (const oy of [-N, 0, N]) {
-        const cx = x + ox, cy = y + oy;
-        if (cx + ext < 0 || cx - ext > N || cy + ext < 0 || cy - ext > N) continue;
-        c.save(); c.translate(cx, cy); c.rotate(rot); c.drawImage(st, -w / 2, -h / 2, w, h); c.restore();
-      }
+      c.globalAlpha = 1 - ly.var * .45 * hash3(k, 6, sd);
+      draw(st, hash3(k, 3, sd) * N, hash3(k, 4, sd) * N, w, h, ly.rot ? hash3(k, 5, sd) * Math.PI * 2 : 0);
     }
     c.globalAlpha = 1;
   }
   const d = c.getImageData(0, 0, N, N).data, L = new Float32Array(N * N);
   for (let i = 0; i < N * N; i++) L[i] = d[i * 4] / 255;
-  part.maskKey = key; part.maskL = L;
+  ly._key = key; ly._L = L;
   return L;
 }
 /** normal map combinée : surface (répétée n fois) + relief des masques, sur une tuile d'imperfections */
-function reliefNormalCanvas(p, L, tileMM) {
+function reliefNormalCanvas(p, rels, tileMM) {
   const N = MASK_N;
-  // léger flou du masque pour des bords de rayure arrondis
+  // somme des calques en relief, légèrement floutée pour des bords de rayure arrondis
+  const S = new Float32Array(N * N);
+  for (const r of rels) { const k = (r.relief === 'creux' ? -1 : 1) * r.depth * 5; for (let i = 0; i < N * N; i++) S[i] += r.L[i] * k; }
   const B = new Float32Array(N * N);
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
     let s = 0;
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) s += L[((y + dy + N) % N) * N + ((x + dx + N) % N)];
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) s += S[((y + dy + N) % N) * N + ((x + dx + N) % N)];
     B[y * N + x] = s / 9;
   }
-  const sign = p.mRelief === 'creux' ? -1 : 1, dk = p.mDepth * 5;
+  const sign = 1, dk = 1;
   let Hs = null, n = 1, ka = 0;
   if (p.surf && p.surf !== 'none') {
     Hs = surfHeights(p.surf);
@@ -992,21 +1106,22 @@ function setRepeat(t, tileMM) { const r = mmPerUnit() / tileMM; t.repeat.set(r, 
 /** surface (normal map) + imperfections (roughness maps) */
 // en relief, la surface est recalculée dans la tuile des masques : on limite le nombre de répétitions
 // pour que les détails fins (couches, sablé…) gardent assez de pixels
-const NMAX = { fin: 10, gros: 16, fdm: 8, brosse: 2, sable: 4, orange: 32 };
+const NMAX = { fin: 10, gros: 16, fdm: 8, brosse: 2, sable: 4, orange: 32, bois: 4, marbre: 1, carbone: 12, beton: 2, cuir: 8, tissage: 16 };
 function applySurface(part) {
   const m = part.mat, p = part.p;
-  const hasMask = !!(p.masks && p.masks.length);
-  const reliefOn = hasMask && p.mRelief !== 'none' && p.mDepth > 0 && part.uvMode !== 'screen';
+  const lays = (p.layers || []).filter(l => l.imgs.length && !l.off);
+  const relLays = lays.filter(l => l.relief !== 'none' && l.depth > 0);
+  const reliefOn = relLays.length > 0 && part.uvMode !== 'screen';
   let tile = IMP_TILE * (p.iScale || 1);
   if (reliefOn && p.surf && p.surf !== 'none') tile = Math.min(tile, surfTileMM(p) * NMAX[p.surf]);
-  const L = hasMask ? maskData(part, tile) : null;
-  // relief : masques en relief (combinés avec la surface) ou surface seule
+  for (const l of lays) layerMask(l, tile);
+  // relief : calques en relief (combinés avec la surface) ou surface seule
   if (reliefOn) {
-    const key = [part.maskKey, p.surf, p.sAmp, surfTileMM(p).toFixed(3), tile.toFixed(2), p.mRelief, p.mDepth].join('|');
+    const key = [relLays.map(l => l._key + l.relief + l.depth).join('/'), p.surf, p.sAmp, surfTileMM(p).toFixed(3), tile.toFixed(2)].join('|');
     if (part.relKey !== key) {
       part.relKey = key;
       if (part.nTex) part.nTex.dispose();
-      part.nTex = makeDataTex(reliefNormalCanvas(p, L, tile));
+      part.nTex = makeDataTex(reliefNormalCanvas(p, relLays.map(l => ({ L: l._L, relief: l.relief, depth: l.depth })), tile));
     }
     setRepeat(part.nTex, tile); m.normalMap = part.nTex; m.normalScale.set(1, 1);
   } else if (p.surf && p.surf !== 'none' && part.uvMode !== 'screen') {
@@ -1016,14 +1131,23 @@ function applySurface(part) {
     setRepeat(part.nTex, surfTileMM(p));
     m.normalMap = part.nTex; m.normalScale.set(p.sAmp, p.sAmp);
   } else { part.relKey = null; m.normalMap = null; }
+  // motif de couleur (bois, marbre, carbone…)
+  if (p.surf && SURFS[p.surf] && SURFS[p.surf].albedo && part.uvMode !== 'screen' && !part.texMap) {
+    const cv = albedoCanvas(p.surf);
+    if (!part.aTex || part.aTex.image !== cv) { if (part.aTex) part.aTex.dispose(); part.aTex = new THREE.CanvasTexture(cv); part.aTex.colorSpace = THREE.SRGBColorSpace; TEX_FLAGS(part.aTex); part.aTex.anisotropy = 8; }
+    // en relief combiné, la surface est recalée dans la tuile des masques : on aligne la couleur dessus
+    const st = reliefOn ? tile / clamp(Math.round(tile / surfTileMM(p)), 1, 32) : surfTileMM(p);
+    setRepeat(part.aTex, st); m.map = part.aTex;
+  }
   // imperfections (brillance)
-  const cust = hasMask && p.cMode !== 'none' ? p.cAmt : 0;
-  const imp = Math.max(p.fp, p.scr, p.dust, p.cMode === 'mat' ? cust : 0);
-  if (imp > 0 || cust > 0) {
-    const key = [p.rough, p.coat > 0, p.fp, p.scr, p.dust, p.seed, hasMask ? part.maskKey : 0, cust, p.cMode].join('|');
+  const glossLays = lays.filter(l => l.mode !== 'none' && l.amt > 0);
+  const cust = glossLays.reduce((m, l) => Math.max(m, l.mode === 'mat' ? l.amt : 0), 0);
+  const imp = Math.max(p.fp, p.scr, p.dust, cust);
+  if (imp > 0 || glossLays.length) {
+    const key = [p.rough, p.coat > 0, p.fp, p.scr, p.dust, p.seed, tile.toFixed(2), glossLays.map(l => l._key + l.mode + l.amt).join('/')].join('|');
     if (part.impKey !== key) {
       part.impKey = key;
-      const Lm = cust > 0 ? L : null;
+      const Lm = glossLays.map(l => ({ L: l._L, mode: l.mode, amt: l.amt }));
       const R = Math.min(1, p.rough + .5 * imp + .06);
       part.impR = R;
       if (part.rTex) part.rTex.dispose(); part.rTex = makeDataTex(imperfCanvas(p, p.rough / R, R, Lm));
@@ -1268,26 +1392,26 @@ function addPart(srcGeom, name, isSTL, presetId = 'satin', color = null, keepUV 
 }
 function clearModel() {
   if (typeof clearStickers === 'function' && stickers.length) clearStickers();
-  for (const p of parts) { p.mesh.geometry.dispose(); p.mat.dispose(); for (const t of [p.lcdTex, p.nTex, p.rTex, p.cTex]) if (t) t.dispose(); }
+  for (const p of parts) { disposeOverlays(p); p.mesh.geometry.dispose(); p.mat.dispose(); for (const t of [p.lcdTex, p.nTex, p.rTex, p.cTex, p.aTex, p.dustTex]) if (t) t.dispose(); }
   modelRoot.clear(); modelRoot.rotation.set(0, 0, 0); modelRoot.position.set(0, 0, 0); modelRoot.scale.set(1, 1, 1);
   parts = []; sel = null;
 }
 /** recentre, met à l'échelle (taille max 2) et pose sur le sol */
 function normalizeModel() {
+  // d'après les géométries de toutes les pièces (même masquées), pour un cadrage stable
   modelRoot.position.set(0, 0, 0); modelRoot.scale.set(1, 1, 1); modelRoot.updateMatrixWorld(true);
-  const bb = new THREE.Box3().setFromObject(modelRoot);
+  const bb = new THREE.Box3();
+  for (const p of parts) { p.mesh.geometry.computeBoundingBox(); bb.union(p.mesh.geometry.boundingBox); }
   if (bb.isEmpty()) return;
-  const s = new THREE.Vector3(); bb.getSize(s);
+  const s = new THREE.Vector3(), c = new THREE.Vector3(); bb.getSize(s); bb.getCenter(c);
   const k = 2 / Math.max(s.x, s.y, s.z, 1e-9);
   modelRoot.scale.setScalar(k);
-  modelRoot.updateMatrixWorld(true);
-  const bb2 = new THREE.Box3().setFromObject(modelRoot), c = new THREE.Vector3(); bb2.getCenter(c);
-  modelRoot.position.set(-c.x, -bb2.min.y, -c.z);
+  modelRoot.position.set(-c.x * k, -bb.min.y * k, -c.z * k);
   modelRoot.updateMatrixWorld(true);
 }
 function modelBounds() {
   const bb = new THREE.Box3();
-  for (const p of parts) if (p.mesh.visible) bb.expandByObject(p.mesh);
+  for (const p of parts) if (!p.hidden) bb.expandByObject(p.mesh);
   if (bb.isEmpty()) bb.set(new THREE.Vector3(-1, 0, -1), new THREE.Vector3(1, 2, 1));
   return bb;
 }
@@ -1376,6 +1500,7 @@ function setSizeMM(mm) {
   state.sizeMM = Math.max(1, mm); $('sizeMM').value = Math.round(state.sizeMM * 10) / 10;
   for (const p of parts) applySurface(p);
   if (typeof rebuildStickers === 'function') rebuildStickers();
+  if (typeof rebuildAllOverlays === 'function') rebuildAllOverlays();
   needMaterials();
 }
 function finishLoad(sizeHint) {
@@ -1384,6 +1509,7 @@ function finishLoad(sizeHint) {
   const anySTL = parts.some(p => p.isSTL);
   setSizeMM(sizeHint || (anySTL ? fileMaxDim : fileMaxDim < 10 ? fileMaxDim * 1000 : fileMaxDim));
   normalizeModel();
+  rebuildAllOverlays();
   sel = parts[0];
   renderParts(); renderMatUI();
   setView('34', false);
@@ -1399,6 +1525,7 @@ function regenGeometries() {
     if (p.preset === 'lcd') applyLCD(p);
   }
   rebuildStickers();
+  rebuildAllOverlays();
   needScene();
 }
 
@@ -1451,20 +1578,25 @@ function loadDemo() {
   const ss = merge([at(new RoundedBoxGeometry(.16, .045, .03, 2, .02), -.11, .3, .165), at(new RoundedBoxGeometry(.16, .045, .03, 2, .02), .11, .3, .165)]);
   addPart(ss, 'Start / Select', false, 'soft', '#4a4a52');
   scr.lcd = LCD_DEFAULT(); scr.lcd.text = 'PLAY'; applyParams(scr);
-  body.p.fp = .35; body.p.dust = .15; applyParams(body);
+  body.p.fp = .35; body.p.dust = .15; body.p.dustTop = .3; applyParams(body);
+  for (const pt of parts) if (pt.name === 'Croix' || pt.name === 'Boutons A/B') pt.p.wear = .35;
   void pcb;
   finishLoad(110);
 }
 
 /* ───────────── UI pièces / matériaux ───────────── */
+const EYE_ON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l18 18M10.6 5.1A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7c1.7 0 3.2-.5 4.5-1.2"/></svg>';
 function renderParts() {
   const el = $('parts');
   el.innerHTML = '';
   for (const p of parts) {
     const d = document.createElement('div');
     d.className = 'part' + (p === sel ? ' on' : '');
-    d.innerHTML = `<span class="dot" style="background:${p.p.color}"></span><span class="nm"></span><span class="mt">${PRESETS[p.preset].n}</span>`;
+    d.innerHTML = `<button class="eye" title="${p.hidden ? 'Afficher' : 'Masquer'}">${p.hidden ? EYE_OFF : EYE_ON}</button><span class="dot" style="background:${p.p.color}"></span><span class="nm"></span><span class="mt">${PRESETS[p.preset].n}</span>`;
     d.querySelector('.nm').textContent = p.name;
+    if (p.hidden) d.classList.add('off');
+    d.querySelector('.eye').onclick = ev => { ev.stopPropagation(); setHidden(p, !p.hidden); };
     d.onclick = () => { sel = p; renderParts(); renderMatUI(); };
     el.appendChild(d);
   }
@@ -1500,34 +1632,53 @@ function buildSurfChips() {
     el.appendChild(b);
   }
   let cid = 0;
-  $('cBtn').onclick = () => $('cFile').click();
-  $('cFile').onchange = async e => {
-    const files = [...e.target.files]; e.target.value = ''; if (!files.length || !sel) return;
-    const part = sel, added = [];
+  const loadImgs = async files => {
+    const out = [];
     for (const f of files) {
       const im = new Image();
       const ok = await new Promise(r => { im.onload = () => r(true); im.onerror = () => r(false); im.src = URL.createObjectURL(f); });
       if (!ok) { toast('Image illisible : ' + f.name); continue; }
-      im._id = ++cid; im._name = f.name; added.push(im);
+      im._id = ++cid; im._name = f.name; out.push(im);
     }
-    if (!added.length) return;
-    part.p.masks = [...part.p.masks, ...added];
-    setStatus('Génération des masques…');
-    setTimeout(() => { applyParams(part); needMaterials(); renderMatUI(); toast(added.length + ' masque' + (added.length > 1 ? 's' : '') + ' ajouté' + (added.length > 1 ? 's' : '')); }, 10);
+    return out;
   };
-  const pset = (k, v) => { if (!sel) return; sel.p[k] = v; const part = sel; setTimeout(() => { applyParams(part); needMaterials(); }, 10); renderMatUI(); };
-  $('mLayout').onchange = e => pset('mLayout', e.target.value);
-  $('cMode').onchange = e => pset('cMode', e.target.value);
-  $('mRelief').onchange = e => pset('mRelief', e.target.value);
-  $('mRot').onchange = e => pset('mRot', e.target.checked);
-  $('cInv').onchange = e => pset('cInv', e.target.checked);
+  const curLayer = () => sel && sel.p.layers[sel.selLayer | 0];
+  const relayer = part => { setStatus('Génération des masques…'); clearTimeout(part._lt); part._lt = setTimeout(() => { applyParams(part); needMaterials(); }, 140); };
+  $('lAdd').onclick = () => $('lFile').click();
+  $('lFile').onchange = async e => {
+    const files = [...e.target.files]; e.target.value = ''; if (!files.length || !sel) return;
+    const part = sel, imgs = await loadImgs(files); if (!imgs.length) return;
+    const ly = newLayer(imgs, (imgs[0]._name || 'Calque').replace(/\.[^.]+$/, '').slice(0, 18) + (imgs.length > 1 ? ' +' + (imgs.length - 1) : ''));
+    part.p.layers = [...part.p.layers, ly]; part.selLayer = part.p.layers.length - 1;
+    renderMatUI(); relayer(part);
+  };
+  $('lMore').onclick = () => $('lFile2').click();
+  $('lFile2').onchange = async e => {
+    const files = [...e.target.files]; e.target.value = ''; const ly = curLayer(); if (!files.length || !ly) return;
+    const part = sel, imgs = await loadImgs(files); ly.imgs = [...ly.imgs, ...imgs]; renderMatUI(); relayer(part);
+  };
+  const lset = (k, v, rerender = true) => { const ly = curLayer(); if (!ly) return; ly[k] = v; if (rerender) renderMatUI(); relayer(sel); };
+  $('lLayout').onchange = e => lset('layout', e.target.value);
+  $('lMode').onchange = e => lset('mode', e.target.value);
+  $('lRelief').onchange = e => lset('relief', e.target.value);
+  $('lRot').onchange = e => lset('rot', e.target.checked);
+  $('lInv').onchange = e => lset('inv', e.target.checked);
+  $('lSeed').onclick = () => { const ly = curLayer(); if (ly) lset('seed', (ly.seed || 1) + 1, false); };
+  $('lOff').onclick = () => { const ly = curLayer(); if (ly) lset('off', !ly.off); };
+  $('lDel').onclick = () => { if (!sel) return; const i = sel.selLayer | 0; sel.p.layers = sel.p.layers.filter((_, j) => j !== i); sel.selLayer = Math.max(0, i - 1); renderMatUI(); relayer(sel); };
+  for (const [id, key, k, dec] of [['lDens', 'density', 1, 0], ['lSize', 'size', 1, 0], ['lVar', 'var', 100, 2], ['lAmt', 'amt', 100, 2], ['lDepth', 'depth', 100, 2]]) {
+    $(id).addEventListener('input', e => { const ly = curLayer(); if (!ly) return; ly[key] = +e.target.value / k; e.target.nextElementSibling.textContent = ly[key].toFixed(dec); relayer(sel); });
+  }
+  // usure & poussière
+  $('wType').onchange = e => { if (!sel) return; sel.p.wearType = e.target.value; updateOverlayMaterials(sel); needMaterials(); };
+  $('wSeedBtn').onclick = () => { if (!sel) return; sel.p.wearSeed = (sel.p.wearSeed || 1) + 1; scheduleOverlays(sel); };
   $('reseed').onclick = () => { if (!sel) return; sel.p.seed = (sel.p.seed || 1) + 1; applyParams(sel); needMaterials(); };
 }
 function setPreset(part, id) {
   const keepColor = ['y2k', 'givre', 'gelee'].includes(id) && ['y2k', 'givre', 'gelee'].includes(part.preset);
   const col = part.p.color;
   const keep = {};
-  for (const k of ['fp', 'scr', 'dust', 'seed', 'iScale', 'masks', 'mLayout', 'mCount', 'mSize', 'mVar', 'mRot', 'cAmt', 'cMode', 'cInv', 'mRelief', 'mDepth']) keep[k] = part.p[k];
+  for (const k of ['fp', 'scr', 'dust', 'seed', 'iScale', 'layers', 'wear', 'wearType', 'wearAngle', 'wearSeed', 'dustTop']) keep[k] = part.p[k];
   part.preset = id; part.p = { ...PRESETS[id].p, ...keep };
   if (keepColor) part.p.color = col;
   if (part.texMap && id !== 'lcd') { /* les textures GLB sont abandonnées quand on change de matériau */ part.texMap = null; }
@@ -1539,10 +1690,11 @@ const SL = [
   ['mCoat', 'coat', 100, 2], ['mIor', 'ior', 100, 2], ['mIri', 'iri', 100, 2], ['mSheen', 'sheen', 100, 2], ['mEmi', 'emi', 2, 0],
   ['sAmp', 'sAmp', 100, 2], ['sScale', 'sScale', 100, 2], ['sLayer', 'layer', 100, 2],
   ['iFp', 'fp', 100, 2], ['iScr', 'scr', 100, 2], ['iDust', 'dust', 100, 2],
-  ['iScale', 'iScale', 100, 2], ['cAmt', 'cAmt', 100, 2],
-  ['mCount', 'mCount', 1, 0], ['mSize', 'mSize', 1, 0], ['mVar', 'mVar', 100, 2], ['mDepth', 'mDepth', 100, 2],
+  ['iScale', 'iScale', 100, 2],
+  ['wWear', 'wear', 100, 2], ['wAngle', 'wearAngle', 1, 0], ['wDust', 'dustTop', 100, 2],
 ];
-const HEAVY = new Set(['fp', 'scr', 'dust', 'rough', 'coat', 'cAmt', 'iScale', 'mCount', 'mSize', 'mVar', 'mDepth', 'sAmp', 'sScale', 'layer']);
+const HEAVY = new Set(['fp', 'scr', 'dust', 'rough', 'coat', 'iScale', 'sAmp', 'sScale', 'layer']);
+const OVERLAY = new Set(['wear', 'wearAngle', 'dustTop']);
 function renderMatUI() {
   const has = !!sel;
   $('matUI').classList.toggle('hidden', !has);
@@ -1564,20 +1716,29 @@ function renderMatUI() {
   document.querySelectorAll('#surfChips .chip').forEach(c => c.classList.toggle('on', c.dataset.surf === p.surf));
   $('sAmpRow').classList.toggle('hidden', p.surf === 'none'); $('sScaleRow').classList.toggle('hidden', p.surf === 'none');
   $('sLayerRow').classList.toggle('hidden', p.surf !== 'fdm');
-  const hasM = p.masks.length > 0;
-  $('cOpts').classList.toggle('hidden', !hasM);
-  $('mScatter').classList.toggle('hidden', p.mLayout !== 'scatter');
-  $('mLayout').value = p.mLayout; $('cMode').value = p.cMode; $('cInv').checked = !!p.cInv;
-  $('mRelief').value = p.mRelief; $('mRot').checked = !!p.mRot;
-  $('cAmtRow').classList.toggle('hidden', p.cMode === 'none'); $('mDepthRow').classList.toggle('hidden', p.mRelief === 'none');
-  const ml = $('mList'); ml.innerHTML = '';
-  p.masks.forEach((im, i) => {
-    const b = document.createElement('button'); b.className = 'chip';
-    b.innerHTML = '<span></span><span class="x" title="Retirer">×</span>';
-    b.firstChild.textContent = (im._name || 'image').slice(0, 22);
-    b.onclick = () => { const part = sel; part.p.masks = part.p.masks.filter((_, j) => j !== i); applyParams(part); needMaterials(); renderMatUI(); };
-    ml.appendChild(b);
+  // calques de masques
+  const li = sel.selLayer | 0, ly = p.layers[li];
+  const ll = $('lList'); ll.innerHTML = '';
+  p.layers.forEach((l, i) => {
+    const b = document.createElement('button'); b.className = 'chip' + (i === li ? ' on' : '');
+    b.textContent = (l.off ? '◌ ' : '') + l.name; b.style.opacity = l.off ? .55 : 1;
+    b.onclick = () => { sel.selLayer = i; renderMatUI(); };
+    ll.appendChild(b);
   });
+  $('lOpts').classList.toggle('hidden', !ly);
+  if (ly) {
+    $('lLayout').value = ly.layout; $('lMode').value = ly.mode; $('lRelief').value = ly.relief; $('lRot').checked = !!ly.rot; $('lInv').checked = !!ly.inv;
+    for (const [id, key, k, dec] of [['lDens', 'density', 1, 0], ['lSize', 'size', 1, 0], ['lVar', 'var', 100, 2], ['lAmt', 'amt', 100, 2], ['lDepth', 'depth', 100, 2]]) {
+      $(id).value = Math.round(ly[key] * k); $(id).nextElementSibling.textContent = (+ly[key]).toFixed(dec);
+    }
+    $('lScatter').classList.toggle('hidden', ly.layout !== 'scatter'); $('lDensRow').classList.toggle('hidden', ly.layout !== 'scatter');
+    $('lSizeL').textContent = ly.layout === 'tile' ? 'Répéter tous les (mm)' : 'Taille (mm)';
+    $('lAmtRow').classList.toggle('hidden', ly.mode === 'none'); $('lDepthRow').classList.toggle('hidden', ly.relief === 'none');
+    $('lOff').textContent = ly.off ? 'Afficher' : 'Masquer';
+  }
+  // usure
+  $('wType').value = p.wearType || 'auto';
+  $('wTypeRow').classList.toggle('hidden', !(p.wear > 0)); $('wAngleRow').classList.toggle('hidden', !(p.wear > 0)); $('wSeedBtn').classList.toggle('hidden', !(p.wear > 0));
   $('y2kSw').classList.toggle('hidden', !['y2k', 'givre', 'gelee', 'irise'].includes(sel.preset) && !isT);
   document.querySelectorAll('#swatches .sw').forEach(s => s.classList.toggle('on', s.dataset.c.toLowerCase() === p.color.toLowerCase()));
   const isL = sel.preset === 'lcd';
@@ -1615,7 +1776,8 @@ function bindMatInputs() {
       sel.p[key] = +e.target.value / k;
       e.target.nextElementSibling.textContent = sel.p[key].toFixed(dec);
       const part = sel;
-      if (HEAVY.has(key) && (Math.max(part.p.fp, part.p.scr, part.p.dust) > 0 || part.p.masks.length)) {
+      if (OVERLAY.has(key)) { scheduleOverlays(part); if (key === 'wear') renderMatUI(); return; }
+      if (HEAVY.has(key) && (Math.max(part.p.fp, part.p.scr, part.p.dust) > 0 || part.p.layers.length)) {
         clearTimeout(part._t); part._t = setTimeout(() => { applyParams(part); needMaterials(); }, 140);
       } else { applyParams(part); needMaterials(); }
       if (key === 'trans') renderMatUI();
@@ -1651,6 +1813,7 @@ function bindMatInputs() {
     const base = sel, idx = parts.indexOf(base);
     // la nouvelle géométrie est dans l'espace du fichier : on garde le même parent / transfo
     for (const st of stickers.filter(s => s.part === base)) removeSticker(st);
+    disposeOverlays(base);
     modelRoot.remove(base.mesh); base.mesh.geometry.dispose();
     parts.splice(idx, 1);
     const created = comps.map((g, i) => addPart(g, `${base.name} ${i + 1}`, base.isSTL, base.preset, i === 0 ? base.p.color : DEF_COLORS[(i + 1) % DEF_COLORS.length]));
@@ -1663,11 +1826,11 @@ function bindMatInputs() {
     if (!sel) return;
     for (const p of parts) {
       if (p === sel) continue;
-      p.preset = sel.preset; p.p = { ...sel.p };
+      p.preset = sel.preset; p.p = { ...sel.p, layers: sel.p.layers.map(l => ({ ...l, _key: null, _L: null })) };
       if (sel.preset === 'lcd') p.lcd = { ...sel.lcd };
       applyParams(p);
     }
-    needMaterials(); renderParts(); toast('Matériau appliqué à toutes les pièces');
+    rebuildAllOverlays(); needScene(); renderParts(); toast('Matériau appliqué à toutes les pièces');
   };
 }
 
@@ -1928,7 +2091,7 @@ function pointerRay(e) {
   return ray;
 }
 function hitPart(e) {
-  const h = pointerRay(e).intersectObjects(parts.map(p => p.mesh), false)[0];
+  const h = pointerRay(e).intersectObjects(parts.filter(p => !p.hidden).map(p => p.mesh), false)[0];
   if (!h || !h.face) return null;
   const part = h.object.userData.part, mesh = part.mesh;
   const lp = mesh.worldToLocal(h.point.clone());
@@ -1993,6 +2156,278 @@ function bindStickers() {
 let stkTimer = 0;
 function stkMoved() { clearTimeout(stkTimer); stkTimer = setTimeout(needScene, 250); }
 
+/* ───────────── Usure des arêtes (géométrie de recouvrement, pur JS) ───────────── */
+function hash31(x, y, z, s) {
+  let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(z | 0, 2147483647) + Math.imul(s | 0, 1442695041)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+function noise3(x, y, z, s) {
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
+  const fx = x - xi, fy = y - yi, fz = z - zi;
+  const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy), w = fz * fz * (3 - 2 * fz);
+  const L = (a, b, t) => a + (b - a) * t;
+  const c = (i, j, k) => hash31(xi + i, yi + j, zi + k, s);
+  return L(L(L(c(0, 0, 0), c(1, 0, 0), u), L(c(0, 1, 0), c(1, 1, 0), u), v),
+           L(L(c(0, 0, 1), c(1, 0, 1), u), L(c(0, 1, 1), c(1, 1, 1), u), v), w);
+}
+function fbm3(x, y, z, oct, s) {
+  let sum = 0, amp = .5, f = 1, n = 0;
+  for (let o = 0; o < oct; o++) { sum += amp * noise3(x * f, y * f, z * f, s + o * 13); n += amp; amp *= .5; f *= 2.03; }
+  return sum / n;
+}
+/** découpe un polygone (sommets {p,n,val}) en gardant val ≥ 0 */
+function clipPolyVal(poly) {
+  const out = [];
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length];
+    if (a.val >= 0) out.push(a);
+    if ((a.val >= 0) !== (b.val >= 0)) {
+      const t = a.val / (a.val - b.val);
+      out.push({ p: [0, 1, 2].map(k => a.p[k] + (b.p[k] - a.p[k]) * t), n: [0, 1, 2].map(k => a.n[k] + (b.n[k] - a.n[k]) * t), val: 0 });
+    }
+  }
+  return out;
+}
+/**
+ * Génère les triangles « usés » d'une pièce.
+ * pos/nrm/index : géométrie indexée de la pièce (espace local) ; adj : buildAdjacency
+ * o : { angle (°), widthMM, amount 0..1, mmPerUnit, seed, budget }
+ */
+function buildWear(pos, nrm, index, adj, o) {
+  const V = i => [pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]];
+  const Nv = i => [nrm[i * 3], nrm[i * 3 + 1], nrm[i * 3 + 2]];
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+  const mul = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const len = a => Math.hypot(a[0], a[1], a[2]);
+  const norm = a => { const l = len(a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+  const mm = o.mmPerUnit, Wmm = o.widthMM, W = Wmm / mm, seed = o.seed | 0;
+  const cosT = Math.cos(o.angle * Math.PI / 180);
+  const nTri = index.length / 3, { W: weld, edges } = adj;
+  const fN = new Float32Array(nTri * 3), cen = new Float32Array(nTri * 3);
+  for (let t = 0; t < nTri; t++) {
+    const a = V(index[t * 3]), b = V(index[t * 3 + 1]), c = V(index[t * 3 + 2]);
+    const n = norm(cross(sub(b, a), sub(c, a)));
+    fN.set(n, t * 3); cen.set([(a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3, (a[2] + b[2] + c[2]) / 3], t * 3);
+  }
+  // valeur d'usure en un point : proximité de l'arête (0..1) + bruit d'écaillage
+  const amt = o.amount;
+  const wearVal = (p, edgeness) => {
+    const q = mul(p, mm);                                     // en mm
+    const chips = fbm3(q[0] * 1.6, q[1] * 1.6, q[2] * 1.6, 3, seed + 7);
+    const blot = fbm3(q[0] * .22, q[1] * .22, q[2] * .22, 2, seed + 3);   // zones plus ou moins abîmées
+    const g = Math.min(1, Math.max(0, edgeness * 2.5));      // le bruit n'agit qu'à proximité des arêtes
+    return edgeness * (1 + (blot - .5) * .9) + ((chips - .5) * 1.25 + (amt - .5) * .5) * g - .5;
+  };
+  const P = [], N = [];
+  const emitTri = (A, B, C) => {
+    let poly = clipPolyVal([A, B, C]);
+    for (let i = 1; i + 1 < poly.length; i++) for (const q of [poly[0], poly[i], poly[i + 1]]) {
+      P.push(q.p[0], q.p[1], q.p[2]); const nn = norm(q.n); N.push(nn[0], nn[1], nn[2]);
+    }
+  };
+  // 1) arêtes vives convexes → bandes subdivisées sur les deux faces
+  const sharp = [];
+  let totalLen = 0;
+  for (const [k, tris] of edges) {
+    if (tris.length !== 2) continue;
+    const [t1, t2] = tris;
+    const n1 = [fN[t1 * 3], fN[t1 * 3 + 1], fN[t1 * 3 + 2]], n2 = [fN[t2 * 3], fN[t2 * 3 + 1], fN[t2 * 3 + 2]];
+    if (dot(n1, n2) > cosT) continue;
+    // sommets de l'arête dans t1
+    let ia = -1, ib = -1;
+    const wa = Math.floor(k / 4294967296), wb = k % 4294967296;
+    for (let j = 0; j < 3; j++) { const wj = weld[t1 * 3 + j]; if (wj === wa) ia = index[t1 * 3 + j]; else if (wj === wb) ib = index[t1 * 3 + j]; }
+    if (ia < 0 || ib < 0) continue;
+    const a = V(ia), b = V(ib), mid = mul(add(a, b), .5);
+    const c2 = [cen[t2 * 3], cen[t2 * 3 + 1], cen[t2 * 3 + 2]];
+    if (dot(sub(c2, mid), n1) > -1e-9 * (len(sub(b, a)) + 1)) continue;   // concave ou plat : pas d'usure
+    const L = len(sub(b, a)); totalLen += L;
+    sharp.push({ a, b, tris: [t1, t2], wa, wb });
+  }
+  const ROWS = 5, budget = o.budget || 160000;
+  const step = Math.max(W / 2.5, totalLen * ROWS * 2 * 2 / budget);
+  for (const e of sharp) {
+    for (const t of e.tris) {
+      // sommets du triangle : a', b' (arête) et c (opposé)
+      let pa = null, pb = null, pc = null, na, nb, nc;
+      for (let j = 0; j < 3; j++) {
+        const vi = index[t * 3 + j], wj = weld[t * 3 + j];
+        if (wj === e.wa && !pa) { pa = V(vi); na = Nv(vi); } else if (wj === e.wb && !pb) { pb = V(vi); nb = Nv(vi); } else { pc = V(vi); nc = Nv(vi); }
+      }
+      if (!pa || !pb || !pc) continue;
+      const ab = sub(pb, pa), L = len(ab), dir = mul(ab, 1 / L);
+      const ac = sub(pc, pa), sc = dot(ac, dir) / L;
+      const hvec = sub(ac, mul(dir, dot(ac, dir))), h = len(hvec);
+      if (h < 1e-12) continue;
+      const Dmax = Math.min(h, W * 1.7);
+      const nS = Math.max(1, Math.min(4000, Math.ceil(L / step)));
+      // grille (s, d) → point, normale, valeur
+      const rows = [];
+      for (let r = 0; r <= ROWS; r++) {
+        const d = Dmax * r / ROWS, f = d / h;               // fraction vers c
+        const lo = f * sc, hi = 1 - f * (1 - sc);
+        const row = [];
+        for (let i = 0; i <= nS; i++) {
+          const s = lo + (hi - lo) * i / nS;
+          // barycentriques : P = pa + s·ab + f·(pc − pa − sc·ab)
+          const wc = f, wb_ = s - f * sc, wa_ = 1 - wb_ - wc;
+          const p = add(add(mul(pa, wa_), mul(pb, wb_)), mul(pc, wc));
+          const n = add(add(mul(na, wa_), mul(nb, wb_)), mul(nc, wc));
+          row.push({ p, n, val: wearVal(p, 1 - d / W) });
+        }
+        rows.push(row);
+      }
+      for (let r = 0; r < ROWS; r++) for (let i = 0; i < nS; i++) {
+        const A = rows[r][i], B = rows[r][i + 1], C = rows[r + 1][i + 1], D = rows[r + 1][i];
+        if (A.val < 0 && B.val < 0 && C.val < 0 && D.val < 0) continue;
+        emitTri(A, B, C); emitTri(A, C, D);
+      }
+    }
+  }
+  // 2) maillages denses et arrondis : courbure par sommet
+  const nW = weld.reduce((m, x) => Math.max(m, x), 0) + 1;
+  const vp = new Float64Array(nW * 3), vn = new Float64Array(nW * 3), ksum = new Float64Array(nW), kcnt = new Uint32Array(nW);
+  for (let t = 0; t < nTri; t++) for (let j = 0; j < 3; j++) {
+    const w = weld[t * 3 + j], vi = index[t * 3 + j];
+    vp[w * 3] = pos[vi * 3]; vp[w * 3 + 1] = pos[vi * 3 + 1]; vp[w * 3 + 2] = pos[vi * 3 + 2];
+    vn[w * 3] += fN[t * 3]; vn[w * 3 + 1] += fN[t * 3 + 1]; vn[w * 3 + 2] += fN[t * 3 + 2];
+  }
+  for (let w = 0; w < nW; w++) { const l = Math.hypot(vn[w * 3], vn[w * 3 + 1], vn[w * 3 + 2]) || 1; vn[w * 3] /= l; vn[w * 3 + 1] /= l; vn[w * 3 + 2] /= l; }
+  for (let t = 0; t < nTri; t++) for (let j = 0; j < 3; j++) for (let k = 1; k < 3; k++) {
+    const w = weld[t * 3 + j], u = weld[t * 3 + (j + k) % 3];
+    const dx = vp[u * 3] - vp[w * 3], dy = vp[u * 3 + 1] - vp[w * 3 + 1], dz = vp[u * 3 + 2] - vp[w * 3 + 2];
+    const d2 = dx * dx + dy * dy + dz * dz; if (d2 < 1e-20) continue;
+    ksum[w] += -2 * (vn[w * 3] * dx + vn[w * 3 + 1] * dy + vn[w * 3 + 2] * dz) / d2; kcnt[w]++;
+  }
+  const maxEdge = W * 3;
+  for (let t = 0; t < nTri; t++) {
+    const ids = [0, 1, 2].map(j => index[t * 3 + j]);
+    const ps = ids.map(V);
+    const le = Math.max(len(sub(ps[1], ps[0])), len(sub(ps[2], ps[1])), len(sub(ps[0], ps[2])));
+    if (le > maxEdge) continue;
+    const verts = [0, 1, 2].map(j => {
+      const w = weld[t * 3 + j], k = kcnt[w] ? ksum[w] / kcnt[w] / mm : 0;   // 1/mm, > 0 = convexe
+      const edgeness = Math.min(1.2, Math.max(0, k * Wmm * .9));
+      return { p: ps[j], n: Nv(ids[j]), val: wearVal(ps[j], edgeness) };
+    });
+    if (verts.every(v => v.val < 0)) continue;
+    emitTri(verts[0], verts[1], verts[2]);
+  }
+  return { P, N, sharpEdges: sharp.length };
+}
+
+/* ───────────── Recouvrements : usure des arêtes & poussière déposée ───────────── */
+const WEAR_EPS = .0012, DUST_EPS = .0035;            // décollement, en unités du monde
+function wearLook(part) {
+  const p = part.p; let t = p.wearType || 'auto';
+  if (t === 'auto') t = p.metal > .5 ? (['anodise', 'poudre', 'chromenoir'].includes(part.preset) ? 'metal' : 'poli') : (['carro', 'poudre'].includes(part.preset) ? 'appret' : (['bois', 'boisclair'].includes(part.preset) ? 'sombre' : 'blanchi'));
+  const base = new THREE.Color(p.color), white = new THREE.Color(1, 1, 1);
+  switch (t) {
+    case 'metal': return { color: new THREE.Color('#cdd0d4'), metal: 1, rough: .3 };
+    case 'poli': return { color: base.clone().lerp(white, .25), metal: 1, rough: Math.max(.03, p.rough * .35) };
+    case 'appret': return { color: new THREE.Color('#8f8f8a'), metal: 0, rough: .8 };
+    case 'laiton': return { color: new THREE.Color('#d9b46c'), metal: 1, rough: .28 };
+    case 'sombre': return { color: base.clone().multiplyScalar(.45), metal: 0, rough: .75 };
+    default: { // plastique blanchi par les chocs : plus clair, un peu désaturé, plus mat
+      const hsl = {}; base.getHSL(hsl); const c = new THREE.Color().setHSL(hsl.h, hsl.s * .6, Math.min(.92, hsl.l + (1 - hsl.l) * .45));
+      return { color: c, metal: 0, rough: Math.min(1, p.rough + .25), trans: p.trans * .5 };
+    }
+  }
+}
+function updateOverlayMaterials(part) {
+  if (!part.wearMesh) return;
+  const m = part.wearMesh.material, L = wearLook(part);
+  m.color.copy(L.color); m.metalness = L.metal; m.roughness = L.rough; m.transmission = L.trans || 0; m.needsUpdate = true;
+}
+function overlayMesh(P, N, UV, eps, mat) {
+  const pos = new Float32Array(P.length), nrm = new Float32Array(N);
+  for (let i = 0; i < P.length; i++) pos[i] = P[i] + nrm[i] * eps;
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+  g.setAttribute('uv', new THREE.BufferAttribute(UV || new Float32Array(P.length / 3 * 2), 2));
+  ensureIndex(g);
+  const m = new THREE.Mesh(g, mat); m.renderOrder = 1; m.userData.overlay = true;
+  return m;
+}
+function dustCanvas(amount, seed) {
+  const N = 512, cv = document.createElement('canvas'); cv.width = cv.height = N;
+  const ctx = cv.getContext('2d'), img = ctx.createImageData(N, N), d = img.data;
+  const th = .78 - amount * .5, sd = seed * 53 + 9;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const u = x / N, v = y / N;
+    const patch = sstep(th, th + .22, fbm(u, v, 5, 5, 4, sd));
+    const haze = fbm(u, v, 18, 18, 3, sd + 1) * amount * .45;
+    const speck = hash3(x, y, sd + 2) > 1 - amount * .02 ? 1 : 0;
+    const a = clamp(patch * (.35 + .6 * amount) + haze * (.4 + patch) + speck * .9, 0, 1);
+    const tone = 205 + 30 * fbm(u, v, 30, 30, 2, sd + 3), o = (y * N + x) * 4;
+    d[o] = tone; d[o + 1] = tone * .97; d[o + 2] = tone * .91; d[o + 3] = a * 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return cv;
+}
+function disposeOverlays(part) {
+  for (const k of ['wearMesh', 'dustMesh']) if (part[k]) { modelRoot.remove(part[k]); part[k].geometry.dispose(); if (k === 'wearMesh') part[k].material.dispose(); part[k] = null; }
+}
+function buildOverlays(part) {
+  disposeOverlays(part);
+  const g = part.mesh.geometry, p = part.p, sc = modelRoot.scale.x || 1;
+  if (!g.index) ensureIndex(g);
+  const pos = g.attributes.position.array, nrm = g.attributes.normal.array, idx = g.index.array;
+  if (p.wear > 0) {
+    const r = buildWear(pos, nrm, idx, adjacencyOf(g), { angle: p.wearAngle || 30, widthMM: .4 + p.wear * 3.6, amount: p.wear, mmPerUnit: mmPerUnit(), seed: (p.wearSeed || 1) * 31 + part.id, budget: 160000 });
+    if (r.P.length) {
+      const mat = new THREE.MeshPhysicalMaterial({ polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+      part.wearMesh = overlayMesh(r.P, r.N, null, WEAR_EPS / sc, mat);
+      updateOverlayMaterials(part);
+    }
+  }
+  if (p.dustTop > 0) {
+    const uv = g.attributes.uv ? g.attributes.uv.array : null, P = [], N = [], U = [];
+    for (let t = 0; t < idx.length; t += 3) {
+      const a = idx[t], b = idx[t + 1], c = idx[t + 2];
+      const ux = pos[b * 3] - pos[a * 3], uy = pos[b * 3 + 1] - pos[a * 3 + 1], uz = pos[b * 3 + 2] - pos[a * 3 + 2];
+      const vx = pos[c * 3] - pos[a * 3], vy = pos[c * 3 + 1] - pos[a * 3 + 1], vz = pos[c * 3 + 2] - pos[a * 3 + 2];
+      const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, l = Math.hypot(nx, ny, nz) || 1;
+      if (ny / l < .42) continue;                       // la poussière ne tient que sur les faces vers le haut
+      for (const i of [a, b, c]) { P.push(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]); N.push(nrm[i * 3], nrm[i * 3 + 1], nrm[i * 3 + 2]); U.push(uv ? uv[i * 2] : 0, uv ? uv[i * 2 + 1] : 0); }
+    }
+    if (P.length) {
+      const key = p.dustTop.toFixed(2) + '|' + p.seed;
+      if (part.dustKey !== key || !part.dustTex) { if (part.dustTex) part.dustTex.dispose(); part.dustKey = key; part.dustTex = new THREE.CanvasTexture(dustCanvas(p.dustTop, p.seed || 1)); part.dustTex.colorSpace = THREE.SRGBColorSpace; TEX_FLAGS(part.dustTex); }
+      setRepeat(part.dustTex, 45);
+      const mat = part.dustMat || (part.dustMat = new THREE.MeshPhysicalMaterial({ transparent: true, alphaTest: .03, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 }));
+      mat.map = part.dustTex; mat.color.set(0xffffff); mat.roughness = 1; mat.metalness = 0; mat.needsUpdate = true;
+      part.dustMesh = overlayMesh(P, N, new Float32Array(U), DUST_EPS / sc, mat);
+    }
+  }
+  if (!part.hidden) { if (part.wearMesh) modelRoot.add(part.wearMesh); if (part.dustMesh) modelRoot.add(part.dustMesh); }
+}
+function scheduleOverlays(part) {
+  clearTimeout(part._ot);
+  setStatus('Calcul de l\'usure…');
+  part._ot = setTimeout(() => {
+    try { buildOverlays(part); } catch (e) { console.error(e); toast('Usure : ' + e.message, 5000); }
+    needScene();
+  }, 220);
+}
+function rebuildAllOverlays() {
+  for (const p of parts) if (p.p.wear > 0 || p.p.dustTop > 0 || p.wearMesh || p.dustMesh) { try { buildOverlays(p); } catch (e) { console.error(e); } }
+}
+/* afficher / masquer une pièce (retirée du rendu, avec ses stickers et recouvrements) */
+function setHidden(part, h) {
+  part.hidden = h;
+  const objs = [part.mesh, part.wearMesh, part.dustMesh].filter(Boolean);
+  if (h) objs.forEach(o => modelRoot.remove(o)); else objs.forEach(o => modelRoot.add(o));
+  for (const st of stickers) if (st.part === part && st.mesh) { if (h) stkGroup.remove(st.mesh); else { stkGroup.add(st.mesh); buildSticker(st); } }
+  if (h && sel === part) { sel = null; }
+  renderParts(); renderMatUI(); needScene();
+}
+
 /* ───────────── Stage, taille, sélection ───────────── */
 const stage = $('stage');
 let viewW = 1, viewH = 1;
@@ -2030,7 +2465,7 @@ canvas.addEventListener('pointerup', e => {
   if (stkDrag) return;
   const r = canvas.getBoundingClientRect();
   ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
-  const hit = ray.intersectObjects(parts.map(p => p.mesh), false)[0];
+  const hit = ray.intersectObjects(parts.filter(p => !p.hidden).map(p => p.mesh), false)[0];
   sel = hit ? hit.object.userData.part : null;
   renderParts(); renderMatUI();
   if (sel) { const items = $('parts').children; const i = parts.indexOf(sel); items[i]?.scrollIntoView({ block: 'nearest' }); }
@@ -2246,9 +2681,11 @@ document.querySelectorAll('[data-rot]').forEach(b => b.onclick = () => {
   const nm = new THREE.Matrix3().getNormalMatrix(m);
   for (const p of parts) { p.src.applyMatrix4(m); p.mesh.geometry.applyMatrix4(m); }
   for (const st of stickers) { st.lp.applyMatrix4(m); st.ln.applyMatrix3(nm).normalize(); }
-  normalizeModel(); rebuildStickers(); setView('34', false); needScene();
+  normalizeModel(); rebuildStickers(); rebuildAllOverlays(); setView('34', false); needScene();
 });
 $('demo').onclick = loadDemo;
+$('showAll').onclick = () => { for (const p of parts) if (p.hidden) setHidden(p, false); };
+$('soloBtn').onclick = () => { if (!sel) { toast('Sélectionne une pièce'); return; } const keep = sel; for (const p of parts) if (p !== keep && !p.hidden) setHidden(p, true); sel = keep; renderParts(); renderMatUI(); };
 $('hdriBtn').onclick = () => $('hdriFile').click();
 $('hdriFile').onchange = e => { const f = e.target.files[0]; if (f) loadHDRI(f); e.target.value = ''; };
 $('sizeMM').onchange = e => { const v = parseFloat(e.target.value); if (v > 0) setSizeMM(v); };
