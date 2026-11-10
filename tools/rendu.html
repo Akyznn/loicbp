@@ -356,13 +356,20 @@ try {
   toast('Path tracing indisponible ici : aperçu classique seulement.', 4000);
 }
 let ptOn = !!pt;
+let lastErr = '';
 let ptDirty = true;       // la scène doit être renvoyée au path tracer
 let ptSceneTimer = 0;
 function needScene() { ptDirty = true; clearTimeout(ptSceneTimer); ptSceneTimer = setTimeout(syncScene, 30); }
 function syncScene() {
   if (!pt) { ptDirty = false; return; }
   try { pt.setScene(scene, camera); ptDirty = false; }
-  catch (e) { console.error(e); toast('Erreur path tracer : ' + e.message, 4000); ptDirty = false; }
+  catch (e) { ptDirty = false; ptFail(e); }
+}
+function ptFail(e) {
+  console.error(e);
+  ptOn = false; $('ptOn').checked = false;
+  lastErr = (e && e.message) || String(e);
+  toast('Le path tracing a planté (' + lastErr + '). Passage en aperçu classique, tu peux réessayer en recochant la case.', 7000);
 }
 function needMaterials() { if (pt && !ptDirty) { try { pt.updateMaterials(); } catch (e) { needScene(); } } }
 function needCamera() { if (pt && !ptDirty) pt.updateCamera(); }
@@ -767,7 +774,15 @@ function prepGeometry(src, isSTL) {
     g = BGU.toCreasedNormals(g, opts.crease * D2R);
   } else if (!g.attributes.normal) g.computeVertexNormals();
   if (!g.attributes.uv) g = boxUV(g);
+  ensureIndex(g);
   g.computeBoundingBox(); g.computeBoundingSphere();
+  return g;
+}
+function ensureIndex(g) {
+  if (g.index) return g;
+  const n = g.attributes.position.count, a = n > 65535 ? new Uint32Array(n) : new Uint16Array(n);
+  for (let i = 0; i < n; i++) a[i] = i;
+  g.setIndex(new THREE.BufferAttribute(a, 1));
   return g;
 }
 /** sépare les morceaux non connectés */
@@ -901,7 +916,7 @@ async function loadFiles(files) {
       console.error(e); toast('Impossible de lire ' + f.name + ' : ' + e.message, 4500);
     }
   }
-  finishLoad();
+  try { finishLoad(); } catch (e) { console.error(e); toast('Erreur après import : ' + e.message, 7000); }
 }
 function extractGroup(g, gr) {
   const ng = new THREE.BufferGeometry();
@@ -1230,7 +1245,7 @@ $('file').onchange = e => { loadFiles(e.target.files); e.target.value = ''; };
 /* ───────────── Statut ───────────── */
 function setStatus(html) { $('status').innerHTML = html; }
 function updateHUD() {
-  if (!ptOn || !pt) { setStatus('Aperçu classique'); return; }
+  if (!ptOn || !pt) { setStatus(lastErr ? 'Aperçu classique · erreur PT' : 'Aperçu classique'); return; }
   if (pt.isCompiling) { setStatus('Compilation des shaders…'); return; }
   const s = Math.min(Math.floor(pt.samples), state.spp);
   const pc = Math.round(100 * s / state.spp);
@@ -1248,14 +1263,18 @@ function frame(now) {
     if (t >= 1) anim = null;
     controls.update(); needCamera();
   } else controls.update();
-  if (ptOn && pt && !ptDirty) {
-    if (pt.samples < state.spp) pt.renderSample();
-  } else {
-    const fv = floor.visible; if (floorMat.matte) floor.visible = false;
-    renderer.render(scene, camera);
-    floor.visible = fv;
+  try {
+    if (ptOn && pt && !ptDirty) {
+      if (pt.samples < state.spp) pt.renderSample();
+    } else {
+      const fv = floor.visible; if (floorMat.matte) floor.visible = false;
+      renderer.render(scene, camera);
+      floor.visible = fv;
+    }
+  } catch (e) {
+    if (ptOn) ptFail(e); else if (!frame.err) { frame.err = 1; console.error(e); toast('Erreur d\'affichage : ' + e.message, 7000); }
   }
-  updateHUD(); updateSelBox();
+  try { updateHUD(); updateSelBox(); } catch (e) { console.error(e); }
 }
 controls.addEventListener('change', needCamera);
 
@@ -1371,7 +1390,9 @@ document.querySelectorAll('#floorChips .chip').forEach(c => c.onclick = () => { 
 $('floorC').oninput = e => { state.floorC = e.target.value; floorMat.color.set(e.target.value); needMaterials(); };
 $('focal').oninput = e => setFocal(+e.target.value);
 $('saveView').onclick = () => { userViews.push({ pos: camera.position.clone(), target: controls.target.clone(), mm: camera.getFocalLength() }); renderUserViews(); toast('Vue enregistrée'); };
-$('ptOn').onchange = e => { ptOn = e.target.checked && !!pt; if (ptOn) needScene(); };
+$('ptOn').onchange = e => { ptOn = e.target.checked && !!pt; if (ptOn) { lastErr = ''; needScene(); } };
+window.addEventListener('error', e => toast('Erreur : ' + (e.message || 'inconnue'), 7000));
+window.addEventListener('unhandledrejection', e => toast('Erreur : ' + ((e.reason && e.reason.message) || e.reason), 7000));
 $('prevQ').onchange = e => { if (pt) { pt.renderScale = +e.target.value; pt.reset(); } };
 $('spp').onchange = e => { state.spp = +e.target.value; };
 $('aspect').onchange = e => { state.aspect = +e.target.value; layout(); updateExpHint(); };
