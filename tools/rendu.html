@@ -417,6 +417,26 @@ scene.add(floor);
 
 /* ───────────── Path tracer (chargé à part : si ça échoue, on reste en aperçu classique) ───────────── */
 let PT = null, pt = null;
+// réglages selon le poids du modèle : 0 = normal, 1 = lourd, 2 = très lourd
+const LOADS = [
+  { tiles: 3, scale: 1, bounces: 6 },
+  { tiles: 5, scale: .5, bounces: 5 },
+  { tiles: 8, scale: .35, bounces: 4 },
+];
+let loadLevel = 0;
+function makePT() {
+  const t = new PT.WebGLPathTracer(renderer);
+  t.filterGlossyFactor = 0.5; t.minSamples = 3; t.renderDelay = 60; t.fadeDuration = 300; t.dynamicLowRes = false;
+  applyLoad(t);
+  return t;
+}
+function applyLoad(t = pt) {
+  if (!t) return;
+  const L = LOADS[loadLevel], q = +($('prevQ')?.value || .5);
+  t.tiles.set(L.tiles, L.tiles);            // petits morceaux par image : évite que le GPU sature
+  t.bounces = L.bounces;                    // aperçu ; l'export monte à 12
+  t.renderScale = Math.min(q, L.scale);
+}
 const PT_SOURCES = [
   'https://cdn.jsdelivr.net/npm/three-gpu-pathtracer@0.0.24/src/core/WebGLPathTracer.js',
   'three-gpu-pathtracer',
@@ -428,15 +448,7 @@ try {
     catch (e) { console.warn('échec', u, e); }
   }
   if (!PT) throw new Error('module introuvable');
-  pt = new PT.WebGLPathTracer(renderer);
-  pt.tiles.set(3, 3);          // petits morceaux par image : évite que le GPU sature
-  pt.bounces = 6;              // aperçu ; l'export monte à 12
-  pt.filterGlossyFactor = 0.5;
-  pt.minSamples = 3;
-  pt.renderDelay = 60;
-  pt.fadeDuration = 300;
-  pt.dynamicLowRes = false;
-  pt.renderScale = 0.5;
+  pt = makePT();
 } catch (e) {
   console.warn('Path tracer indisponible', e);
   pt = null;
@@ -444,6 +456,21 @@ try {
   toast('Path tracing indisponible ici : aperçu classique seulement.', 4000);
 }
 let ptOn = !!pt;
+// la carte graphique peut « décrocher » (modèle trop lourd) : on récupère au lieu de rester noir
+let ctxLost = false;
+canvas.addEventListener('webglcontextlost', e => {
+  e.preventDefault(); ctxLost = true;
+  setStatus('Carte graphique saturée…');
+  toast('La carte graphique a décroché (modèle trop lourd). Récupération en mode allégé…', 6000);
+}, false);
+canvas.addEventListener('webglcontextrestored', () => {
+  ctxLost = false;
+  loadLevel = Math.min(2, loadLevel + 1);
+  try { if (PT) { pt = makePT(); } } catch (e) { console.error(e); pt = null; }
+  for (const p of parts) { p.mat.needsUpdate = true; }
+  needScene();
+  toast('Rendu relancé en mode allégé. Si ça recommence, décoche « Path tracing » pour régler la scène.', 6000);
+}, false);
 let lastErr = '';
 let ptDirty = true;       // la scène doit être renvoyée au path tracer
 let ptSceneTimer = 0;
@@ -1319,6 +1346,50 @@ function boxUV(g) {
   return g;
 }
 const opts = { zup: true, shade: 'auto', crease: 30 };
+/** retire les triangles invalides (coordonnées non finies, aire nulle) : fréquents dans les gros STL de CAO */
+function sanitizeGeometry(src) {
+  let g = src.index ? src.toNonIndexed() : src;
+  const pos = g.attributes.position.array, n = pos.length / 9;
+  let bad = 0; const keep = new Uint8Array(n);
+  g.computeBoundingSphere();
+  const r = isFinite(g.boundingSphere.radius) ? g.boundingSphere.radius : 1, minA = (r * 1e-7) ** 2;
+  for (let t = 0; t < n; t++) {
+    const o = t * 9; let ok = true;
+    for (let k = 0; k < 9; k++) if (!isFinite(pos[o + k])) { ok = false; break; }
+    if (ok) {
+      const ux = pos[o + 3] - pos[o], uy = pos[o + 4] - pos[o + 1], uz = pos[o + 5] - pos[o + 2];
+      const vx = pos[o + 6] - pos[o], vy = pos[o + 7] - pos[o + 1], vz = pos[o + 8] - pos[o + 2];
+      const cx = uy * vz - uz * vy, cy = uz * vx - ux * vz, cz = ux * vy - uy * vx;
+      if (cx * cx + cy * cy + cz * cz <= minA) ok = false;
+    }
+    keep[t] = ok ? 1 : 0; if (!ok) bad++;
+  }
+  if (!bad) return g;
+  const out = new THREE.BufferGeometry();
+  for (const [name, a] of Object.entries(g.attributes)) {
+    const sz = a.itemSize, arr = new Float32Array((n - bad) * 3 * sz); let w = 0;
+    for (let t = 0; t < n; t++) if (keep[t]) for (let k = 0; k < 3 * sz; k++) arr[w++] = a.array[t * 3 * sz + k];
+    out.setAttribute(name, new THREE.BufferAttribute(arr, sz));
+  }
+  console.info(`${bad} triangle(s) invalide(s) retiré(s)`);
+  return out;
+}
+/** remplace les normales invalides par la normale de la face */
+function fixNormals(g) {
+  const nr = g.attributes.normal, pos = g.attributes.position, idx = g.index;
+  if (!nr) return;
+  const a = nr.array; let bad = 0;
+  for (let i = 0; i < a.length; i++) if (!isFinite(a[i])) { bad++; break; }
+  if (!bad) return;
+  const tri = idx ? idx.count / 3 : pos.count / 3, v = new THREE.Vector3(), e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), p0 = new THREE.Vector3();
+  for (let t = 0; t < tri; t++) {
+    const ids = [0, 1, 2].map(k => idx ? idx.getX(t * 3 + k) : t * 3 + k);
+    p0.fromBufferAttribute(pos, ids[0]); e1.fromBufferAttribute(pos, ids[1]).sub(p0); e2.fromBufferAttribute(pos, ids[2]).sub(p0);
+    v.crossVectors(e1, e2).normalize(); if (!isFinite(v.x)) v.set(0, 1, 0);
+    for (const i of ids) if (!isFinite(a[i * 3]) || !isFinite(a[i * 3 + 1]) || !isFinite(a[i * 3 + 2])) { a[i * 3] = v.x; a[i * 3 + 1] = v.y; a[i * 3 + 2] = v.z; }
+  }
+  nr.needsUpdate = true;
+}
 /** prépare une géométrie source pour le rendu (normales, uv, attributs communs) */
 function prepGeometry(src, isSTL, keepUV = false) {
   let g = cleanAttributes(src.clone());
@@ -1335,6 +1406,7 @@ function prepGeometry(src, isSTL, keepUV = false) {
     g.computeVertexNormals();
   } else if (!g.attributes.normal) g.computeVertexNormals();
   if (!g.attributes.uv) g = boxUV(g);
+  fixNormals(g);
   ensureIndex(g);
   g.computeBoundingBox(); g.computeBoundingSphere();
   return g;
@@ -1386,6 +1458,7 @@ const DEF_COLORS = ['#e8e4dc', '#7b4fd6', '#5fb8ff', '#ff8a2a', '#2fbf6a', '#ff6
 let pid = 0;
 
 function addPart(srcGeom, name, isSTL, presetId = 'satin', color = null, keepUV = false) {
+  srcGeom = sanitizeGeometry(srcGeom);
   const mat = newMaterial();
   const mesh = new THREE.Mesh(prepGeometry(srcGeom, isSTL, keepUV), mat);
   mesh.name = name;
@@ -1411,7 +1484,8 @@ function normalizeModel() {
   for (const p of parts) { p.mesh.geometry.computeBoundingBox(); bb.union(p.mesh.geometry.boundingBox); }
   if (bb.isEmpty()) return;
   const s = new THREE.Vector3(), c = new THREE.Vector3(); bb.getSize(s); bb.getCenter(c);
-  const k = 2 / Math.max(s.x, s.y, s.z, 1e-9);
+  let k = 2 / Math.max(s.x, s.y, s.z, 1e-9);
+  if (!isFinite(k) || !isFinite(c.x + c.y + c.z + bb.min.y)) { console.warn('bornes invalides'); return; }
   modelRoot.scale.setScalar(k);
   modelRoot.position.set(-c.x * k, -bb.min.y * k, -c.z * k);
   modelRoot.updateMatrixWorld(true);
@@ -1521,7 +1595,9 @@ function finishLoad(sizeHint) {
   renderParts(); renderMatUI();
   setView('34', false);
   needScene();
-  toast(`${parts.length} pièce${parts.length > 1 ? 's' : ''} · ${Math.round(triCount()).toLocaleString('fr-FR')} triangles`);
+  const tris = triCount(), lvl = tris > 1500000 ? 2 : tris > 300000 ? 1 : 0;
+  if (lvl !== loadLevel) { loadLevel = lvl; applyLoad(); }
+  toast(`${parts.length} pièce${parts.length > 1 ? 's' : ''} · ${Math.round(tris).toLocaleString('fr-FR')} triangles` + (lvl ? ' · modèle lourd : aperçu allégé' : ''), lvl ? 5000 : 2600);
 }
 function regenGeometries() {
   for (const p of parts) {
@@ -2591,7 +2667,7 @@ function updateHUD() {
 let exporting = false;
 function frame(now) {
   requestAnimationFrame(frame);
-  if (exporting) return;
+  if (exporting || ctxLost) return;
   if (anim) {
     let t = Math.min(1, (now - anim.t0) / 550); t = t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     camera.position.lerpVectors(anim.p0, anim.p1, t); controls.target.lerpVectors(anim.t0v, anim.t1, t);
@@ -2652,8 +2728,8 @@ async function doExport() {
     let blob;
     if (ptOn && pt) {
       if (ptDirty || noBg) syncScene(); else pt.updateCamera();
-      pt.renderScale = 1; const t = Math.max(3, Math.ceil(Math.max(W, H) / 512)); pt.tiles.set(t, t);
-      pt.fadeDuration = 0; pt.minSamples = 1; pt.renderDelay = 0; pt.dynamicLowRes = false; pt.bounces = 12;
+      pt.renderScale = 1; const t = Math.max(LOADS[loadLevel].tiles, Math.ceil(Math.max(W, H) / (loadLevel ? 320 : 512))); pt.tiles.set(t, t);
+      pt.fadeDuration = 0; pt.minSamples = 1; pt.renderDelay = 0; pt.dynamicLowRes = false; pt.bounces = loadLevel === 2 ? 8 : loadLevel === 1 ? 10 : 12;
       pt.reset();
       const t0 = performance.now();
       await new Promise(res => {
@@ -2733,7 +2809,7 @@ $('saveView').onclick = () => { userViews.push({ pos: camera.position.clone(), t
 $('ptOn').onchange = e => { ptOn = e.target.checked && !!pt; if (ptOn) { lastErr = ''; needScene(); } };
 window.addEventListener('error', e => toast('Erreur : ' + (e.message || 'inconnue'), 7000));
 window.addEventListener('unhandledrejection', e => toast('Erreur : ' + ((e.reason && e.reason.message) || e.reason), 7000));
-$('prevQ').onchange = e => { if (pt) { pt.renderScale = +e.target.value; pt.reset(); } };
+$('prevQ').onchange = () => { if (pt) { applyLoad(); pt.reset(); } };
 $('spp').onchange = e => { state.spp = +e.target.value; };
 $('aspect').onchange = e => { state.aspect = +e.target.value; layout(); updateExpHint(); };
 $('expSize').onchange = updateExpHint;
