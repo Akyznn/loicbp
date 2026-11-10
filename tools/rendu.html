@@ -85,6 +85,8 @@ button{font:inherit}
 .part .dot{width:14px;height:14px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}
 .part .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
 .part .mt{font-size:11px;color:var(--dim);white-space:nowrap}
+.part .pick{margin:0;width:15px;height:15px;accent-color:var(--ink);flex:none;cursor:pointer}
+.part.picked{background:var(--line-soft)}
 .part .eye{background:none;border:0;padding:2px;color:var(--dim);cursor:pointer;display:flex;flex:none}
 .part .eye:hover{color:var(--text)}
 .part.off .nm,.part.off .dot,.part.off .mt{opacity:.4}
@@ -163,12 +165,13 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
   <details class="sec" open>
     <summary>Pièces &amp; matériaux</summary>
     <div class="body">
-      <p class="hint">Clique une pièce dans la vue ou dans la liste.</p>
+      <p class="hint">Clique une pièce dans la vue ou dans la liste. Coche plusieurs pièces (ou Cmd/Ctrl + clic) pour les fusionner ou leur appliquer un matériau.</p>
       <div class="parts" id="parts"></div>
       <div class="btns">
         <button class="btn" id="splitBtn" title="Sépare les morceaux non connectés en pièces distinctes">Séparer en pièces</button>
         <button class="btn" id="applyAll">Appliquer à tout</button>
       </div>
+      <div class="btns" id="pickBar"><button class="btn" id="mergeBtn">Fusionner la sélection</button><button class="btn" id="pickAll">Tout cocher</button><button class="btn" id="pickNone">Décocher</button></div>
       <div class="btns"><button class="btn" id="showAll">Tout afficher</button><button class="btn" id="soloBtn" title="N'affiche que la pièce sélectionnée">Isoler la sélection</button></div>
       <div id="matUI">
         <div class="group-title">Plastiques</div>
@@ -1471,6 +1474,7 @@ function addPart(srcGeom, name, isSTL, presetId = 'satin', color = null, keepUV 
   return part;
 }
 function clearModel() {
+  if (typeof picks !== 'undefined') picks.clear();
   if (typeof clearStickers === 'function' && stickers.length) clearStickers();
   for (const p of parts) { disposeOverlays(p); p.mesh.geometry.dispose(); p.mat.dispose(); for (const t of [p.lcdTex, p.nTex, p.rTex, p.cTex, p.aTex, p.wearNTex, ...Object.values(p.dustTexs || {})]) if (t) t.dispose(); }
   modelRoot.clear(); modelRoot.rotation.set(0, 0, 0); modelRoot.position.set(0, 0, 0); modelRoot.scale.set(1, 1, 1);
@@ -1669,20 +1673,69 @@ function loadDemo() {
 /* ───────────── UI pièces / matériaux ───────────── */
 const EYE_ON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 const EYE_OFF = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l18 18M10.6 5.1A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7c1.7 0 3.2-.5 4.5-1.2"/></svg>';
+const picks = new Set();
+let lastPick = null;
+function togglePick(p, range = false) {
+  if (range && lastPick && parts.includes(lastPick)) {
+    const a = parts.indexOf(lastPick), b = parts.indexOf(p);
+    for (let i = Math.min(a, b); i <= Math.max(a, b); i++) picks.add(parts[i]);
+  } else if (picks.has(p)) picks.delete(p); else picks.add(p);
+  lastPick = p; sel = p;
+  renderParts(); renderMatUI();
+}
+/** refusionne plusieurs pièces en une seule (matériau de la première) */
+function mergeParts(list) {
+  list = parts.filter(p => list.includes(p));
+  if (list.length < 2) return;
+  const first = list[0], at = parts.indexOf(first);
+  // attributs communs à toutes les pièces
+  const keys = ['position', 'normal', 'uv'].filter(k => list.every(p => p.src.attributes[k]));
+  const geoms = list.map(p => {
+    const g = p.src.index ? p.src.toNonIndexed() : p.src.clone();
+    for (const k of Object.keys(g.attributes)) if (!keys.includes(k)) g.deleteAttribute(k);
+    g.clearGroups(); return g;
+  });
+  const merged = BGU.mergeGeometries(geoms);
+  if (!merged) { toast('Fusion impossible'); return; }
+  const base = first.name.replace(/\s+\d+$/, '');
+  const name = list.every(p => p.name.replace(/\s+\d+$/, '') === base) ? base : first.name + ' +' + (list.length - 1);
+  for (const p of list) { disposeOverlays(p); modelRoot.remove(p.mesh); p.mesh.geometry.dispose(); p.mat.dispose(); picks.delete(p); }
+  parts = parts.filter(p => !list.includes(p));
+  const np = addPart(merged, name, list.some(p => p.isSTL), first.preset, null, list.every(p => p.keepUV));
+  np.p = { ...first.p, layers: first.p.layers.map(l => ({ ...l, _key: null, _L: null })) };
+  if (first.lcd) np.lcd = { ...first.lcd };
+  if (first.texMap) np.texMap = first.texMap;
+  applyParams(np);
+  parts = parts.filter(p => p !== np); parts.splice(Math.min(at, parts.length), 0, np);
+  for (const st of stickers) if (list.includes(st.part)) { st.part = np; if (st.mesh && !st.mesh.parent) stkGroup.add(st.mesh); buildSticker(st); }
+  if (np.p.wear > 0 || np.p.dustTop > 0) buildOverlays(np);
+  sel = np; lastPick = null;
+  renderParts(); renderMatUI(); needScene();
+  toast(`${list.length} pièces fusionnées`);
+}
 function renderParts() {
   const el = $('parts');
   el.innerHTML = '';
   for (const p of parts) {
     const d = document.createElement('div');
-    d.className = 'part' + (p === sel ? ' on' : '');
-    d.innerHTML = `<button class="eye" title="${p.hidden ? 'Afficher' : 'Masquer'}">${p.hidden ? EYE_OFF : EYE_ON}</button><span class="dot" style="background:${p.p.color}"></span><span class="nm"></span><span class="mt">${PRESETS[p.preset].n}</span>`;
+    d.className = 'part' + (p === sel ? ' on' : '') + (picks.has(p) ? ' picked' : '');
+    d.innerHTML = `<input type="checkbox" class="pick" title="Cocher pour fusionner / appliquer" ${picks.has(p) ? 'checked' : ''}><button class="eye" title="${p.hidden ? 'Afficher' : 'Masquer'}">${p.hidden ? EYE_OFF : EYE_ON}</button><span class="dot" style="background:${p.p.color}"></span><span class="nm"></span><span class="mt">${PRESETS[p.preset].n}</span>`;
     d.querySelector('.nm').textContent = p.name;
     if (p.hidden) d.classList.add('off');
     d.querySelector('.eye').onclick = ev => { ev.stopPropagation(); setHidden(p, !p.hidden); };
-    d.onclick = () => { sel = p; renderParts(); renderMatUI(); };
+    d.querySelector('.pick').onclick = ev => { ev.stopPropagation(); togglePick(p, ev.shiftKey); };
+    d.onclick = ev => {
+      if (ev.metaKey || ev.ctrlKey || ev.shiftKey) { togglePick(p, ev.shiftKey); return; }
+      sel = p; renderParts(); renderMatUI();
+    };
     el.appendChild(d);
   }
-  $('splitBtn').disabled = !sel; $('applyAll').disabled = !sel || parts.length < 2;
+  $('splitBtn').disabled = !sel;
+  const np = [...picks].length;
+  $('applyAll').disabled = !sel || parts.length < 2;
+  $('applyAll').textContent = np >= 1 ? `Appliquer aux cochées (${np})` : 'Appliquer à tout';
+  $('mergeBtn').disabled = np < 2; $('mergeBtn').textContent = np >= 2 ? `Fusionner (${np})` : 'Fusionner la sélection';
+  $('pickBar').classList.toggle('hidden', parts.length < 2);
 }
 function buildPresetChips() {
   document.querySelectorAll('#matUI .chips[data-group]').forEach(box => {
@@ -1908,18 +1961,23 @@ function bindMatInputs() {
     const created = comps.map((g, i) => addPart(g, `${base.name} ${i + 1}`, base.isSTL, base.preset, i === 0 ? base.p.color : DEF_COLORS[(i + 1) % DEF_COLORS.length]));
     // remet les nouvelles pièces à la place de l'ancienne dans la liste
     parts = parts.filter(p => !created.includes(p)); parts.splice(idx, 0, ...created);
+    picks.delete(base);
     sel = created[0]; renderParts(); renderMatUI(); needScene();
     toast(`${created.length} pièces créées`);
   };
+  $('mergeBtn').onclick = () => mergeParts([...picks]);
+  $('pickAll').onclick = () => { parts.forEach(p => picks.add(p)); renderParts(); };
+  $('pickNone').onclick = () => { picks.clear(); renderParts(); };
   $('applyAll').onclick = () => {
     if (!sel) return;
-    for (const p of parts) {
+    const targets = picks.size ? parts.filter(p => picks.has(p)) : parts;
+    for (const p of targets) {
       if (p === sel) continue;
       p.preset = sel.preset; p.p = { ...sel.p, layers: sel.p.layers.map(l => ({ ...l, _key: null, _L: null })) };
       if (sel.preset === 'lcd') p.lcd = { ...sel.lcd };
       applyParams(p);
     }
-    rebuildAllOverlays(); needScene(); renderParts(); toast('Matériau appliqué à toutes les pièces');
+    rebuildAllOverlays(); needScene(); renderParts(); toast(picks.size ? `Matériau appliqué aux ${picks.size} pièces cochées` : 'Matériau appliqué à toutes les pièces');
   };
 }
 
@@ -2618,6 +2676,7 @@ canvas.addEventListener('pointerup', e => {
   const r = canvas.getBoundingClientRect();
   ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
   const hit = ray.intersectObjects(parts.filter(p => !p.hidden).map(p => p.mesh), false)[0];
+  if (hit && (e.metaKey || e.ctrlKey || e.shiftKey)) { togglePick(hit.object.userData.part); return; }
   sel = hit ? hit.object.userData.part : null;
   renderParts(); renderMatUI();
   if (sel) { const items = $('parts').children; const i = parts.indexOf(sel); items[i]?.scrollIntoView({ block: 'nearest' }); }
