@@ -1591,7 +1591,15 @@ function frame(now) {
   }
   try { updateHUD(); updateSelBox(); } catch (e) { console.error(e); }
 }
-controls.addEventListener('change', needCamera);
+/* la caméra ne passe jamais sous le sol (sinon on ne voit que le dessous du sol : écran gris) */
+const MIN_CAM_Y = 0.015;
+controls.addEventListener('change', () => {
+  if (floor.visible && floor.parent === scene && camera.position.y < MIN_CAM_Y) {
+    camera.position.y = MIN_CAM_Y;
+    if (controls.target.y < MIN_CAM_Y) controls.target.y = MIN_CAM_Y;
+  }
+  needCamera();
+});
 
 /* ───────────── Export ───────────── */
 async function saveBlob(blob, filename) {
