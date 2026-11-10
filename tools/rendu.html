@@ -211,14 +211,25 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
           <div class="row"><label>Échelle</label><input type="range" id="iScale" min="25" max="400"><output></output></div>
           <button class="btn" id="reseed">Nouveau tirage des imperfections</button>
           <div class="sub" style="background:var(--panel)">
-            <h3>Masque perso (image noir &amp; blanc)</h3>
-            <div class="btns"><button class="btn" id="cBtn">Choisir une image…</button><button class="btn hidden" id="cDel" title="Retirer le masque">Retirer</button></div>
-            <input type="file" id="cFile" accept="image/*" hidden>
-            <span class="hint" id="cName">Blanc = zone touchée, noir = intacte. L'image se répète comme un motif.</span>
+            <h3>Masques perso (PNG / SVG)</h3>
+            <span class="hint">Blanc = zone touchée, noir ou transparent = intacte. Plusieurs fichiers possibles.</span>
+            <div class="chips" id="mList"></div>
+            <button class="btn" id="cBtn">Ajouter des images…</button>
+            <input type="file" id="cFile" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" multiple hidden>
             <div id="cOpts" class="hidden" style="display:flex;flex-direction:column;gap:9px">
-              <div class="row"><label>Intensité</label><input type="range" id="cAmt" min="0" max="100"><output></output></div>
-              <div class="row"><label>Effet</label><select id="cMode"><option value="mat">Rend plus mat (traces, usure)</option><option value="brillant">Rend plus brillant (lustré, poli)</option></select></div>
+              <div class="row"><label>Disposition</label><select id="mLayout"><option value="scatter">Éparpillé aléatoire</option><option value="tile">Motif répété</option></select></div>
+              <div id="mScatter" style="display:flex;flex-direction:column;gap:9px">
+                <div class="row"><label>Nombre</label><input type="range" id="mCount" min="1" max="200"><output></output></div>
+                <div class="row"><label>Taille (mm)</label><input type="range" id="mSize" min="1" max="80"><output></output></div>
+                <div class="row"><label>Variation</label><input type="range" id="mVar" min="0" max="100"><output></output></div>
+                <label class="check"><input type="checkbox" id="mRot"> Rotation aléatoire</label>
+              </div>
+              <div class="row"><label>Brillance</label><select id="cMode"><option value="mat">Rend plus mat</option><option value="brillant">Rend plus brillant</option><option value="none">Inchangée</option></select></div>
+              <div class="row" id="cAmtRow"><label>Intensité</label><input type="range" id="cAmt" min="0" max="100"><output></output></div>
+              <div class="row"><label>Relief</label><select id="mRelief"><option value="none">Aucun</option><option value="creux">Creux (rayures, gravure)</option><option value="bosse">Bosses (dépôts, gouttes)</option></select></div>
+              <div class="row" id="mDepthRow"><label>Profondeur</label><input type="range" id="mDepth" min="0" max="100"><output></output></div>
               <label class="check"><input type="checkbox" id="cInv"> Inverser le noir et le blanc</label>
+              <p class="hint">« Nouveau tirage » redistribue aussi les motifs éparpillés.</p>
             </div>
           </div>
           <details class="adv"><summary>Réglages fins</summary><div>
@@ -652,7 +663,8 @@ const Y2K = [
 ];
 const P = (o) => Object.assign({ color: '#cccccc', rough: .5, metal: 0, trans: 0, dens: .5, coat: 0, ior: 1.5, iri: 0, sheen: 0, emi: 0, emiC: '#ffffff',
   surf: 'none', sAmp: 1, sScale: 1, layer: .2, fp: 0, scr: 0, dust: 0, seed: 1,
-  iScale: 1, cImg: null, cAmt: 0, cMode: 'mat', cInv: false }, o);
+  iScale: 1, masks: [], mLayout: 'scatter', mCount: 25, mSize: 12, mVar: .5, mRot: true,
+  cAmt: .7, cMode: 'mat', cInv: false, mRelief: 'none', mDepth: .5 }, o);
 const PRESETS = {
   pla:      { g: 'plastique', n: 'Mat (PLA)', p: P({ color: '#e8e4dc', rough: .6, surf: 'fdm', sAmp: 1 }) },
   satin:    { g: 'plastique', n: 'Satiné', p: P({ color: '#f2f2f2', rough: .35, coat: .1, surf: 'fin', sAmp: .5 }) },
@@ -769,10 +781,12 @@ function heightField(type) {
   }
   return H;
 }
+const hCache = new Map();
+function surfHeights(type) { if (!hCache.has(type)) hCache.set(type, heightField(type)); return hCache.get(type); }
 const nrmCache = new Map();
 function normalCanvas(type) {
   if (nrmCache.has(type)) return nrmCache.get(type);
-  const N = TN, H = heightField(type), amp = SURFS[type].amp;
+  const N = TN, H = surfHeights(type), amp = SURFS[type].amp;
   const cv = document.createElement('canvas'); cv.width = cv.height = N;
   const ctx = cv.getContext('2d'), img = ctx.createImageData(N, N), d = img.data;
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
@@ -788,8 +802,8 @@ function normalCanvas(type) {
 }
 const IMP_TILE = 90; // mm couverts par une tuile d'imperfections
 /** carte de rugosité : rapport rugosité locale / rugosité max (R) */
-function imperfCanvas(p, base, R) {
-  const N = TN, mmPx = N / IMP_TILE, sd = p.seed * 101;
+function imperfCanvas(p, base, R, L) {
+  const N = L ? MASK_N : TN, mmPx = N / IMP_TILE, sd = p.seed * 101, px = N / 512;
   const val = new Float32Array(N * N).fill(base);
   const mixTo = (i, target, w) => { if (w > 0) val[i] += (target - val[i]) * Math.min(1, w); };
   // traces de doigts : ovales de crêtes + halo gras
@@ -818,20 +832,13 @@ function imperfCanvas(p, base, R) {
       const x = i % N, y = (i / N) | 0;
       const haze = fbm(x / N, y / N, 7, 7, 3, sd + 40);
       mixTo(i, .85, p.dust * .55 * haze);
-      if (hash3(x, y, sd + 41) > 1 - p.dust * .035) mixTo(i, 1, 1);
+      if (hash3(x, y, sd + 41) > 1 - p.dust * .035 / (px * px)) mixTo(i, 1, 1);
     }
   }
-  // masque perso (image N&B étirée sur une tuile)
-  if (p.cImg && p.cAmt > 0) {
-    const cv = document.createElement('canvas'); cv.width = cv.height = N;
-    const c = cv.getContext('2d'); c.drawImage(p.cImg, 0, 0, N, N);
-    const md = c.getImageData(0, 0, N, N).data;
+  // masques perso
+  if (L && p.cMode !== 'none' && p.cAmt > 0) {
     const target = p.cMode === 'brillant' ? .02 : .75;
-    for (let i = 0; i < N * N; i++) {
-      let L = (.2126 * md[i * 4] + .7152 * md[i * 4 + 1] + .0722 * md[i * 4 + 2]) / 255 * (md[i * 4 + 3] / 255);
-      if (p.cInv) L = 1 - L;
-      mixTo(i, target, p.cAmt * L);
-    }
+    for (let i = 0; i < N * N; i++) mixTo(i, target, p.cAmt * L[i]);
   }
   // rayures : traits fins dessinés sur un canevas (raccordables)
   let scr = null;
@@ -842,7 +849,7 @@ function imperfCanvas(p, base, R) {
     for (let k = 0; k < n; k++) {
       const x0 = hash3(k, 11, sd) * N, y0 = hash3(k, 12, sd) * N, L = (3 + 35 * Math.pow(hash3(k, 13, sd), 2)) * mmPx;
       const a = hash3(k, 14, sd) * Math.PI * 2, bend = (hash3(k, 15, sd) - .5) * .6;
-      c.lineWidth = .6 + 1.2 * hash3(k, 16, sd); c.globalAlpha = .35 + .65 * hash3(k, 17, sd);
+      c.lineWidth = (.6 + 1.2 * hash3(k, 16, sd)) * px; c.globalAlpha = .35 + .65 * hash3(k, 17, sd);
       for (const ox of [-N, 0, N]) for (const oy of [-N, 0, N]) {
         c.beginPath(); c.moveTo(x0 + ox, y0 + oy);
         c.quadraticCurveTo(x0 + ox + Math.cos(a + bend) * L / 2, y0 + oy + Math.sin(a + bend) * L / 2, x0 + ox + Math.cos(a) * L, y0 + oy + Math.sin(a) * L);
@@ -862,34 +869,141 @@ function imperfCanvas(p, base, R) {
   ctx.putImageData(img, 0, 0);
   return out;
 }
+const MASK_N = 1024;
+/** image → tampon blanc dont l'alpha = luminance (ou son inverse) */
+function stampOf(img, inv) {
+  img._st = img._st || {};
+  if (img._st[inv]) return img._st[inv];
+  let w = img.naturalWidth || 512, h = img.naturalHeight || 512;
+  const k = Math.min(1, 1024 / Math.max(w, h)); w = Math.max(1, Math.round(w * k)); h = Math.max(1, Math.round(h * k));
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const c = cv.getContext('2d'); c.drawImage(img, 0, 0, w, h);
+  const id = c.getImageData(0, 0, w, h), d = id.data;
+  for (let i = 0; i < d.length; i += 4) {
+    let Lum = (.2126 * d[i] + .7152 * d[i + 1] + .0722 * d[i + 2]) / 255;
+    if (inv) Lum = 1 - Lum;
+    d[i + 3] = Lum * d[i + 3]; d[i] = d[i + 1] = d[i + 2] = 255;
+  }
+  c.putImageData(id, 0, 0);
+  return (img._st[inv] = cv);
+}
+/** luminance (0..1) des masques sur une tuile d'imperfections, MASK_N² */
+function maskData(part, tileMM) {
+  const p = part.p;
+  const key = [p.masks.map(m => m._id).join(','), p.mLayout, p.mCount, p.mSize, p.mVar, p.mRot, p.cInv, p.seed, tileMM.toFixed(2)].join('|');
+  if (part.maskKey === key) return part.maskL;
+  const N = MASK_N, cv = document.createElement('canvas'); cv.width = cv.height = N;
+  const c = cv.getContext('2d'); c.fillStyle = '#000'; c.fillRect(0, 0, N, N);
+  const stamps = p.masks.map(m => stampOf(m, !!p.cInv));
+  if (p.mLayout === 'tile') {
+    for (const st of stamps) c.drawImage(st, 0, 0, N, N);
+  } else {
+    const sd = p.seed * 977 + 5, pxPerMM = N / tileMM;
+    for (let k = 0; k < p.mCount; k++) {
+      const st = stamps[Math.floor(hash3(k, 1, sd) * stamps.length) % stamps.length];
+      const size = p.mSize * pxPerMM * (1 - p.mVar * .8 * hash3(k, 2, sd));
+      const asp = st.width / st.height, w = asp >= 1 ? size : size * asp, h = asp >= 1 ? size / asp : size;
+      const x = hash3(k, 3, sd) * N, y = hash3(k, 4, sd) * N, rot = p.mRot ? hash3(k, 5, sd) * Math.PI * 2 : 0;
+      c.globalAlpha = 1 - p.mVar * .45 * hash3(k, 6, sd);
+      const ext = Math.hypot(w, h) / 2;
+      for (const ox of [-N, 0, N]) for (const oy of [-N, 0, N]) {
+        const cx = x + ox, cy = y + oy;
+        if (cx + ext < 0 || cx - ext > N || cy + ext < 0 || cy - ext > N) continue;
+        c.save(); c.translate(cx, cy); c.rotate(rot); c.drawImage(st, -w / 2, -h / 2, w, h); c.restore();
+      }
+    }
+    c.globalAlpha = 1;
+  }
+  const d = c.getImageData(0, 0, N, N).data, L = new Float32Array(N * N);
+  for (let i = 0; i < N * N; i++) L[i] = d[i * 4] / 255;
+  part.maskKey = key; part.maskL = L;
+  return L;
+}
+/** normal map combinée : surface (répétée n fois) + relief des masques, sur une tuile d'imperfections */
+function reliefNormalCanvas(p, L, tileMM) {
+  const N = MASK_N;
+  // léger flou du masque pour des bords de rayure arrondis
+  const B = new Float32Array(N * N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    let s = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) s += L[((y + dy + N) % N) * N + ((x + dx + N) % N)];
+    B[y * N + x] = s / 9;
+  }
+  const sign = p.mRelief === 'creux' ? -1 : 1, dk = p.mDepth * 5;
+  let Hs = null, n = 1, ka = 0;
+  if (p.surf && p.surf !== 'none') {
+    Hs = surfHeights(p.surf);
+    n = clamp(Math.round(tileMM / surfTileMM(p)), 1, 32);
+    ka = SURFS[p.surf].amp * p.sAmp * (TN * n / N);
+  }
+  const H = new Float32Array(N * N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    let h = sign * B[y * N + x] * dk;
+    if (Hs) {
+      const fx = (x * n / N % 1) * TN, fy = (y * n / N % 1) * TN;
+      const x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0, x1 = (x0 + 1) % TN, y1 = (y0 + 1) % TN;
+      const hs = (Hs[y0 * TN + x0] * (1 - tx) + Hs[y0 * TN + x1] * tx) * (1 - ty) + (Hs[y1 * TN + x0] * (1 - tx) + Hs[y1 * TN + x1] * tx) * ty;
+      h += hs * ka;
+    }
+    H[y * N + x] = h;
+  }
+  const cv = document.createElement('canvas'); cv.width = cv.height = N;
+  const ctx = cv.getContext('2d'), img = ctx.createImageData(N, N), d = img.data;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const xl = (x + N - 1) % N, xr = (x + 1) % N, yu = (y + N - 1) % N, yd = (y + 1) % N;
+    const dx = H[y * N + xr] - H[y * N + xl], dy = H[yd * N + x] - H[yu * N + x];
+    let nx = -dx, ny = dy, nz = 1; const l = Math.hypot(nx, ny, nz); nx /= l; ny /= l; nz /= l;
+    const o = (y * N + x) * 4;
+    d[o] = (nx * .5 + .5) * 255; d[o + 1] = (ny * .5 + .5) * 255; d[o + 2] = (nz * .5 + .5) * 255; d[o + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return cv;
+}
 let fileMaxDim = 2;   // plus grande dimension du modèle, en unités du fichier
 function mmPerUnit() { return state.sizeMM / Math.max(fileMaxDim, 1e-9); }
 function makeDataTex(cv) { const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.NoColorSpace; TEX_FLAGS(t); t.anisotropy = 8; return t; }
 function setRepeat(t, tileMM) { const r = mmPerUnit() / tileMM; t.repeat.set(r, r); t.updateMatrix(); }
 /** surface (normal map) + imperfections (roughness maps) */
+// en relief, la surface est recalculée dans la tuile des masques : on limite le nombre de répétitions
+// pour que les détails fins (couches, sablé…) gardent assez de pixels
+const NMAX = { fin: 10, gros: 16, fdm: 8, brosse: 2, sable: 4, orange: 32 };
 function applySurface(part) {
   const m = part.mat, p = part.p;
-  // relief
-  if (p.surf && p.surf !== 'none' && part.uvMode !== 'screen') {
+  const hasMask = !!(p.masks && p.masks.length);
+  const reliefOn = hasMask && p.mRelief !== 'none' && p.mDepth > 0 && part.uvMode !== 'screen';
+  let tile = IMP_TILE * (p.iScale || 1);
+  if (reliefOn && p.surf && p.surf !== 'none') tile = Math.min(tile, surfTileMM(p) * NMAX[p.surf]);
+  const L = hasMask ? maskData(part, tile) : null;
+  // relief : masques en relief (combinés avec la surface) ou surface seule
+  if (reliefOn) {
+    const key = [part.maskKey, p.surf, p.sAmp, surfTileMM(p).toFixed(3), tile.toFixed(2), p.mRelief, p.mDepth].join('|');
+    if (part.relKey !== key) {
+      part.relKey = key;
+      if (part.nTex) part.nTex.dispose();
+      part.nTex = makeDataTex(reliefNormalCanvas(p, L, tile));
+    }
+    setRepeat(part.nTex, tile); m.normalMap = part.nTex; m.normalScale.set(1, 1);
+  } else if (p.surf && p.surf !== 'none' && part.uvMode !== 'screen') {
+    part.relKey = null;
     const cv = normalCanvas(p.surf);
     if (!part.nTex || part.nTex.image !== cv) { if (part.nTex) part.nTex.dispose(); part.nTex = makeDataTex(cv); }
     setRepeat(part.nTex, surfTileMM(p));
     m.normalMap = part.nTex; m.normalScale.set(p.sAmp, p.sAmp);
-  } else m.normalMap = null;
-  // imperfections
-  const cust = p.cImg ? p.cAmt : 0;
-  const imp = Math.max(p.fp, p.scr, p.dust, p.cMode === 'brillant' ? 0 : cust);
+  } else { part.relKey = null; m.normalMap = null; }
+  // imperfections (brillance)
+  const cust = hasMask && p.cMode !== 'none' ? p.cAmt : 0;
+  const imp = Math.max(p.fp, p.scr, p.dust, p.cMode === 'mat' ? cust : 0);
   if (imp > 0 || cust > 0) {
-    const key = [p.rough, p.coat > 0, p.fp, p.scr, p.dust, p.seed, p.cImg ? p.cImg._id : 0, cust, p.cMode, p.cInv].join('|');
+    const key = [p.rough, p.coat > 0, p.fp, p.scr, p.dust, p.seed, hasMask ? part.maskKey : 0, cust, p.cMode].join('|');
     if (part.impKey !== key) {
       part.impKey = key;
+      const Lm = cust > 0 ? L : null;
       const R = Math.min(1, p.rough + .5 * imp + .06);
       part.impR = R;
-      if (part.rTex) part.rTex.dispose(); part.rTex = makeDataTex(imperfCanvas(p, p.rough / R, R));
+      if (part.rTex) part.rTex.dispose(); part.rTex = makeDataTex(imperfCanvas(p, p.rough / R, R, Lm));
       if (part.cTex) { part.cTex.dispose(); part.cTex = null; }
-      if (p.coat > 0) { const Rc = Math.min(1, .03 + .5 * imp + .06); part.impRc = Rc; part.cTex = makeDataTex(imperfCanvas(p, .03 / Rc, Rc)); }
+      if (p.coat > 0) { const Rc = Math.min(1, .03 + .5 * imp + .06); part.impRc = Rc; part.cTex = makeDataTex(imperfCanvas(p, .03 / Rc, Rc, Lm)); }
     }
-    const tile = IMP_TILE * (p.iScale || 1);
     setRepeat(part.rTex, tile); m.roughnessMap = part.rTex; m.roughness = part.impR;
     if (part.cTex) { setRepeat(part.cTex, tile); m.clearcoatRoughnessMap = part.cTex; m.clearcoatRoughness = part.impRc; }
     else m.clearcoatRoughnessMap = null;
@@ -1352,26 +1466,33 @@ function buildSurfChips() {
   }
   let cid = 0;
   $('cBtn').onclick = () => $('cFile').click();
-  $('cFile').onchange = e => {
-    const f = e.target.files[0]; e.target.value = ''; if (!f || !sel) return;
-    const part = sel, im = new Image();
-    im.onload = () => {
-      im._id = ++cid; im._name = f.name;
-      part.p.cImg = im; if (!part.p.cAmt) part.p.cAmt = .7;
-      applyParams(part); needMaterials(); renderMatUI(); toast('Masque appliqué');
-    };
-    im.onerror = () => toast('Image illisible');
-    im.src = URL.createObjectURL(f);
+  $('cFile').onchange = async e => {
+    const files = [...e.target.files]; e.target.value = ''; if (!files.length || !sel) return;
+    const part = sel, added = [];
+    for (const f of files) {
+      const im = new Image();
+      const ok = await new Promise(r => { im.onload = () => r(true); im.onerror = () => r(false); im.src = URL.createObjectURL(f); });
+      if (!ok) { toast('Image illisible : ' + f.name); continue; }
+      im._id = ++cid; im._name = f.name; added.push(im);
+    }
+    if (!added.length) return;
+    part.p.masks = [...part.p.masks, ...added];
+    setStatus('Génération des masques…');
+    setTimeout(() => { applyParams(part); needMaterials(); renderMatUI(); toast(added.length + ' masque' + (added.length > 1 ? 's' : '') + ' ajouté' + (added.length > 1 ? 's' : '')); }, 10);
   };
-  $('cDel').onclick = () => { if (!sel) return; sel.p.cImg = null; applyParams(sel); needMaterials(); renderMatUI(); };
-  $('cMode').onchange = e => { if (!sel) return; sel.p.cMode = e.target.value; applyParams(sel); needMaterials(); };
-  $('cInv').onchange = e => { if (!sel) return; sel.p.cInv = e.target.checked; applyParams(sel); needMaterials(); };
+  const pset = (k, v) => { if (!sel) return; sel.p[k] = v; const part = sel; setTimeout(() => { applyParams(part); needMaterials(); }, 10); renderMatUI(); };
+  $('mLayout').onchange = e => pset('mLayout', e.target.value);
+  $('cMode').onchange = e => pset('cMode', e.target.value);
+  $('mRelief').onchange = e => pset('mRelief', e.target.value);
+  $('mRot').onchange = e => pset('mRot', e.target.checked);
+  $('cInv').onchange = e => pset('cInv', e.target.checked);
   $('reseed').onclick = () => { if (!sel) return; sel.p.seed = (sel.p.seed || 1) + 1; applyParams(sel); needMaterials(); };
 }
 function setPreset(part, id) {
   const keepColor = ['y2k', 'givre', 'gelee'].includes(id) && ['y2k', 'givre', 'gelee'].includes(part.preset);
   const col = part.p.color;
-  const keep = { fp: part.p.fp, scr: part.p.scr, dust: part.p.dust, seed: part.p.seed, iScale: part.p.iScale, cImg: part.p.cImg, cAmt: part.p.cAmt, cMode: part.p.cMode, cInv: part.p.cInv };
+  const keep = {};
+  for (const k of ['fp', 'scr', 'dust', 'seed', 'iScale', 'masks', 'mLayout', 'mCount', 'mSize', 'mVar', 'mRot', 'cAmt', 'cMode', 'cInv', 'mRelief', 'mDepth']) keep[k] = part.p[k];
   part.preset = id; part.p = { ...PRESETS[id].p, ...keep };
   if (keepColor) part.p.color = col;
   if (part.texMap && id !== 'lcd') { /* les textures GLB sont abandonnées quand on change de matériau */ part.texMap = null; }
@@ -1384,8 +1505,9 @@ const SL = [
   ['sAmp', 'sAmp', 100, 2], ['sScale', 'sScale', 100, 2], ['sLayer', 'layer', 100, 2],
   ['iFp', 'fp', 100, 2], ['iScr', 'scr', 100, 2], ['iDust', 'dust', 100, 2],
   ['iScale', 'iScale', 100, 2], ['cAmt', 'cAmt', 100, 2],
+  ['mCount', 'mCount', 1, 0], ['mSize', 'mSize', 1, 0], ['mVar', 'mVar', 100, 2], ['mDepth', 'mDepth', 100, 2],
 ];
-const HEAVY = new Set(['fp', 'scr', 'dust', 'rough', 'coat', 'cAmt']);
+const HEAVY = new Set(['fp', 'scr', 'dust', 'rough', 'coat', 'cAmt', 'iScale', 'mCount', 'mSize', 'mVar', 'mDepth', 'sAmp', 'sScale', 'layer']);
 function renderMatUI() {
   const has = !!sel;
   $('matUI').classList.toggle('hidden', !has);
@@ -1403,9 +1525,20 @@ function renderMatUI() {
   document.querySelectorAll('#surfChips .chip').forEach(c => c.classList.toggle('on', c.dataset.surf === p.surf));
   $('sAmpRow').classList.toggle('hidden', p.surf === 'none'); $('sScaleRow').classList.toggle('hidden', p.surf === 'none');
   $('sLayerRow').classList.toggle('hidden', p.surf !== 'fdm');
-  $('cOpts').classList.toggle('hidden', !p.cImg); $('cDel').classList.toggle('hidden', !p.cImg);
-  $('cName').textContent = p.cImg ? 'Masque : ' + (p.cImg._name || 'image') : "Blanc = zone touchée, noir = intacte. L'image se répète comme un motif.";
-  $('cMode').value = p.cMode || 'mat'; $('cInv').checked = !!p.cInv;
+  const hasM = p.masks.length > 0;
+  $('cOpts').classList.toggle('hidden', !hasM);
+  $('mScatter').classList.toggle('hidden', p.mLayout !== 'scatter');
+  $('mLayout').value = p.mLayout; $('cMode').value = p.cMode; $('cInv').checked = !!p.cInv;
+  $('mRelief').value = p.mRelief; $('mRot').checked = !!p.mRot;
+  $('cAmtRow').classList.toggle('hidden', p.cMode === 'none'); $('mDepthRow').classList.toggle('hidden', p.mRelief === 'none');
+  const ml = $('mList'); ml.innerHTML = '';
+  p.masks.forEach((im, i) => {
+    const b = document.createElement('button'); b.className = 'chip';
+    b.innerHTML = '<span></span><span class="x" title="Retirer">×</span>';
+    b.firstChild.textContent = (im._name || 'image').slice(0, 22);
+    b.onclick = () => { const part = sel; part.p.masks = part.p.masks.filter((_, j) => j !== i); applyParams(part); needMaterials(); renderMatUI(); };
+    ml.appendChild(b);
+  });
   $('y2kSw').classList.toggle('hidden', !['y2k', 'givre', 'gelee', 'irise'].includes(sel.preset) && !isT);
   document.querySelectorAll('#swatches .sw').forEach(s => s.classList.toggle('on', s.dataset.c.toLowerCase() === p.color.toLowerCase()));
   const isL = sel.preset === 'lcd';
@@ -1433,7 +1566,7 @@ function bindMatInputs() {
       sel.p[key] = +e.target.value / k;
       e.target.nextElementSibling.textContent = sel.p[key].toFixed(dec);
       const part = sel;
-      if (HEAVY.has(key) && (Math.max(part.p.fp, part.p.scr, part.p.dust) > 0 || part.p.cImg)) {
+      if (HEAVY.has(key) && (Math.max(part.p.fp, part.p.scr, part.p.dust) > 0 || part.p.masks.length)) {
         clearTimeout(part._t); part._t = setTimeout(() => { applyParams(part); needMaterials(); }, 140);
       } else { applyParams(part); needMaterials(); }
       if (key === 'trans') renderMatUI();
