@@ -625,9 +625,16 @@ function applyBackground(updatePT = true) {
   document.querySelectorAll('#bgChips .chip').forEach(c => c.classList.toggle('on', c.dataset.bg === mode));
   if (updatePT) needEnv();
 }
+let camBelow = false;
+function syncFloorPresence() {
+  if (exporting) return;
+  const want = state.floor !== 'none' && !camBelow;
+  if (want && floor.parent !== scene) { scene.add(floor); needScene(); }
+  else if (!want && floor.parent === scene) { scene.remove(floor); needScene(); }
+}
 function applyFloor() {
   const m = state.floor;
-  floor.visible = m !== 'none';
+  syncFloorPresence();
   floorMat.matte = m === 'shadow';
   floorMat.color.set(m === 'shadow' ? (state.bg === 'color' || state.bg === 'gradient' ? state.bgC2 : '#888888') : state.floorC);
   floorMat.roughness = m === 'mirror' ? 0.08 : 0.9;
@@ -1638,13 +1645,10 @@ function frame(now) {
   }
   try { updateHUD(); updateSelBox(); } catch (e) { console.error(e); }
 }
-/* la caméra ne passe jamais sous le sol (sinon on ne voit que le dessous du sol : écran gris) */
-const MIN_CAM_Y = 0.015;
+/* caméra libre : sous le sol, on retire le sol (sinon son dessous bouche la vue : écran gris) */
 controls.addEventListener('change', () => {
-  if (floor.visible && floor.parent === scene && camera.position.y < MIN_CAM_Y) {
-    camera.position.y = MIN_CAM_Y;
-    if (controls.target.y < MIN_CAM_Y) controls.target.y = MIN_CAM_Y;
-  }
+  const below = camera.position.y < 0.002;
+  if (below !== camBelow) { camBelow = below; syncFloorPresence(); }
   needCamera();
 });
 
