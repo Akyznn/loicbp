@@ -352,7 +352,6 @@ import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { DecalGeometry } from 'three/addons/geometries/DecalGeometry.js';
 import * as BGU from 'three/addons/utils/BufferGeometryUtils.js';
 
 const $ = id => document.getElementById(id);
@@ -1756,37 +1755,145 @@ function stickerMaterial(st) {
   m.needsUpdate = true;
   return m;
 }
-/** reconstruit la géométrie du sticker à partir de sa position locale sur la pièce */
-function buildSticker(st) {
-  const mesh = st.part.mesh; mesh.updateMatrixWorld(true);
-  const pW = st.lp.clone().applyMatrix4(mesh.matrixWorld);
-  const nW = st.ln.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld)).normalize();
-  const unit = modelRoot.scale.x / mmPerUnit();             // mm → unités du monde
-  const w = st.size * unit, h = w / st.aspect;
-  const dummy = new THREE.Object3D(); dummy.position.copy(pW);
-  if (Math.abs(nW.y) > .999) dummy.up.set(0, 0, -1);
-  dummy.lookAt(pW.clone().add(nW)); dummy.rotateZ(st.rot * D2R);
-  let g;
-  try { g = new DecalGeometry(mesh, pW, dummy.rotation, new THREE.Vector3(w, h, Math.max(w, h) * .6)); }
-  catch (e) { console.error(e); return; }
-  // garde les faces tournées vers le sticker (évite qu'il traverse sur l'intérieur) + léger décollement
-  const pos = g.attributes.position, nrm = g.attributes.normal, uv = g.attributes.uv;
-  const P3 = [], N3 = [], U2 = [], eps = .0025; // ~0,1 % de la taille du modèle
-  for (let i = 0; i < pos.count; i += 3) {
-    let ok = true;
-    for (let k = 0; k < 3; k++) if (nrm.getX(i + k) * nW.x + nrm.getY(i + k) * nW.y + nrm.getZ(i + k) * nW.z < .2) ok = false;
-    if (!ok) continue;
-    for (let k = 0; k < 3; k++) {
-      const j = i + k, nx = nrm.getX(j), ny = nrm.getY(j), nz = nrm.getZ(j);
-      P3.push(pos.getX(j) + nx * eps, pos.getY(j) + ny * eps, pos.getZ(j) + nz * eps);
-      N3.push(nx, ny, nz); U2.push(uv.getX(j), uv.getY(j));
+/* ───────────── Dépliage des stickers (pur JS, testable) ───────────── */
+/** soude les sommets par position et indexe les arêtes → triangles voisins */
+function buildAdjacency(pos, index, tol) {
+  const nTri = index.length / 3, weld = new Int32Array(pos.length / 3), map = new Map();
+  const q = 1 / tol;
+  for (let v = 0; v < weld.length; v++) {
+    const k = Math.round(pos[v * 3] * q) + ',' + Math.round(pos[v * 3 + 1] * q) + ',' + Math.round(pos[v * 3 + 2] * q);
+    let id = map.get(k); if (id === undefined) { id = map.size; map.set(k, id); }
+    weld[v] = id;
+  }
+  const W = new Int32Array(index.length);
+  for (let i = 0; i < index.length; i++) W[i] = weld[index[i]];
+  const edges = new Map();
+  for (let t = 0; t < nTri; t++) for (let e = 0; e < 3; e++) {
+    const a = W[t * 3 + e], b = W[t * 3 + (e + 1) % 3];
+    if (a === b) continue;
+    const k = a < b ? a * 4294967296 + b : b * 4294967296 + a;
+    let l = edges.get(k); if (!l) edges.set(k, l = []); l.push(t);
+  }
+  return { W, edges };
+}
+/**
+ * déplie la surface autour du point d'impact, comme une feuille qu'on plie sur les arêtes.
+ * renvoie des triangles (position, normale, uv) découpés au rectangle du sticker.
+ */
+function unfoldSticker(pos, nrm, index, adj, startTri, hp, rot, w, h, maxTri = 60000) {
+  const V = i => [pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]];
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const norm = a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  const i0 = index[startTri * 3], i1 = index[startTri * 3 + 1], i2 = index[startTri * 3 + 2];
+  const A = V(i0), B = V(i1), C = V(i2);
+  const n = norm(cross(sub(B, A), sub(C, A)));
+  let up = Math.abs(n[1]) > .999 ? [0, 0, -1] : [0, 1, 0];
+  let u = norm(cross(up, n)), v = cross(n, u);
+  const cr = Math.cos(rot), sr = Math.sin(rot);
+  const u2 = [u[0] * cr + v[0] * sr, u[1] * cr + v[1] * sr, u[2] * cr + v[2] * sr];
+  const v2 = [-u[0] * sr + v[0] * cr, -u[1] * sr + v[1] * cr, -u[2] * sr + v[2] * cr];
+  const proj = p => { const d = sub(p, hp); return [dot(d, u2), dot(d, v2)]; };
+  const hw = w / 2, hh = h / 2;
+  const tri2d = new Map();                       // t → [[x,y]×3] dans l'ordre des sommets du triangle
+  tri2d.set(startTri, [proj(A), proj(B), proj(C)]);
+  const queue = [startTri];
+  const overlaps = c => {
+    const xs = [c[0][0], c[1][0], c[2][0]], ys = [c[0][1], c[1][1], c[2][1]];
+    return Math.min(...xs) <= hw && Math.max(...xs) >= -hw && Math.min(...ys) <= hh && Math.max(...ys) >= -hh;
+  };
+  const { W, edges } = adj;
+  while (queue.length && tri2d.size < maxTri) {
+    const t = queue.shift(), c = tri2d.get(t);
+    if (!overlaps(c)) continue;                  // ne s'étend pas au-delà du sticker
+    for (let e = 0; e < 3; e++) {
+      const ea = e, eb = (e + 1) % 3, ec = (e + 2) % 3;
+      const wa = W[t * 3 + ea], wb = W[t * 3 + eb];
+      const k = wa < wb ? wa * 4294967296 + wb : wb * 4294967296 + wa;
+      for (const t2 of edges.get(k) || []) {
+        if (t2 === t || tri2d.has(t2)) continue;
+        // positions des sommets de t2 correspondant à wa, wb, et le troisième
+        let ja = -1, jb = -1, jc = -1;
+        for (let j = 0; j < 3; j++) { const wj = W[t2 * 3 + j]; if (wj === wa && ja < 0) ja = j; else if (wj === wb && jb < 0) jb = j; else jc = j; }
+        if (ja < 0 || jb < 0 || jc < 0) continue;
+        const Pa = c[ea], Pb = c[eb], Q = c[ec];
+        const pa = V(index[t2 * 3 + ja]), pb = V(index[t2 * 3 + jb]), pc = V(index[t2 * 3 + jc]);
+        const la = dist(pc, pa), lb = dist(pc, pb);
+        const ex = Pb[0] - Pa[0], ey = Pb[1] - Pa[1], d = Math.hypot(ex, ey) || 1e-12;
+        const x = (la * la - lb * lb + d * d) / (2 * d), hh2 = Math.sqrt(Math.max(0, la * la - x * x));
+        const dx = ex / d, dy = ey / d, px = -dy, py = dx;
+        // côté opposé au troisième sommet du triangle parent (on « déplie »)
+        const sQ = (Q[0] - Pa[0]) * px + (Q[1] - Pa[1]) * py;
+        const sg = sQ > 0 ? -1 : 1;
+        const Pc = [Pa[0] + dx * x + px * hh2 * sg, Pa[1] + dy * x + py * hh2 * sg];
+        const out = []; out[ja] = Pa; out[jb] = Pb; out[jc] = Pc;
+        tri2d.set(t2, out); queue.push(t2);
+      }
     }
   }
-  g.dispose();
+  // découpe au rectangle (Sutherland-Hodgman) et sortie
+  const P = [], N = [], UV = [];
+  const lerp = (a, b, s) => ({ x: a.x + (b.x - a.x) * s, y: a.y + (b.y - a.y) * s,
+    p: [0, 1, 2].map(i => a.p[i] + (b.p[i] - a.p[i]) * s), n: [0, 1, 2].map(i => a.n[i] + (b.n[i] - a.n[i]) * s) });
+  const clip = (poly, f) => {               // f(v) ≥ 0 = dedans
+    const out = [];
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i], b = poly[(i + 1) % poly.length], fa = f(a), fb = f(b);
+      if (fa >= 0) out.push(a);
+      if ((fa >= 0) !== (fb >= 0)) out.push(lerp(a, b, fa / (fa - fb)));
+    }
+    return out;
+  };
+  for (const [t, c] of tri2d) {
+    if (!overlaps(c)) continue;
+    let poly = [0, 1, 2].map(j => { const vi = index[t * 3 + j]; return { x: c[j][0], y: c[j][1], p: V(vi), n: [nrm[vi * 3], nrm[vi * 3 + 1], nrm[vi * 3 + 2]] }; });
+    poly = clip(poly, q => q.x + hw); poly = clip(poly, q => hw - q.x);
+    poly = clip(poly, q => q.y + hh); poly = clip(poly, q => hh - q.y);
+    for (let i = 1; i + 1 < poly.length; i++) for (const q of [poly[0], poly[i], poly[i + 1]]) {
+      P.push(q.p[0], q.p[1], q.p[2]); const l = Math.hypot(q.n[0], q.n[1], q.n[2]) || 1;
+      N.push(q.n[0] / l, q.n[1] / l, q.n[2] / l); UV.push(q.x / w + .5, q.y / h + .5);
+    }
+  }
+  return { P, N, UV, visited: tri2d.size };
+}
+const adjCache = new WeakMap();
+function adjacencyOf(geom) {
+  let a = adjCache.get(geom);
+  if (!a) {
+    geom.computeBoundingSphere();
+    a = buildAdjacency(geom.attributes.position.array, geom.index.array, Math.max(1e-7, geom.boundingSphere.radius * 1e-5));
+    adjCache.set(geom, a);
+  }
+  return a;
+}
+/** reconstruit la géométrie du sticker : dépliée sur la surface à partir de sa position sur la pièce */
+function buildSticker(st) {
+  const mesh = st.part.mesh, geom = mesh.geometry; mesh.updateMatrixWorld(true);
+  const toW = mesh.matrixWorld, nMat = new THREE.Matrix3().getNormalMatrix(toW);
+  const pW = st.lp.clone().applyMatrix4(toW);
+  const nW = st.ln.clone().applyMatrix3(nMat).normalize();
+  // retrouve le triangle sous le sticker (les géométries peuvent avoir été recalculées)
+  const rc = new THREE.Raycaster(pW.clone().addScaledVector(nW, .05), nW.clone().negate(), 0, .2);
+  const hit = rc.intersectObject(mesh, false)[0];
+  if (!hit || hit.faceIndex == null || !geom.index) return;
+  const hpL = mesh.worldToLocal(hit.point.clone());
+  const wL = st.size / mmPerUnit(), hL = wL / st.aspect;          // taille en unités de la pièce
+  const r = unfoldSticker(geom.attributes.position.array, geom.attributes.normal.array, geom.index.array,
+    adjacencyOf(geom), hit.faceIndex, [hpL.x, hpL.y, hpL.z], st.rot * D2R, wL, hL);
+  if (!r.P.length) return;
+  const eps = .0025, v = new THREE.Vector3(), n = new THREE.Vector3();
+  const P3 = new Float32Array(r.P.length), N3 = new Float32Array(r.N.length);
+  for (let i = 0; i < r.P.length; i += 3) {
+    n.set(r.N[i], r.N[i + 1], r.N[i + 2]).applyMatrix3(nMat).normalize();
+    v.set(r.P[i], r.P[i + 1], r.P[i + 2]).applyMatrix4(toW).addScaledVector(n, eps);
+    P3[i] = v.x; P3[i + 1] = v.y; P3[i + 2] = v.z; N3[i] = n.x; N3[i + 1] = n.y; N3[i + 2] = n.z;
+  }
   const ng = new THREE.BufferGeometry();
-  ng.setAttribute('position', new THREE.Float32BufferAttribute(P3, 3));
-  ng.setAttribute('normal', new THREE.Float32BufferAttribute(N3, 3));
-  ng.setAttribute('uv', new THREE.Float32BufferAttribute(U2, 2));
+  ng.setAttribute('position', new THREE.BufferAttribute(P3, 3));
+  ng.setAttribute('normal', new THREE.BufferAttribute(N3, 3));
+  ng.setAttribute('uv', new THREE.Float32BufferAttribute(r.UV, 2));
   ensureIndex(ng);
   if (!st.mesh) { st.mesh = new THREE.Mesh(ng, stickerMaterial(st)); st.mesh.userData.sticker = st; st.mesh.renderOrder = 2; stkGroup.add(st.mesh); }
   else { st.mesh.geometry.dispose(); st.mesh.geometry = ng; }
