@@ -259,7 +259,7 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
     <summary>Rendu &amp; export</summary>
     <div class="body">
       <label class="check"><input type="checkbox" id="ptOn" checked> Path tracing (rendu réaliste)</label>
-      <div class="row"><label>Qualité aperçu</label><select id="prevQ"><option value="0.5">Rapide</option><option value="0.75" selected>Normale</option><option value="1">Pleine</option></select></div>
+      <div class="row"><label>Qualité aperçu</label><select id="prevQ"><option value="0.5" selected>Rapide</option><option value="0.75">Normale</option><option value="1">Pleine</option></select></div>
       <div class="row"><label>Échantillons</label><select id="spp"><option>64</option><option>128</option><option selected>256</option><option>512</option><option>1024</option></select></div>
       <div class="row"><label>Format</label><select id="aspect"><option value="0">Libre (fenêtre)</option><option value="1">1:1 carré</option><option value="0.8">4:5 portrait</option><option value="1.5">3:2</option><option value="1.7778">16:9</option><option value="0.5625">9:16 story</option></select></div>
       <div class="row"><label>Taille export</label><select id="expSize"><option value="1080">1080 px</option><option value="1920" selected>1920 px</option><option value="2560">2560 px</option><option value="3840">3840 px (4K)</option></select></div>
@@ -340,15 +340,14 @@ try {
   }
   if (!PT) throw new Error('module introuvable');
   pt = new PT.WebGLPathTracer(renderer);
-  pt.tiles.set(2, 2);
-  pt.bounces = 10;
+  pt.tiles.set(3, 3);          // petits morceaux par image : évite que le GPU sature
+  pt.bounces = 6;              // aperçu ; l'export monte à 12
   pt.filterGlossyFactor = 0.5;
   pt.minSamples = 3;
   pt.renderDelay = 60;
   pt.fadeDuration = 300;
-  pt.dynamicLowRes = true;
-  pt.lowResScale = 0.25;
-  pt.renderScale = 0.75;
+  pt.dynamicLowRes = false;
+  pt.renderScale = 0.5;
 } catch (e) {
   console.warn('Path tracer indisponible', e);
   pt = null;
@@ -1213,7 +1212,7 @@ function layout() {
   }
   w = Math.max(50, Math.floor(w)); h = Math.max(50, Math.floor(h));
   viewW = w; viewH = h;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.setSize(w, h, true);
   camera.aspect = w / h; camera.updateProjectionMatrix();
   needCamera();
@@ -1326,7 +1325,7 @@ async function doExport() {
   exporting = true; cancelExport = false;
   $('busy').classList.add('show'); $('busyTitle').textContent = 'Rendu en cours…'; $('busyBar').style.width = '0%';
   const save = { bg: scene.background, floorIn: floor.parent === scene };
-  const ptSave = pt ? { scale: pt.renderScale, tiles: pt.tiles.clone(), fade: pt.fadeDuration, min: pt.minSamples, delay: pt.renderDelay, low: pt.dynamicLowRes } : null;
+  const ptSave = pt ? { scale: pt.renderScale, tiles: pt.tiles.clone(), fade: pt.fadeDuration, min: pt.minSamples, delay: pt.renderDelay, low: pt.dynamicLowRes, bounces: pt.bounces } : null;
   try {
     if (noBg) { scene.background = null; scene.remove(floor); }
     renderer.setPixelRatio(1); renderer.setSize(W, H, false);
@@ -1334,15 +1333,15 @@ async function doExport() {
     let blob;
     if (ptOn && pt) {
       if (ptDirty || noBg) syncScene(); else pt.updateCamera();
-      pt.renderScale = 1; const t = Math.max(2, Math.ceil(Math.max(W, H) / 700)); pt.tiles.set(t, t);
-      pt.fadeDuration = 0; pt.minSamples = 1; pt.renderDelay = 0; pt.dynamicLowRes = false;
+      pt.renderScale = 1; const t = Math.max(3, Math.ceil(Math.max(W, H) / 512)); pt.tiles.set(t, t);
+      pt.fadeDuration = 0; pt.minSamples = 1; pt.renderDelay = 0; pt.dynamicLowRes = false; pt.bounces = 12;
       pt.reset();
       const t0 = performance.now();
       await new Promise(res => {
         const step = () => {
           if (cancelExport) return res();
           const fs = performance.now();
-          while (performance.now() - fs < 28 && pt.samples < target) pt.renderSample();
+          let n = 0; while (n++ < 3 && performance.now() - fs < 20 && pt.samples < target) pt.renderSample();
           const s = Math.floor(pt.samples), pc = Math.round(100 * s / target);
           $('busyBar').style.width = pc + '%';
           const el = (performance.now() - t0) / 1000, eta = s > 2 ? el / s * (target - s) : 0;
@@ -1366,7 +1365,7 @@ async function doExport() {
     console.error(e); toast('Export impossible : ' + e.message, 4500);
   } finally {
     scene.background = save.bg; if (save.floorIn && floor.parent !== scene) scene.add(floor);
-    if (pt && ptSave) { pt.renderScale = ptSave.scale; pt.tiles.copy(ptSave.tiles); pt.fadeDuration = ptSave.fade; pt.minSamples = ptSave.min; pt.renderDelay = ptSave.delay; pt.dynamicLowRes = ptSave.low; }
+    if (pt && ptSave) { pt.renderScale = ptSave.scale; pt.tiles.copy(ptSave.tiles); pt.fadeDuration = ptSave.fade; pt.minSamples = ptSave.min; pt.renderDelay = ptSave.delay; pt.dynamicLowRes = ptSave.low; pt.bounces = ptSave.bounces; }
     exporting = false; $('busy').classList.remove('show');
     if (noBg && pt) syncScene();
     layout();
