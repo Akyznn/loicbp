@@ -138,8 +138,13 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
       <div class="dropzone" id="dz"><b>Ouvrir ou glisser</b> un fichier OBJ, STL ou GLB<br><span style="font-size:12px">Plusieurs fichiers = plusieurs pièces</span></div>
       <input type="file" id="file" accept=".obj,.stl,.glb,.gltf,.hdr,.exr" multiple hidden>
       <label class="check"><input type="checkbox" id="zup" checked> STL : Z vers le haut (impression 3D)</label>
-      <label class="check"><input type="checkbox" id="smooth" checked> Lisser les normales des STL</label>
-      <div class="row" id="creaseRow"><label>Angle d'arête</label><input type="range" id="crease" min="5" max="90" value="35"><output id="creaseO">35°</output></div>
+      <div class="row"><label>Ombrage</label><select id="shade">
+        <option value="auto" selected>Lissage auto (comme Blender)</option>
+        <option value="smooth">Tout lisse</option>
+        <option value="file">Normales du fichier (OBJ)</option>
+        <option value="flat">Facettes</option></select></div>
+      <div class="row" id="creaseRow"><label>Angle d'arête</label><input type="range" id="crease" min="5" max="90" value="30"><output id="creaseO">30°</output></div>
+      <p class="hint" id="shadeHint">Les arêtes plus vives que l'angle restent nettes, le reste est lissé (équivalent de « Shade Auto Smooth »).</p>
       <div class="btns">
         <button class="btn" data-rot="x">↻ X 90°</button>
         <button class="btn" data-rot="y">↻ Y 90°</button>
@@ -195,7 +200,9 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
         </div>
 
         <div class="sub" id="matProps">
-          <div class="row"><label>Couleur</label><input type="color" id="mColor" value="#cccccc"><span class="hint" id="mName" style="flex:1;text-align:right"></span></div>
+          <div class="row"><label id="mColorL">Couleur</label><input type="color" id="mColor" value="#cccccc"><span class="hint" id="mName" style="flex:1;text-align:right"></span></div>
+          <div class="row" id="ledRow"><label>Puissance</label><input type="range" id="ledPow" min="0" max="100"><output></output></div>
+          <div class="chips" id="ledTemps"></div>
           <div class="row"><label>Rugosité</label><input type="range" id="mRough" min="0" max="100"><output></output></div>
           <div class="row"><label>Transparence</label><input type="range" id="mTrans" min="0" max="100"><output></output></div>
           <div class="row" id="densRow"><label>Densité teinte</label><input type="range" id="mDens" min="0" max="100"><output></output></div>
@@ -241,6 +248,24 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
             <div class="row"><label>Émission</label><input type="color" id="mEmiC" value="#ffffff"><input type="range" id="mEmi" min="0" max="100"><output></output></div>
           </div></details>
         </div>
+      </div>
+    </div>
+  </details>
+
+  <details class="sec" open id="stkSec">
+    <summary>Stickers</summary>
+    <div class="body">
+      <button class="btn" id="stkAdd">+ Ajouter un sticker (PNG / SVG / JPG)…</button>
+      <input type="file" id="stkFile" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" hidden>
+      <p class="hint" id="stkHint">Choisis une image, puis clique sur le modèle pour la poser. Ensuite, attrape le sticker dans la vue pour le faire glisser.</p>
+      <div class="chips" id="stkList"></div>
+      <div class="sub hidden" id="stkUI">
+        <div class="row"><label>Taille (mm)</label><input type="range" id="stkSize" min="3" max="300"><output></output></div>
+        <div class="row"><label>Rotation</label><input type="range" id="stkRot" min="-180" max="180"><output></output></div>
+        <div class="row"><label>Finition</label><select id="stkFin">
+          <option value="vinyle">Vinyle brillant</option><option value="mat">Papier mat</option>
+          <option value="holo">Holographique</option><option value="metal">Métallisé</option><option value="usé">Vinyle usé</option></select></div>
+        <div class="btns"><button class="btn" id="stkDup">Dupliquer</button><button class="btn" id="stkDel">Supprimer</button></div>
       </div>
     </div>
   </details>
@@ -327,6 +352,7 @@ import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { DecalGeometry } from 'three/addons/geometries/DecalGeometry.js';
 import * as BGU from 'three/addons/utils/BufferGeometryUtils.js';
 
 const $ = id => document.getElementById(id);
@@ -722,6 +748,7 @@ function applyParams(part) {
     m.color.copy(col); m.thickness = 0;
   }
   m.emissive.set(p.emiC); m.emissiveIntensity = p.emi;
+  if (part.preset === 'led') { m.emissive.copy(col); m.color.copy(col); m.emissiveIntensity = p.emi; }
   if (p.emi <= 0) m.emissive.set(0, 0, 0);
   if (part.preset === 'lcd') applyLCD(part);
   applySurface(part);
@@ -1161,15 +1188,21 @@ function boxUV(g) {
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   return g;
 }
-const opts = { zup: true, smooth: true, crease: 35 };
+const opts = { zup: true, shade: 'auto', crease: 30 };
 /** prépare une géométrie source pour le rendu (normales, uv, attributs communs) */
 function prepGeometry(src, isSTL, keepUV = false) {
   let g = cleanAttributes(src.clone());
   if (!keepUV) g.deleteAttribute('uv');
-  if (opts.smooth && (isSTL || !g.attributes.normal)) {
+  let mode = opts.shade;
+  if (mode === 'file' && (isSTL || !g.attributes.normal)) mode = 'auto'; // un STL n'a pas d'info de lissage
+  if (mode === 'auto' || mode === 'smooth') {
     g.deleteAttribute('normal');
     if (g.index) g = g.toNonIndexed();
-    g = BGU.toCreasedNormals(g, opts.crease * D2R);
+    g = BGU.toCreasedNormals(g, mode === 'smooth' ? Math.PI : opts.crease * D2R);
+  } else if (mode === 'flat') {
+    g.deleteAttribute('normal');
+    if (g.index) g = g.toNonIndexed();
+    g.computeVertexNormals();
   } else if (!g.attributes.normal) g.computeVertexNormals();
   if (!g.attributes.uv) g = boxUV(g);
   ensureIndex(g);
@@ -1235,6 +1268,7 @@ function addPart(srcGeom, name, isSTL, presetId = 'satin', color = null, keepUV 
   return part;
 }
 function clearModel() {
+  if (typeof clearStickers === 'function' && stickers.length) clearStickers();
   for (const p of parts) { p.mesh.geometry.dispose(); p.mat.dispose(); for (const t of [p.lcdTex, p.nTex, p.rTex, p.cTex]) if (t) t.dispose(); }
   modelRoot.clear(); modelRoot.rotation.set(0, 0, 0); modelRoot.position.set(0, 0, 0); modelRoot.scale.set(1, 1, 1);
   parts = []; sel = null;
@@ -1342,6 +1376,7 @@ function computeFileDims() {
 function setSizeMM(mm) {
   state.sizeMM = Math.max(1, mm); $('sizeMM').value = Math.round(state.sizeMM * 10) / 10;
   for (const p of parts) applySurface(p);
+  if (typeof rebuildStickers === 'function') rebuildStickers();
   needMaterials();
 }
 function finishLoad(sizeHint) {
@@ -1364,6 +1399,7 @@ function regenGeometries() {
     p.uvMode = 'box';
     if (p.preset === 'lcd') applyLCD(p);
   }
+  rebuildStickers();
   needScene();
 }
 
@@ -1515,6 +1551,10 @@ function renderMatUI() {
   document.querySelectorAll('#matUI .chip').forEach(c => c.classList.toggle('on', c.dataset.preset === sel.preset));
   const p = sel.p;
   $('mColor').value = p.color; $('mEmiC').value = p.emiC;
+  const isLed = sel.preset === 'led';
+  $('ledRow').classList.toggle('hidden', !isLed); $('ledTemps').classList.toggle('hidden', !isLed);
+  $('mColorL').textContent = isLed ? 'Couleur lumière' : 'Couleur';
+  if (isLed) { $('ledPow').value = Math.round(Math.sqrt(p.emi / 80) * 100); $('ledPow').nextElementSibling.textContent = Math.round(p.emi); }
   $('mName').textContent = PRESETS[sel.preset].n;
   for (const [id, key, k, dec] of SL) {
     const inp = $(id); inp.value = Math.round(p[key] * k);
@@ -1559,6 +1599,16 @@ function renderMatUI() {
 function bindMatInputs() {
   $('mColor').addEventListener('input', e => { if (!sel) return; sel.p.color = e.target.value; applyParams(sel); needMaterials(); });
   $('mColor').addEventListener('change', () => { renderParts(); renderMatUI(); });
+  $('ledPow').addEventListener('input', e => {
+    if (!sel) return; const t = +e.target.value / 100; sel.p.emi = 80 * t * t;
+    e.target.nextElementSibling.textContent = Math.round(sel.p.emi); applyParams(sel); needMaterials();
+  });
+  const TEMPS = [['Bougie', '#ff9329'], ['Chaud 2700K', '#ffb46b'], ['Neutre 4000K', '#ffd9b4'], ['Jour 5500K', '#fff1e0'], ['Froid 7000K', '#dfe8ff'], ['Rouge', '#ff2a2a'], ['Vert', '#2aff6a'], ['Bleu', '#2a6bff'], ['Rose', '#ff3fbf'], ['Cyan', '#2af2ff']];
+  for (const [n, c] of TEMPS) {
+    const b = document.createElement('button'); b.className = 'chip'; b.innerHTML = `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${c};margin-right:5px;vertical-align:middle"></span>${n}`;
+    b.onclick = () => { if (!sel) return; sel.p.color = c; applyParams(sel); needMaterials(); renderParts(); renderMatUI(); };
+    $('ledTemps').appendChild(b);
+  }
   $('mEmiC').addEventListener('input', e => { if (!sel) return; sel.p.emiC = e.target.value; if (sel.p.emi <= 0) sel.p.emi = 5; applyParams(sel); needMaterials(); renderMatUI(); });
   for (const [id, key, k, dec] of SL) {
     $(id).addEventListener('input', e => {
@@ -1601,6 +1651,7 @@ function bindMatInputs() {
     if (comps.length < 2) { toast('Cette pièce est d\'un seul tenant.'); return; }
     const base = sel, idx = parts.indexOf(base);
     // la nouvelle géométrie est dans l'espace du fichier : on garde le même parent / transfo
+    for (const st of stickers.filter(s => s.part === base)) removeSticker(st);
     modelRoot.remove(base.mesh); base.mesh.geometry.dispose();
     parts.splice(idx, 1);
     const created = comps.map((g, i) => addPart(g, `${base.name} ${i + 1}`, base.isSTL, base.preset, i === 0 ? base.p.color : DEF_COLORS[(i + 1) % DEF_COLORS.length]));
@@ -1680,6 +1731,161 @@ function renderUserViews() {
   });
 }
 
+/* ───────────── Stickers (décalcomanies projetées sur la surface) ───────────── */
+let stickers = [], selStk = null, placing = null, stkDrag = null, stkId = 0;
+const stkGroup = new THREE.Group(); stkGroup.name = '__stickers'; scene.add(stkGroup);
+function stickerCanvas(img) {
+  let w = img.naturalWidth || 512, h = img.naturalHeight || 512;
+  const k = Math.min(1, 1000 / Math.max(w, h)); w = Math.max(1, Math.round(w * k)); h = Math.max(1, Math.round(h * k));
+  const pad = 6, cv = document.createElement('canvas'); cv.width = w + pad * 2; cv.height = h + pad * 2;
+  cv.getContext('2d').drawImage(img, pad, pad, w, h);   // bord transparent : pas de bavure à la répétition
+  return cv;
+}
+function stickerMaterial(st) {
+  const m = st.mat || (st.mat = new THREE.MeshPhysicalMaterial({ transparent: true, alphaTest: .02, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, depthWrite: false }));
+  m.map = st.tex; m.color.set(0xffffff); m.metalness = 0; m.iridescence = 0; m.clearcoat = 0; m.roughness = .3; m.roughnessMap = null;
+  if (st.fin === 'vinyle') { m.roughness = .22; m.clearcoat = .7; m.clearcoatRoughness = .05; }
+  else if (st.fin === 'mat') { m.roughness = .85; }
+  else if (st.fin === 'holo') { m.roughness = .12; m.metalness = .55; m.iridescence = 1; m.iridescenceIOR = 1.6; m.iridescenceThicknessRange = [200, 800]; }
+  else if (st.fin === 'metal') { m.roughness = .2; m.metalness = .85; }
+  else if (st.fin === 'usé') {
+    m.roughness = .45; m.clearcoat = .3;
+    if (!st.wearTex) st.wearTex = makeDataTex(imperfCanvas({ ...P({}), fp: .6, scr: .8, dust: .4, seed: st.id }, .4, 1, null));
+    m.roughnessMap = st.wearTex;
+  }
+  m.needsUpdate = true;
+  return m;
+}
+/** reconstruit la géométrie du sticker à partir de sa position locale sur la pièce */
+function buildSticker(st) {
+  const mesh = st.part.mesh; mesh.updateMatrixWorld(true);
+  const pW = st.lp.clone().applyMatrix4(mesh.matrixWorld);
+  const nW = st.ln.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld)).normalize();
+  const unit = modelRoot.scale.x / mmPerUnit();             // mm → unités du monde
+  const w = st.size * unit, h = w / st.aspect;
+  const dummy = new THREE.Object3D(); dummy.position.copy(pW);
+  if (Math.abs(nW.y) > .999) dummy.up.set(0, 0, -1);
+  dummy.lookAt(pW.clone().add(nW)); dummy.rotateZ(st.rot * D2R);
+  let g;
+  try { g = new DecalGeometry(mesh, pW, dummy.rotation, new THREE.Vector3(w, h, Math.max(w, h) * .6)); }
+  catch (e) { console.error(e); return; }
+  // garde les faces tournées vers le sticker (évite qu'il traverse sur l'intérieur) + léger décollement
+  const pos = g.attributes.position, nrm = g.attributes.normal, uv = g.attributes.uv;
+  const P3 = [], N3 = [], U2 = [], eps = .0025; // ~0,1 % de la taille du modèle
+  for (let i = 0; i < pos.count; i += 3) {
+    let ok = true;
+    for (let k = 0; k < 3; k++) if (nrm.getX(i + k) * nW.x + nrm.getY(i + k) * nW.y + nrm.getZ(i + k) * nW.z < .2) ok = false;
+    if (!ok) continue;
+    for (let k = 0; k < 3; k++) {
+      const j = i + k, nx = nrm.getX(j), ny = nrm.getY(j), nz = nrm.getZ(j);
+      P3.push(pos.getX(j) + nx * eps, pos.getY(j) + ny * eps, pos.getZ(j) + nz * eps);
+      N3.push(nx, ny, nz); U2.push(uv.getX(j), uv.getY(j));
+    }
+  }
+  g.dispose();
+  const ng = new THREE.BufferGeometry();
+  ng.setAttribute('position', new THREE.Float32BufferAttribute(P3, 3));
+  ng.setAttribute('normal', new THREE.Float32BufferAttribute(N3, 3));
+  ng.setAttribute('uv', new THREE.Float32BufferAttribute(U2, 2));
+  ensureIndex(ng);
+  if (!st.mesh) { st.mesh = new THREE.Mesh(ng, stickerMaterial(st)); st.mesh.userData.sticker = st; st.mesh.renderOrder = 2; stkGroup.add(st.mesh); }
+  else { st.mesh.geometry.dispose(); st.mesh.geometry = ng; }
+}
+function rebuildStickers() { for (const st of stickers) buildSticker(st); if (stickers.length) needScene(); }
+function removeSticker(st) {
+  stkGroup.remove(st.mesh); st.mesh?.geometry.dispose(); st.mat?.dispose(); st.tex?.dispose(); st.wearTex?.dispose();
+  stickers = stickers.filter(s => s !== st); if (selStk === st) selStk = null;
+  renderStickers(); needScene();
+}
+function clearStickers() { for (const st of [...stickers]) removeSticker(st); placing = null; }
+function renderStickers() {
+  const el = $('stkList'); el.innerHTML = '';
+  stickers.forEach(st => {
+    const b = document.createElement('button'); b.className = 'chip' + (st === selStk ? ' on' : '');
+    b.textContent = st.name.slice(0, 22); b.onclick = () => { selStk = st; renderStickers(); };
+    el.appendChild(b);
+  });
+  $('stkUI').classList.toggle('hidden', !selStk);
+  if (selStk) {
+    $('stkSize').value = Math.round(selStk.size); $('stkSize').nextElementSibling.textContent = Math.round(selStk.size);
+    $('stkRot').value = Math.round(selStk.rot); $('stkRot').nextElementSibling.textContent = Math.round(selStk.rot) + '°';
+    $('stkFin').value = selStk.fin;
+  }
+  $('stkHint').textContent = placing ? '→ Clique sur le modèle pour poser « ' + placing.name + ' ».' :
+    'Choisis une image, puis clique sur le modèle pour la poser. Ensuite, attrape le sticker dans la vue pour le faire glisser.';
+  canvas.style.cursor = placing ? 'crosshair' : '';
+}
+function pointerRay(e) {
+  const r = canvas.getBoundingClientRect();
+  ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+  return ray;
+}
+function hitPart(e) {
+  const h = pointerRay(e).intersectObjects(parts.map(p => p.mesh), false)[0];
+  if (!h || !h.face) return null;
+  const part = h.object.userData.part, mesh = part.mesh;
+  const lp = mesh.worldToLocal(h.point.clone());
+  const ln = h.face.normal.clone().normalize();          // déjà en espace local
+  return { part, lp, ln };
+}
+function placeSticker(st, hit) {
+  st.part = hit.part; st.lp = hit.lp; st.ln = hit.ln;
+  buildSticker(st);
+}
+function bindStickers() {
+  $('stkAdd').onclick = () => { if (!parts.length) { toast('Charge d\'abord un modèle'); return; } $('stkFile').click(); };
+  $('stkFile').onchange = e => {
+    const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    const im = new Image();
+    im.onload = () => {
+      const cv = stickerCanvas(im), tex = new THREE.CanvasTexture(cv);
+      tex.colorSpace = THREE.SRGBColorSpace; TEX_FLAGS(tex); tex.anisotropy = 8;
+      placing = { id: ++stkId, name: f.name.replace(/\.[^.]+$/, ''), tex, aspect: cv.width / cv.height, size: Math.min(40, state.sizeMM * .3), rot: 0, fin: 'vinyle' };
+      renderStickers(); toast('Clique sur le modèle pour poser le sticker');
+    };
+    im.onerror = () => toast('Image illisible');
+    im.src = URL.createObjectURL(f);
+  };
+  let t = 0;
+  const upd = (k, v, out) => {
+    if (!selStk) return; selStk[k] = v; if (out) out.textContent = out === $('stkRot').nextElementSibling ? Math.round(v) + '°' : Math.round(v);
+    const st = selStk; cancelAnimationFrame(t); t = requestAnimationFrame(() => { buildSticker(st); stkMoved(); });
+  };
+  $('stkSize').oninput = e => upd('size', +e.target.value, e.target.nextElementSibling);
+  $('stkRot').oninput = e => upd('rot', +e.target.value, e.target.nextElementSibling);
+  $('stkFin').onchange = e => { if (!selStk) return; selStk.fin = e.target.value; stickerMaterial(selStk); needScene(); };
+  $('stkDel').onclick = () => { if (selStk) removeSticker(selStk); };
+  $('stkDup').onclick = () => {
+    if (!selStk) return; const a = selStk;
+    const st = { ...a, id: ++stkId, name: a.name + ' (copie)', mesh: null, mat: null, wearTex: null, lp: a.lp.clone(), ln: a.ln.clone(), tex: a.tex.clone() };
+    st.tex.needsUpdate = true;
+    stickers.push(st); buildSticker(st); selStk = st; renderStickers(); needScene();
+    toast('Copie posée au même endroit : fais-la glisser');
+  };
+  // attraper un sticker (phase de capture : avant les contrôles d'orbite)
+  canvas.addEventListener('pointerdown', e => {
+    if (placing || e.button !== 0 || !stickers.length) return;
+    const h = pointerRay(e).intersectObjects(stickers.map(s => s.mesh).filter(Boolean), false)[0];
+    if (!h) return;
+    selStk = h.object.userData.sticker; renderStickers();
+    stkDrag = { id: e.pointerId };
+    controls.enabled = false;
+    canvas.setPointerCapture(e.pointerId);
+    $('stkSec').open = true;
+  }, { capture: true });
+  canvas.addEventListener('pointermove', e => {
+    if (!stkDrag || !selStk) return;
+    const hit = hitPart(e); if (!hit) return;
+    const st = selStk;
+    cancelAnimationFrame(stkDrag.raf);
+    stkDrag.raf = requestAnimationFrame(() => placeSticker(st, hit));
+  });
+  const end = () => { if (!stkDrag) return; stkDrag = null; controls.enabled = true; stkMoved(); };
+  canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+}
+let stkTimer = 0;
+function stkMoved() { clearTimeout(stkTimer); stkTimer = setTimeout(needScene, 250); }
+
 /* ───────────── Stage, taille, sélection ───────────── */
 const stage = $('stage');
 let viewW = 1, viewH = 1;
@@ -1706,6 +1912,15 @@ canvas.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.client
 canvas.addEventListener('pointerup', e => {
   if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) { down = null; return; }
   down = null;
+  if (placing) {
+    const hit = hitPart(e);
+    if (!hit) { toast('Clique sur le modèle'); return; }
+    const st = placing; placing = null;
+    stickers.push(st); placeSticker(st, hit); selStk = st; renderStickers(); needScene();
+    toast('Sticker posé : attrape-le pour le déplacer');
+    return;
+  }
+  if (stkDrag) return;
   const r = canvas.getBoundingClientRect();
   ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
   const hit = ray.intersectObjects(parts.map(p => p.mesh), false)[0];
@@ -1766,7 +1981,7 @@ function frame(now) {
     controls.update(); needCamera();
   } else controls.update();
   try {
-    if (ptOn && pt && !ptDirty) {
+    if (ptOn && pt && !ptDirty && !stkDrag) {
       if (pt.samples < state.spp) pt.renderSample();
     } else {
       const fv = floor.visible; if (floorMat.matte) floor.visible = false;
@@ -1910,15 +2125,21 @@ function updateExpHint() {
   $('expHint').textContent = `Sortie : ${W} × ${H} px, cadrage identique à la vue.`;
 }
 $('zup').onchange = e => { opts.zup = e.target.checked; toast('Réimporte le fichier pour appliquer'); };
-$('smooth').onchange = e => { opts.smooth = e.target.checked; $('creaseRow').classList.toggle('hidden', !opts.smooth); regenGeometries(); };
+$('shade').onchange = e => {
+  opts.shade = e.target.value;
+  $('creaseRow').classList.toggle('hidden', opts.shade !== 'auto'); $('shadeHint').classList.toggle('hidden', opts.shade !== 'auto');
+  setStatus('Recalcul des normales…'); setTimeout(regenGeometries, 10);
+};
 let crTimer = 0;
 $('crease').oninput = e => { opts.crease = +e.target.value; $('creaseO').textContent = e.target.value + '°'; clearTimeout(crTimer); crTimer = setTimeout(regenGeometries, 250); };
 document.querySelectorAll('[data-rot]').forEach(b => b.onclick = () => {
   if (!parts.length) return;
   const ax = b.dataset.rot, m = new THREE.Matrix4();
   if (ax === 'x') m.makeRotationX(-Math.PI / 2); else if (ax === 'y') m.makeRotationY(Math.PI / 2); else m.makeRotationZ(Math.PI / 2);
+  const nm = new THREE.Matrix3().getNormalMatrix(m);
   for (const p of parts) { p.src.applyMatrix4(m); p.mesh.geometry.applyMatrix4(m); }
-  normalizeModel(); setView('34', false); needScene();
+  for (const st of stickers) { st.lp.applyMatrix4(m); st.ln.applyMatrix3(nm).normalize(); }
+  normalizeModel(); rebuildStickers(); setView('34', false); needScene();
 });
 $('demo').onclick = loadDemo;
 $('hdriBtn').onclick = () => $('hdriFile').click();
@@ -1926,11 +2147,13 @@ $('hdriFile').onchange = e => { const f = e.target.files[0]; if (f) loadHDRI(f);
 $('sizeMM').onchange = e => { const v = parseFloat(e.target.value); if (v > 0) setSizeMM(v); };
 window.addEventListener('keydown', e => {
   if (e.target.closest('input,select,textarea')) return;
+  if (e.key === 'Escape' && placing) { placing.tex.dispose(); placing = null; renderStickers(); return; }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && selStk) { removeSticker(selStk); return; }
   const n = +e.key; if (n >= 1 && n <= VIEWS.length) setView(VIEWS[n - 1].id);
 });
 
 /* ───────────── Démarrage ───────────── */
-buildPresetChips(); buildSurfChips(); buildEnvChips(); buildViewChips(); bindMatInputs();
+buildPresetChips(); buildSurfChips(); bindStickers(); buildEnvChips(); buildViewChips(); bindMatInputs();
 setFocal(60, false);
 rebuildEnv(); applyBackground(false); applyFloor();
 layout();
