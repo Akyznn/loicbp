@@ -56,7 +56,7 @@ details.sec[open]>summary::after{content:"–"}
 input[type=color]{width:38px;height:26px;padding:0;border:1px solid var(--line);border-radius:6px;background:var(--field);cursor:pointer}
 input[type=color]::-webkit-color-swatch-wrapper{padding:2px}
 input[type=color]::-webkit-color-swatch{border:0;border-radius:4px}
-select,input[type=text]{flex:1;min-width:0;background:var(--field);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px 8px;font:inherit;font-size:13px}
+select,input[type=text],input[type=number]{flex:1;min-width:0;background:var(--field);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px 8px;font:inherit;font-size:13px}
 button{font:inherit}
 .btn{background:var(--field);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 10px;cursor:pointer;font-size:13px;box-shadow:var(--shadow)}
 .btn:hover{border-color:var(--dim)}
@@ -136,7 +136,7 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
     <summary>Modèle</summary>
     <div class="body">
       <div class="dropzone" id="dz"><b>Ouvrir ou glisser</b> un fichier OBJ, STL ou GLB<br><span style="font-size:12px">Plusieurs fichiers = plusieurs pièces</span></div>
-      <input type="file" id="file" accept=".obj,.stl,.glb,.gltf" multiple hidden>
+      <input type="file" id="file" accept=".obj,.stl,.glb,.gltf,.hdr,.exr" multiple hidden>
       <label class="check"><input type="checkbox" id="zup" checked> STL : Z vers le haut (impression 3D)</label>
       <label class="check"><input type="checkbox" id="smooth" checked> Lisser les normales des STL</label>
       <div class="row" id="creaseRow"><label>Angle d'arête</label><input type="range" id="crease" min="5" max="90" value="35"><output id="creaseO">35°</output></div>
@@ -145,6 +145,7 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
         <button class="btn" data-rot="y">↻ Y 90°</button>
         <button class="btn" data-rot="z">↻ Z 90°</button>
       </div>
+      <div class="row"><label>Taille réelle</label><input type="number" id="sizeMM" min="1" step="1" value="110"><span class="hint">mm (plus grande dimension)</span></div>
       <button class="btn" id="demo">Charger la scène de démo</button>
     </div>
   </details>
@@ -198,6 +199,16 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
           <div class="row"><label>Rugosité</label><input type="range" id="mRough" min="0" max="100"><output></output></div>
           <div class="row"><label>Transparence</label><input type="range" id="mTrans" min="0" max="100"><output></output></div>
           <div class="row" id="densRow"><label>Densité teinte</label><input type="range" id="mDens" min="0" max="100"><output></output></div>
+          <div class="group-title">Surface</div>
+          <div class="chips" id="surfChips"></div>
+          <div class="row" id="sAmpRow"><label>Relief</label><input type="range" id="sAmp" min="0" max="200"><output></output></div>
+          <div class="row" id="sScaleRow"><label>Échelle</label><input type="range" id="sScale" min="25" max="400"><output></output></div>
+          <div class="row" id="sLayerRow"><label>Couche (mm)</label><input type="range" id="sLayer" min="5" max="40"><output></output></div>
+          <div class="group-title">Imperfections</div>
+          <div class="row"><label>Traces de doigts</label><input type="range" id="iFp" min="0" max="100"><output></output></div>
+          <div class="row"><label>Rayures</label><input type="range" id="iScr" min="0" max="100"><output></output></div>
+          <div class="row"><label>Poussière</label><input type="range" id="iDust" min="0" max="100"><output></output></div>
+          <button class="btn" id="reseed">Nouveau tirage des imperfections</button>
           <details class="adv"><summary>Réglages fins</summary><div>
             <div class="row"><label>Métal</label><input type="range" id="mMetal" min="0" max="100"><output></output></div>
             <div class="row"><label>Vernis</label><input type="range" id="mCoat" min="0" max="100"><output></output></div>
@@ -215,6 +226,9 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
     <summary>Lumière</summary>
     <div class="body">
       <div class="chips" id="envChips"></div>
+      <button class="btn" id="hdriBtn">Importer un HDRI (.hdr / .exr)…</button>
+      <input type="file" id="hdriFile" accept=".hdr,.exr" hidden>
+      <p class="hint">Des HDRI gratuits sur polyhaven.com (rubrique HDRIs, 1k ou 2k suffit). Tu peux aussi le glisser sur la vue.</p>
       <div class="row"><label>Rotation</label><input type="range" id="envRot" min="-180" max="180" value="0"><output id="envRotO">0°</output></div>
       <div class="row"><label>Intensité</label><input type="range" id="envInt" min="10" max="300" value="100"><output id="envIntO">1.00</output></div>
       <div class="row"><label>Exposition</label><input type="range" id="expo" min="-30" max="30" value="0"><output id="expoO">0.0</output></div>
@@ -490,14 +504,82 @@ function makeEqTex(data, W, H) {
 const state = {
   env: 'studio', envRot: 0, envInt: 1, bg: 'gradient', bgBlur: .35,
   bgC1: '#f1efea', bgC2: '#c9c6bf', floor: 'shadow', floorC: '#e4e1da',
-  aspect: 0, spp: 256,
+  aspect: 0, spp: 256, sizeMM: 110,
 };
 let envTex = null, bgTex = null;
 
+let hdri = null; // { data (RGBA float, de bas en haut), w, h, name }
+function hdriData(rot, mult) {
+  const { data, w, h } = hdri, out = new Float32Array(data.length);
+  const shift = Math.round(rot / 360 * w);
+  for (let y = 0; y < h; y++) {
+    const row = y * w;
+    for (let x = 0; x < w; x++) {
+      const sx = (((x - shift) % w) + w) % w, i = (row + sx) * 4, o = (row + x) * 4;
+      out[o] = data[i] * mult; out[o + 1] = data[i + 1] * mult; out[o + 2] = data[i + 2] * mult; out[o + 3] = 1;
+    }
+  }
+  return out;
+}
+async function loadHDRI(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  setStatus('Chargement du HDRI…');
+  try {
+    let Loader;
+    if (ext === 'exr') ({ EXRLoader: Loader } = await import('three/addons/loaders/EXRLoader.js'));
+    else {
+      try { ({ HDRLoader: Loader } = await import('three/addons/loaders/HDRLoader.js')); } catch (e) { Loader = null; }
+      if (!Loader) ({ RGBELoader: Loader } = await import('three/addons/loaders/RGBELoader.js'));
+    }
+    const loader = new Loader(); loader.setDataType(THREE.FloatType);
+    const td = loader.parse(await file.arrayBuffer());
+    if (!td || !td.data) throw new Error('fichier illisible');
+    let w = td.width, h = td.height, src = td.data;
+    const ch = Math.round(src.length / (w * h));
+    // RGBA float, rangées de bas en haut (le .hdr est stocké de haut en bas)
+    const topDown = ext !== 'exr';
+    let data = new Float32Array(w * h * 4);
+    for (let y = 0; y < h; y++) {
+      const sy = topDown ? h - 1 - y : y;
+      for (let x = 0; x < w; x++) {
+        const i = (sy * w + x) * ch, o = (y * w + x) * 4;
+        data[o] = src[i]; data[o + 1] = ch > 1 ? src[i + 1] : src[i]; data[o + 2] = ch > 2 ? src[i + 2] : src[i]; data[o + 3] = 1;
+      }
+    }
+    // réduit à 2048 px de large max (largement suffisant pour l'éclairage)
+    while (w > 2048) {
+      const nw = w >> 1, nh = h >> 1, nd = new Float32Array(nw * nh * 4);
+      for (let y = 0; y < nh; y++) for (let x = 0; x < nw; x++) for (let c = 0; c < 3; c++) {
+        const a = ((2 * y) * w + 2 * x) * 4 + c, b = ((2 * y + 1) * w + 2 * x) * 4 + c;
+        nd[(y * nw + x) * 4 + c] = (data[a] + data[a + 4] + data[b] + data[b + 4]) / 4;
+      }
+      for (let i = 3; i < nd.length; i += 4) nd[i] = 1;
+      data = nd; w = nw; h = nh;
+    }
+    for (let i = 0; i < data.length; i++) if (!isFinite(data[i])) data[i] = 0;
+    hdri = { data, w, h, name: file.name.replace(/\.[^.]+$/, '') };
+    let chip = document.querySelector('#envChips [data-env="hdri"]');
+    if (!chip) {
+      chip = document.createElement('button'); chip.className = 'chip'; chip.dataset.env = 'hdri';
+      chip.onclick = () => selectEnv('hdri');
+      $('envChips').appendChild(chip);
+    }
+    chip.textContent = 'HDRI · ' + hdri.name.slice(0, 18);
+    selectEnv('hdri');
+    toast('HDRI chargé ✓');
+  } catch (e) {
+    console.error(e); toast('HDRI illisible : ' + e.message, 5000);
+  }
+}
+function selectEnv(id) {
+  state.env = id;
+  document.querySelectorAll('#envChips .chip').forEach(c => c.classList.toggle('on', c.dataset.env === id));
+  rebuildEnv();
+}
 function rebuildEnv() {
-  const def = ENVS[state.env];
   const old = envTex;
-  envTex = makeEqTex(buildEnvData(def, state.envRot, state.envInt), 1024, 512);
+  if (state.env === 'hdri' && hdri) envTex = makeEqTex(hdriData(state.envRot, state.envInt), hdri.w, hdri.h);
+  else envTex = makeEqTex(buildEnvData(ENVS[state.env] || ENVS.studio, state.envRot, state.envInt), 1024, 512);
   scene.environment = envTex;
   applyBackground(false);
   if (old) old.dispose();
@@ -549,31 +631,32 @@ const Y2K = [
   ['Jungle Green', '#2fbf6a'], ['Tangerine', '#ff8a2a'], ['Bubblegum', '#ff6fb5'], ['Fire Red', '#e8262e'],
   ['Lemon', '#ffe14a'], ['Teal', '#14b8a6'],
 ];
-const P = (o) => Object.assign({ color: '#cccccc', rough: .5, metal: 0, trans: 0, dens: .5, coat: 0, ior: 1.5, iri: 0, sheen: 0, emi: 0, emiC: '#ffffff' }, o);
+const P = (o) => Object.assign({ color: '#cccccc', rough: .5, metal: 0, trans: 0, dens: .5, coat: 0, ior: 1.5, iri: 0, sheen: 0, emi: 0, emiC: '#ffffff',
+  surf: 'none', sAmp: 1, sScale: 1, layer: .2, fp: 0, scr: 0, dust: 0, seed: 1 }, o);
 const PRESETS = {
-  pla:      { g: 'plastique', n: 'Mat (PLA)', p: P({ color: '#e8e4dc', rough: .6 }) },
-  satin:    { g: 'plastique', n: 'Satiné', p: P({ color: '#f2f2f2', rough: .35, coat: .1 }) },
+  pla:      { g: 'plastique', n: 'Mat (PLA)', p: P({ color: '#e8e4dc', rough: .6, surf: 'fdm', sAmp: 1 }) },
+  satin:    { g: 'plastique', n: 'Satiné', p: P({ color: '#f2f2f2', rough: .35, coat: .1, surf: 'fin', sAmp: .5 }) },
   gloss:    { g: 'plastique', n: 'Brillant', p: P({ color: '#e83b3b', rough: .12, coat: .4 }) },
-  soft:     { g: 'plastique', n: 'Soft-touch', p: P({ color: '#2a2a2c', rough: .85 }) },
-  resine:   { g: 'plastique', n: 'Résine SLA', p: P({ color: '#9aa0a6', rough: .3, coat: .2 }) },
+  soft:     { g: 'plastique', n: 'Soft-touch', p: P({ color: '#2a2a2c', rough: .85, surf: 'fin', sAmp: .8 }) },
+  resine:   { g: 'plastique', n: 'Résine SLA', p: P({ color: '#9aa0a6', rough: .3, coat: .2, surf: 'sable', sAmp: .3 }) },
   y2k:      { g: 'translucide', n: 'Plastique Y2K', p: P({ color: '#7b4fd6', rough: .14, trans: 1, dens: .55, ior: 1.55, coat: .3 }) },
   givre:    { g: 'translucide', n: 'Givré', p: P({ color: '#5fb8ff', rough: .5, trans: 1, dens: .45, ior: 1.5 }) },
   irise:    { g: 'translucide', n: 'Irisé', p: P({ color: '#eef3ff', rough: .1, trans: 1, dens: .2, ior: 1.5, iri: 1 }) },
   verre:    { g: 'translucide', n: 'Verre', p: P({ color: '#ffffff', rough: 0, trans: 1, dens: 0, ior: 1.5 }) },
   gelee:    { g: 'translucide', n: 'Gelée', p: P({ color: '#ff6fb5', rough: .2, trans: 1, dens: .9, ior: 1.4 }) },
-  alu:      { g: 'metal', n: 'Alu brossé', p: P({ color: '#d4d7dc', rough: .32, metal: 1 }) },
+  alu:      { g: 'metal', n: 'Alu brossé', p: P({ color: '#d4d7dc', rough: .32, metal: 1, surf: 'brosse', sAmp: .8 }) },
   chrome:   { g: 'metal', n: 'Chrome', p: P({ color: '#f4f4f4', rough: .02, metal: 1 }) },
   or:       { g: 'metal', n: 'Or', p: P({ color: '#ffcb6b', rough: .14, metal: 1 }) },
   cuivre:   { g: 'metal', n: 'Cuivre', p: P({ color: '#f0a27a', rough: .24, metal: 1 }) },
-  anodise:  { g: 'metal', n: 'Anodisé', p: P({ color: '#4f7bd6', rough: .3, metal: 1 }) },
-  titane:   { g: 'metal', n: 'Titane', p: P({ color: '#8b8e93', rough: .38, metal: 1 }) },
+  anodise:  { g: 'metal', n: 'Anodisé', p: P({ color: '#4f7bd6', rough: .3, metal: 1, surf: 'sable', sAmp: .5 }) },
+  titane:   { g: 'metal', n: 'Titane', p: P({ color: '#8b8e93', rough: .38, metal: 1, surf: 'sable', sAmp: .7 }) },
   lcd:      { g: 'ecran', n: 'Dalle LCD', p: P({ color: '#060708', rough: .06, coat: 1 }) },
   led:      { g: 'ecran', n: 'Lumière / LED', p: P({ color: '#ffffff', rough: .4, emi: 30, emiC: '#ffffff' }) },
-  caout:    { g: 'autre', n: 'Caoutchouc', p: P({ color: '#1b1b1c', rough: .9 }) },
+  caout:    { g: 'autre', n: 'Caoutchouc', p: P({ color: '#1b1b1c', rough: .9, surf: 'gros', sAmp: 1 }) },
   ceram:    { g: 'autre', n: 'Céramique', p: P({ color: '#f6f4ef', rough: .12, coat: 1 }) },
-  carro:    { g: 'autre', n: 'Peinture auto', p: P({ color: '#c1121f', rough: .4, metal: .5, coat: 1 }) },
+  carro:    { g: 'autre', n: 'Peinture auto', p: P({ color: '#c1121f', rough: .4, metal: .5, coat: 1, surf: 'orange', sAmp: .5 }) },
   tissu:    { g: 'autre', n: 'Tissu', p: P({ color: '#6b5b95', rough: .95, sheen: 1 }) },
-  pcb:      { g: 'autre', n: 'Circuit (PCB)', p: P({ color: '#1f6b3a', rough: .45, coat: .3 }) },
+  pcb:      { g: 'autre', n: 'Circuit (PCB)', p: P({ color: '#1f6b3a', rough: .45, coat: .3, surf: 'fin', sAmp: .4 }) },
 };
 const TEX_FLAGS = t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; };
 
@@ -609,7 +692,174 @@ function applyParams(part) {
   m.emissive.set(p.emiC); m.emissiveIntensity = p.emi;
   if (p.emi <= 0) m.emissive.set(0, 0, 0);
   if (part.preset === 'lcd') applyLCD(part);
+  applySurface(part);
   m.needsUpdate = true;
+}
+
+/* ───────────── Micro-textures & imperfections (procédurales, raccordables) ───────────── */
+const TN = 512;
+function hash3(x, y, s) {
+  let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s, 1442695041)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+/** bruit de valeur périodique (Px, Py cellules par tuile) */
+function vnoise(x, y, Px, Py, s) {
+  const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi;
+  const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+  const x0 = ((xi % Px) + Px) % Px, y0 = ((yi % Py) + Py) % Py, x1 = (x0 + 1) % Px, y1 = (y0 + 1) % Py;
+  const a = hash3(x0, y0, s), b = hash3(x1, y0, s), c = hash3(x0, y1, s), d = hash3(x1, y1, s);
+  return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
+}
+function fbm(u, v, Px, Py, oct, s) {
+  let sum = 0, amp = .5, f = 1, norm = 0;
+  for (let o = 0; o < oct; o++) { sum += amp * vnoise(u * Px * f, v * Py * f, Px * f, Py * f, s + o * 31); norm += amp; amp *= .5; f *= 2; }
+  return sum / norm;
+}
+const SURFS = {
+  none:   { n: 'Lisse' },
+  fin:    { n: 'Grain fin', tile: 6, amp: 1.2 },
+  gros:   { n: 'Grain gros', tile: 14, amp: 2.2 },
+  fdm:    { n: 'Couches 3D', amp: 3.2 },
+  brosse: { n: 'Brossé', tile: 22, amp: 1.0 },
+  sable:  { n: 'Sablé', tile: 5, amp: 1.4 },
+  orange: { n: "Peau d'orange", tile: 28, amp: 2.4 },
+};
+const FDM_LAYERS = 32;
+function surfTileMM(p) { return (p.surf === 'fdm' ? FDM_LAYERS * p.layer : SURFS[p.surf].tile) * p.sScale; }
+function heightField(type) {
+  const N = TN, H = new Float32Array(N * N);
+  for (let y = 0; y < N; y++) {
+    const v = y / N;
+    for (let x = 0; x < N; x++) {
+      const u = x / N; let h = 0;
+      if (type === 'fin') { const n = fbm(u, v, 48, 48, 3, 7); h = Math.pow(n, 1.6) + .25 * hash3(x, y, 3); }
+      else if (type === 'gros') { const n = fbm(u, v, 18, 18, 4, 11); h = 1 - Math.abs(n * 2 - 1); h = h * h + .15 * fbm(u, v, 96, 96, 2, 5); }
+      else if (type === 'fdm') {
+        const t = v * FDM_LAYERS + .18 * (fbm(u, v, 3, 2, 2, 21) - .5);
+        const li = Math.floor(t), f = t - li;
+        const bump = Math.sqrt(Math.max(0, 1 - Math.pow(2 * f - 1, 2)));
+        h = bump * (.85 + .15 * hash3(((li % FDM_LAYERS) + FDM_LAYERS) % FDM_LAYERS, 0, 9)) + .05 * fbm(u, v, 24, 24, 2, 4);
+      }
+      else if (type === 'brosse') { h = fbm(u, v, 2, 220, 3, 13) * .8 + .2 * fbm(u, v, 8, 512, 1, 17); }
+      else if (type === 'sable') { h = .6 * fbm(u, v, 128, 128, 2, 19) + .4 * hash3(x, y, 23); }
+      else if (type === 'orange') { h = fbm(u, v, 9, 9, 3, 29); }
+      H[y * N + x] = h;
+    }
+  }
+  return H;
+}
+const nrmCache = new Map();
+function normalCanvas(type) {
+  if (nrmCache.has(type)) return nrmCache.get(type);
+  const N = TN, H = heightField(type), amp = SURFS[type].amp;
+  const cv = document.createElement('canvas'); cv.width = cv.height = N;
+  const ctx = cv.getContext('2d'), img = ctx.createImageData(N, N), d = img.data;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const xl = (x + N - 1) % N, xr = (x + 1) % N, yu = (y + N - 1) % N, yd = (y + 1) % N;
+    const dx = (H[y * N + xr] - H[y * N + xl]) * amp, dy = (H[yd * N + x] - H[yu * N + x]) * amp;
+    let nx = -dx, ny = dy, nz = 1; const l = Math.hypot(nx, ny, nz); nx /= l; ny /= l; nz /= l;
+    const o = (y * N + x) * 4;
+    d[o] = (nx * .5 + .5) * 255; d[o + 1] = (ny * .5 + .5) * 255; d[o + 2] = (nz * .5 + .5) * 255; d[o + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  nrmCache.set(type, cv);
+  return cv;
+}
+const IMP_TILE = 90; // mm couverts par une tuile d'imperfections
+/** carte de rugosité : rapport rugosité locale / rugosité max (R) */
+function imperfCanvas(p, base, R) {
+  const N = TN, mmPx = N / IMP_TILE, sd = p.seed * 101;
+  const val = new Float32Array(N * N).fill(base);
+  const mixTo = (i, target, w) => { if (w > 0) val[i] += (target - val[i]) * Math.min(1, w); };
+  // traces de doigts : ovales de crêtes + halo gras
+  if (p.fp > 0) {
+    const K = 2 + Math.round(p.fp * 6), prints = [];
+    for (let k = 0; k < K; k++) prints.push({ x: hash3(k, 1, sd) * N, y: hash3(k, 2, sd) * N, rx: (5 + 4 * hash3(k, 3, sd)) * mmPx, ry: (7 + 4 * hash3(k, 4, sd)) * mmPx, a: hash3(k, 5, sd) * Math.PI, s: k });
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const i = y * N + x;
+      const smudge = fbm(x / N, y / N, 5, 5, 3, sd + 7);
+      mixTo(i, .38, p.fp * .5 * Math.max(0, (smudge - .5) * 3));
+      for (const q of prints) {
+        let dx = x - q.x, dy = y - q.y;
+        dx -= Math.round(dx / N) * N; dy -= Math.round(dy / N) * N;
+        const c = Math.cos(q.a), sn = Math.sin(q.a);
+        const ex = (dx * c + dy * sn) / q.rx, ey = (-dx * sn + dy * c) / q.ry;
+        const r = Math.hypot(ex, ey); if (r > 1.15) continue;
+        const env = Math.max(0, 1 - Math.pow(r / 1.15, 3));
+        const ridge = .5 + .5 * Math.sin(r * q.ry / (.45 * mmPx) * Math.PI * 2 + 3 * vnoise(ex * 3 + 9, ey * 3, 64, 64, q.s + sd));
+        mixTo(i, .5, p.fp * env * (.35 + .65 * ridge) * .9);
+      }
+    }
+  }
+  // poussière : voile + grains
+  if (p.dust > 0) {
+    for (let i = 0; i < N * N; i++) {
+      const x = i % N, y = (i / N) | 0;
+      const haze = fbm(x / N, y / N, 7, 7, 3, sd + 40);
+      mixTo(i, .85, p.dust * .55 * haze);
+      if (hash3(x, y, sd + 41) > 1 - p.dust * .035) mixTo(i, 1, 1);
+    }
+  }
+  // rayures : traits fins dessinés sur un canevas (raccordables)
+  let scr = null;
+  if (p.scr > 0) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = N;
+    const c = cv.getContext('2d'); c.strokeStyle = '#fff'; c.lineCap = 'round';
+    const n = Math.round(p.scr * 70);
+    for (let k = 0; k < n; k++) {
+      const x0 = hash3(k, 11, sd) * N, y0 = hash3(k, 12, sd) * N, L = (3 + 35 * Math.pow(hash3(k, 13, sd), 2)) * mmPx;
+      const a = hash3(k, 14, sd) * Math.PI * 2, bend = (hash3(k, 15, sd) - .5) * .6;
+      c.lineWidth = .6 + 1.2 * hash3(k, 16, sd); c.globalAlpha = .35 + .65 * hash3(k, 17, sd);
+      for (const ox of [-N, 0, N]) for (const oy of [-N, 0, N]) {
+        c.beginPath(); c.moveTo(x0 + ox, y0 + oy);
+        c.quadraticCurveTo(x0 + ox + Math.cos(a + bend) * L / 2, y0 + oy + Math.sin(a + bend) * L / 2, x0 + ox + Math.cos(a) * L, y0 + oy + Math.sin(a) * L);
+        c.stroke();
+      }
+    }
+    scr = c.getImageData(0, 0, N, N).data;
+  }
+  const out = document.createElement('canvas'); out.width = out.height = N;
+  const ctx = out.getContext('2d'), img = ctx.createImageData(N, N), d = img.data;
+  for (let i = 0; i < N * N; i++) {
+    let r = val[i] * R;                       // rugosité absolue
+    if (scr) r += (Math.min(1, .55 + r) - r) * (scr[i * 4] / 255) * Math.min(1, p.scr * 1.5);
+    const g = clamp(r / R, 0, 1) * 255, o = i * 4;
+    d[o] = d[o + 1] = d[o + 2] = g; d[o + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return out;
+}
+let fileMaxDim = 2;   // plus grande dimension du modèle, en unités du fichier
+function mmPerUnit() { return state.sizeMM / Math.max(fileMaxDim, 1e-9); }
+function makeDataTex(cv) { const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.NoColorSpace; TEX_FLAGS(t); t.anisotropy = 8; return t; }
+function setRepeat(t, tileMM) { const r = mmPerUnit() / tileMM; t.repeat.set(r, r); t.updateMatrix(); }
+/** surface (normal map) + imperfections (roughness maps) */
+function applySurface(part) {
+  const m = part.mat, p = part.p;
+  // relief
+  if (p.surf && p.surf !== 'none' && part.uvMode !== 'screen') {
+    const cv = normalCanvas(p.surf);
+    if (!part.nTex || part.nTex.image !== cv) { if (part.nTex) part.nTex.dispose(); part.nTex = makeDataTex(cv); }
+    setRepeat(part.nTex, surfTileMM(p));
+    m.normalMap = part.nTex; m.normalScale.set(p.sAmp, p.sAmp);
+  } else m.normalMap = null;
+  // imperfections
+  const imp = Math.max(p.fp, p.scr, p.dust);
+  if (imp > 0) {
+    const key = [p.rough, p.coat > 0, p.fp, p.scr, p.dust, p.seed].join('|');
+    if (part.impKey !== key) {
+      part.impKey = key;
+      const R = Math.min(1, p.rough + .5 * imp + .06);
+      part.impR = R;
+      if (part.rTex) part.rTex.dispose(); part.rTex = makeDataTex(imperfCanvas(p, p.rough / R, R));
+      if (part.cTex) { part.cTex.dispose(); part.cTex = null; }
+      if (p.coat > 0) { const Rc = Math.min(1, .03 + .5 * imp + .06); part.impRc = Rc; part.cTex = makeDataTex(imperfCanvas(p, .03 / Rc, Rc)); }
+    }
+    setRepeat(part.rTex, IMP_TILE); m.roughnessMap = part.rTex; m.roughness = part.impR;
+    if (part.cTex) { setRepeat(part.cTex, IMP_TILE); m.clearcoatRoughnessMap = part.cTex; m.clearcoatRoughness = part.impRc; }
+    else m.clearcoatRoughnessMap = null;
+  } else { m.roughnessMap = null; m.clearcoatRoughnessMap = null; part.impKey = null; }
 }
 
 /* ───────────── Dalle LCD ───────────── */
@@ -756,7 +1006,7 @@ function boxUV(g) {
     for (let k = 0; k < 3; k++) {
       const p = k === 0 ? a : k === 1 ? b : c;
       let u, v;
-      if (nn.x >= nn.y && nn.x >= nn.z) { u = p.z; v = p.y; } else if (nn.y >= nn.z) { u = p.x; v = p.z; } else { u = p.x; v = p.y; }
+      if (nn.x >= nn.y && nn.x >= nn.z) { u = p.z; v = p.y; } else if (nn.y >= nn.z) { u = (p.x + p.z) * .7071; v = (p.x - p.z) * .7071; } else { u = p.x; v = p.y; }
       uv[(i + k) * 2] = u; uv[(i + k) * 2 + 1] = v;
     }
   }
@@ -765,8 +1015,9 @@ function boxUV(g) {
 }
 const opts = { zup: true, smooth: true, crease: 35 };
 /** prépare une géométrie source pour le rendu (normales, uv, attributs communs) */
-function prepGeometry(src, isSTL) {
+function prepGeometry(src, isSTL, keepUV = false) {
   let g = cleanAttributes(src.clone());
+  if (!keepUV) g.deleteAttribute('uv');
   if (opts.smooth && (isSTL || !g.attributes.normal)) {
     g.deleteAttribute('normal');
     if (g.index) g = g.toNonIndexed();
@@ -823,11 +1074,11 @@ let modelName = 'rendu';
 const DEF_COLORS = ['#e8e4dc', '#7b4fd6', '#5fb8ff', '#ff8a2a', '#2fbf6a', '#ff6fb5', '#3b3b47', '#ffe14a'];
 let pid = 0;
 
-function addPart(srcGeom, name, isSTL, presetId = 'satin', color = null) {
+function addPart(srcGeom, name, isSTL, presetId = 'satin', color = null, keepUV = false) {
   const mat = newMaterial();
-  const mesh = new THREE.Mesh(prepGeometry(srcGeom, isSTL), mat);
+  const mesh = new THREE.Mesh(prepGeometry(srcGeom, isSTL, keepUV), mat);
   mesh.name = name;
-  const part = { id: ++pid, name, mesh, mat, src: srcGeom, isSTL, preset: presetId, p: { ...PRESETS[presetId].p }, uvMode: 'box' };
+  const part = { id: ++pid, name, mesh, mat, src: srcGeom, isSTL, keepUV, preset: presetId, p: { ...PRESETS[presetId].p, seed: pid }, uvMode: 'box' };
   if (color) part.p.color = color;
   mesh.userData.part = part;
   modelRoot.add(mesh);
@@ -836,7 +1087,7 @@ function addPart(srcGeom, name, isSTL, presetId = 'satin', color = null) {
   return part;
 }
 function clearModel() {
-  for (const p of parts) { p.mesh.geometry.dispose(); p.mat.dispose(); if (p.lcdTex) p.lcdTex.dispose(); }
+  for (const p of parts) { p.mesh.geometry.dispose(); p.mat.dispose(); for (const t of [p.lcdTex, p.nTex, p.rTex, p.cTex]) if (t) t.dispose(); }
   modelRoot.clear(); modelRoot.rotation.set(0, 0, 0); modelRoot.position.set(0, 0, 0); modelRoot.scale.set(1, 1, 1);
   parts = []; sel = null;
 }
@@ -863,7 +1114,11 @@ function triCount() { let n = 0; for (const p of parts) { const g = p.mesh.geome
 
 /* ───────────── Import ───────────── */
 async function loadFiles(files) {
-  files = [...files].filter(f => /\.(obj|stl|glb|gltf)$/i.test(f.name));
+  files = [...files];
+  const env = files.find(f => /\.(hdr|exr)$/i.test(f.name));
+  if (env) await loadHDRI(env);
+  files = files.filter(f => /\.(obj|stl|glb|gltf)$/i.test(f.name));
+  if (!files.length && env) return;
   if (!files.length) { toast('Formats acceptés : OBJ, STL, GLB'); return; }
   setStatus('Import…');
   clearModel();
@@ -901,7 +1156,7 @@ async function loadFiles(files) {
           if (g0.attributes.position.isInterleavedBufferAttribute && BGU.deinterleaveGeometry) BGU.deinterleaveGeometry(g0);
           g0.applyMatrix4(o.matrixWorld);
           const src = Array.isArray(o.material) ? o.material[0] : o.material;
-          const part = addPart(g0, o.name || src?.name || base, false, 'satin');
+          const part = addPart(g0, o.name || src?.name || base, false, 'satin', null, !!(src && src.map));
           if (src) {
             part.p.color = '#' + (src.color ? src.color.getHexString() : 'cccccc');
             part.p.rough = src.roughness ?? .5; part.p.metal = src.metalness ?? 0;
@@ -930,8 +1185,22 @@ function extractGroup(g, gr) {
   }
   return ng;
 }
-function finishLoad() {
+function computeFileDims() {
+  const bb = new THREE.Box3();
+  for (const p of parts) { p.src.computeBoundingBox(); bb.union(p.src.boundingBox); }
+  const s = new THREE.Vector3(); bb.getSize(s);
+  fileMaxDim = Math.max(s.x, s.y, s.z, 1e-9);
+}
+function setSizeMM(mm) {
+  state.sizeMM = Math.max(1, mm); $('sizeMM').value = Math.round(state.sizeMM * 10) / 10;
+  for (const p of parts) applySurface(p);
+  needMaterials();
+}
+function finishLoad(sizeHint) {
   if (!parts.length) { setStatus('Aucune pièce'); return; }
+  computeFileDims();
+  const anySTL = parts.some(p => p.isSTL);
+  setSizeMM(sizeHint || (anySTL ? fileMaxDim : fileMaxDim < 10 ? fileMaxDim * 1000 : fileMaxDim));
   normalizeModel();
   sel = parts[0];
   renderParts(); renderMatUI();
@@ -942,7 +1211,7 @@ function finishLoad() {
 function regenGeometries() {
   for (const p of parts) {
     const old = p.mesh.geometry;
-    p.mesh.geometry = prepGeometry(p.src, p.isSTL);
+    p.mesh.geometry = prepGeometry(p.src, p.isSTL, p.keepUV);
     old.dispose();
     p.uvMode = 'box';
     if (p.preset === 'lcd') applyLCD(p);
@@ -999,8 +1268,9 @@ function loadDemo() {
   const ss = merge([at(new RoundedBoxGeometry(.16, .045, .03, 2, .02), -.11, .3, .165), at(new RoundedBoxGeometry(.16, .045, .03, 2, .02), .11, .3, .165)]);
   addPart(ss, 'Start / Select', false, 'soft', '#4a4a52');
   scr.lcd = LCD_DEFAULT(); scr.lcd.text = 'PLAY'; applyParams(scr);
-  void body; void pcb;
-  finishLoad();
+  body.p.fp = .35; body.p.dust = .15; applyParams(body);
+  void pcb;
+  finishLoad(110);
 }
 
 /* ───────────── UI pièces / matériaux ───────────── */
@@ -1034,10 +1304,25 @@ function buildPresetChips() {
     sw.appendChild(b);
   }
 }
+function buildSurfChips() {
+  const el = $('surfChips');
+  for (const [id, sf] of Object.entries(SURFS)) {
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = sf.n; b.dataset.surf = id;
+    b.onclick = () => {
+      if (!sel) return; sel.p.surf = id;
+      if (id === 'fdm' && !sel.p.layer) sel.p.layer = .2;
+      setStatus('Génération de la texture…');
+      setTimeout(() => { applyParams(sel); needMaterials(); renderMatUI(); }, 10);
+    };
+    el.appendChild(b);
+  }
+  $('reseed').onclick = () => { if (!sel) return; sel.p.seed = (sel.p.seed || 1) + 1; applyParams(sel); needMaterials(); };
+}
 function setPreset(part, id) {
   const keepColor = ['y2k', 'givre', 'gelee'].includes(id) && ['y2k', 'givre', 'gelee'].includes(part.preset);
   const col = part.p.color;
-  part.preset = id; part.p = { ...PRESETS[id].p };
+  const keep = { fp: part.p.fp, scr: part.p.scr, dust: part.p.dust, seed: part.p.seed };
+  part.preset = id; part.p = { ...PRESETS[id].p, ...keep };
   if (keepColor) part.p.color = col;
   if (part.texMap && id !== 'lcd') { /* les textures GLB sont abandonnées quand on change de matériau */ part.texMap = null; }
   if (id !== 'lcd' && part.uvMode === 'screen') { /* garde les uv écran, sans effet */ }
@@ -1046,7 +1331,10 @@ function setPreset(part, id) {
 const SL = [
   ['mRough', 'rough', 100, 2], ['mTrans', 'trans', 100, 2], ['mDens', 'dens', 100, 2], ['mMetal', 'metal', 100, 2],
   ['mCoat', 'coat', 100, 2], ['mIor', 'ior', 100, 2], ['mIri', 'iri', 100, 2], ['mSheen', 'sheen', 100, 2], ['mEmi', 'emi', 2, 0],
+  ['sAmp', 'sAmp', 100, 2], ['sScale', 'sScale', 100, 2], ['sLayer', 'layer', 100, 2],
+  ['iFp', 'fp', 100, 2], ['iScr', 'scr', 100, 2], ['iDust', 'dust', 100, 2],
 ];
+const HEAVY = new Set(['fp', 'scr', 'dust', 'rough', 'coat']);
 function renderMatUI() {
   const has = !!sel;
   $('matUI').classList.toggle('hidden', !has);
@@ -1061,6 +1349,9 @@ function renderMatUI() {
   }
   const isT = p.trans > 0;
   $('densRow').classList.toggle('hidden', !isT);
+  document.querySelectorAll('#surfChips .chip').forEach(c => c.classList.toggle('on', c.dataset.surf === p.surf));
+  $('sAmpRow').classList.toggle('hidden', p.surf === 'none'); $('sScaleRow').classList.toggle('hidden', p.surf === 'none');
+  $('sLayerRow').classList.toggle('hidden', p.surf !== 'fdm');
   $('y2kSw').classList.toggle('hidden', !['y2k', 'givre', 'gelee', 'irise'].includes(sel.preset) && !isT);
   document.querySelectorAll('#swatches .sw').forEach(s => s.classList.toggle('on', s.dataset.c.toLowerCase() === p.color.toLowerCase()));
   const isL = sel.preset === 'lcd';
@@ -1087,7 +1378,10 @@ function bindMatInputs() {
       if (!sel) return;
       sel.p[key] = +e.target.value / k;
       e.target.nextElementSibling.textContent = sel.p[key].toFixed(dec);
-      applyParams(sel); needMaterials();
+      const part = sel;
+      if (HEAVY.has(key) && Math.max(part.p.fp, part.p.scr, part.p.dust) > 0) {
+        clearTimeout(part._t); part._t = setTimeout(() => { applyParams(part); needMaterials(); }, 140);
+      } else { applyParams(part); needMaterials(); }
       if (key === 'trans') renderMatUI();
     });
   }
@@ -1379,7 +1673,7 @@ function buildEnvChips() {
   const el = $('envChips');
   for (const [id, e] of Object.entries(ENVS)) {
     const b = document.createElement('button'); b.className = 'chip' + (id === state.env ? ' on' : ''); b.textContent = e.name; b.dataset.env = id;
-    b.onclick = () => { state.env = id; document.querySelectorAll('#envChips .chip').forEach(c => c.classList.toggle('on', c === b)); rebuildEnv(); };
+    b.onclick = () => selectEnv(id);
     el.appendChild(b);
   }
 }
@@ -1435,13 +1729,16 @@ document.querySelectorAll('[data-rot]').forEach(b => b.onclick = () => {
   normalizeModel(); setView('34', false); needScene();
 });
 $('demo').onclick = loadDemo;
+$('hdriBtn').onclick = () => $('hdriFile').click();
+$('hdriFile').onchange = e => { const f = e.target.files[0]; if (f) loadHDRI(f); e.target.value = ''; };
+$('sizeMM').onchange = e => { const v = parseFloat(e.target.value); if (v > 0) setSizeMM(v); };
 window.addEventListener('keydown', e => {
   if (e.target.closest('input,select,textarea')) return;
   const n = +e.key; if (n >= 1 && n <= VIEWS.length) setView(VIEWS[n - 1].id);
 });
 
 /* ───────────── Démarrage ───────────── */
-buildPresetChips(); buildEnvChips(); buildViewChips(); bindMatInputs();
+buildPresetChips(); buildSurfChips(); buildEnvChips(); buildViewChips(); bindMatInputs();
 setFocal(60, false);
 rebuildEnv(); applyBackground(false); applyFloor();
 layout();
