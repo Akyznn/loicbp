@@ -857,6 +857,15 @@
                     <p class="note hidden" id="exportNote"></p>
                     <p class="note">Imprime les deux pièces à plat, empreinte vers le haut, à 100 % de remplissage pour qu'elles tiennent la pression.</p>
                 </section>
+
+                <section class="group">
+                    <h2>Rendu du support</h2>
+                    <div class="row" style="gap:6px">
+                        <button class="btn" id="btnSheetStl" style="flex:1" disabled>STL</button>
+                        <button class="btn" id="btnSheetObj" style="flex:1" disabled>OBJ</button>
+                    </div>
+                    <p class="note">La feuille embossée telle que dans la vue Rendu, recto vers le haut, avec l'épaisseur du support. Pour une maquette ou une mise en scène dans Blender ; l'OBJ arrive posé à plat (Y vertical).</p>
+                </section>
             </aside>
 
             <div class="stage" id="stage">
@@ -2353,14 +2362,13 @@
                     m[(H - 1 - r) * W + i] = d[(r * W + i) * 4 + 3] / 255;
             return m;
         }
-        function buildSheet() {
-            if (!parts)
-                return null;
-            const {R, cx, cy, maleLoopsMM, femLoopsMM} = parts.info;
+        // hauteur du support embossé (recto vers le haut) sur une grille ; maxPts borne la finesse
+        function sheetField(maxPts, minStep) {
+            const {R, maleLoopsMM, femLoopsMM} = parts.info;
             const rw = R[2] - R[0],
                 rh = R[3] - R[1];
-            let step = Math.max(Math.min(parts.info.off / 4, 0.12), 0.03);
-            while ((rw / step) * (rh / step) > 220000)
+            let step = Math.max(Math.min(parts.info.off / 4, 0.12), minStep);
+            while ((rw / step) * (rh / step) > maxPts)
                 step *= 1.12;
             const nx = Math.max(2, Math.round(rw / step)),
                 ny = Math.max(2, Math.round(rh / step));
@@ -2375,7 +2383,6 @@
             }
             const DM = sqDist(inM, nx, ny), // distance au mâle
                 DF = sqDist(outF, nx, ny); // distance au bord de l'empreinte, depuis l'intérieur
-            const sgn = rside === "verso" ? -1 : 1;
             const Z = new Float32Array(n);
             for (let i = 0; i < n; i++) {
                 let u;
@@ -2389,8 +2396,25 @@
                     u = dm + df > 0 ? df / (dm + df) : 0.5;
                 }
                 u = u * u * (3 - 2 * u);
-                Z[i] = sgn * extMM * u;
+                Z[i] = extMM * u;
             }
+            return {
+                nx,
+                ny,
+                Z,
+                dx: rw / nx,
+                dy: rh / ny
+            };
+        }
+        function buildSheet() {
+            if (!parts)
+                return null;
+            const {R, cx, cy} = parts.info;
+            const rw = R[2] - R[0],
+                rh = R[3] - R[1];
+            const {nx, ny, Z: Z0} = sheetField(220000, 0.03);
+            const n = nx * ny;
+            const Z = rside === "verso" ? Z0.map(v => -v) : Z0;
             // le verso se regarde retourné : dessiné en miroir, creux vers le haut
             const flip = rside === "verso";
             const X = i => {
@@ -2439,6 +2463,71 @@
                 data,
                 count: o / 6
             };
+        }
+        /* Export du support embossé : un solide fermé, recto vers le haut,
+           épais de l'épaisseur du support (le dessous suit le dessus). */
+        function sheetMesh() {
+            const t = Math.max(paperMM, 0.1);
+            const {R, cx, cy} = parts.info;
+            const {nx, ny, Z, dx, dy} = sheetField(140000, 0.06);
+            const n = nx * ny;
+            const V = new Float32Array(n * 2 * 3);
+            for (let j = 0; j < ny; j++)
+                for (let i = 0; i < nx; i++) {
+                    const v = j * nx + i,
+                        x = R[0] + (i + 0.5) * dx - cx,
+                        y = R[1] + (j + 0.5) * dy - cy;
+                    V.set([x, y, Z[v] + t], v * 3);
+                    V.set([x, y, Z[v]], (v + n) * 3);
+                }
+            const F = [];
+            for (let j = 0; j < ny - 1; j++)
+                for (let i = 0; i < nx - 1; i++) {
+                    const a = j * nx + i,
+                        b = a + 1,
+                        c = a + nx + 1,
+                        d = a + nx;
+                    F.push(a, b, c, a, c, d); // dessus
+                    F.push(a + n, c + n, b + n, a + n, d + n, c + n); // dessous
+                }
+            // tranche : on fait le tour du bord dans le sens trigonométrique
+            const ring = [];
+            for (let i = 0; i < nx - 1; i++)
+                ring.push(i);
+            for (let j = 0; j < ny - 1; j++)
+                ring.push(j * nx + nx - 1);
+            for (let i = nx - 1; i > 0; i--)
+                ring.push((ny - 1) * nx + i);
+            for (let j = ny - 1; j > 0; j--)
+                ring.push(j * nx);
+            for (let k = 0; k < ring.length; k++) {
+                const p = ring[k],
+                    q = ring[(k + 1) % ring.length];
+                F.push(p, p + n, q + n, p, q + n, q);
+            }
+            return {
+                V,
+                F: new Uint32Array(F)
+            };
+        }
+        function meshToTris(m) {
+            const {V, F} = m,
+                out = new Array(F.length / 3);
+            const P = k => [V[k * 3], V[k * 3 + 1], V[k * 3 + 2]];
+            for (let f = 0; f < F.length; f += 3)
+                out[f / 3] = [P(F[f]), P(F[f + 1]), P(F[f + 2])];
+            return out;
+        }
+        function buildOBJ(m, name) {
+            // OBJ en Y vertical (convention Blender, Maya…) : la feuille arrive posée à plat
+            const {V, F} = m,
+                L = ["# Embossage - support embossé, unités : mm", "o " + name];
+            const f = v => +v.toFixed(4);
+            for (let k = 0; k < V.length; k += 3)
+                L.push("v " + f(V[k]) + " " + f(V[k + 2]) + " " + f(-V[k + 1]));
+            for (let k = 0; k < F.length; k += 3)
+                L.push("f " + (F[k] + 1) + " " + (F[k + 1] + 1) + " " + (F[k + 2] + 1));
+            return new TextEncoder().encode(L.join("\n") + "\n");
         }
         function buildGrid(span) {
             const step = span > 160 ? 20 : span > 60 ? 10 : 5;
@@ -2887,7 +2976,7 @@
                 empty.classList.add("hidden");
 
             const bad = $("#manifold");
-            const btns = ["#btnMale", "#btnFemale", "#btnZip"];
+            const btns = ["#btnMale", "#btnFemale", "#btnZip", "#btnSheetStl", "#btnSheetObj"];
             if (!parts) {
                 $("#stMale").textContent = $("#stFemale").textContent = $("#stMass").textContent = "—";
                 bad.textContent = "—";
@@ -3055,6 +3144,8 @@
             }]);
             saveFile(imgName + "-matrices.zip", zip, "application/zip");
         });
+        $("#btnSheetStl").addEventListener("click", () => parts && saveFile(imgName + "-rendu.stl", buildSTL(meshToTris(sheetMesh())), "model/stl"));
+        $("#btnSheetObj").addEventListener("click", () => parts && saveFile(imgName + "-rendu.obj", buildOBJ(sheetMesh(), imgName + "-rendu"), "model/obj"));
         /* chargement */
         function loadFile(f) {
             if (!f)
