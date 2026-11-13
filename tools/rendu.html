@@ -190,6 +190,22 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
           <div class="swatches" id="swatches"></div>
         </div>
 
+        <div class="sub hidden" id="txUI">
+          <h3>Texture (images)</h3>
+          <span class="hint">Choisis une ou plusieurs images : couleur, normal, rugosité, métal, hauteur. Elles sont reconnues d'après leur nom (packs PBR de Poly Haven, ambientCG…). Une image seule = couleur.</span>
+          <button class="btn" id="txAdd">Choisir des images…</button>
+          <input type="file" id="txFile" accept="image/*" multiple hidden>
+          <input type="file" id="txSlotFile" accept="image/*" hidden>
+          <div id="txSlots" style="display:flex;flex-direction:column;gap:5px"></div>
+          <div class="row"><label>Projection</label><select id="txProj"><option value="box">Boîte (automatique)</option><option value="file">UV du fichier</option></select></div>
+          <div class="row" id="txSizeRow"><label>Taille (mm)</label><input type="range" id="txSize" min="5" max="1000"><output></output></div>
+          <div class="row" id="txRepRow"><label>Répétitions</label><input type="range" id="txRep" min="1" max="40"><output></output></div>
+          <div class="row"><label>Rotation</label><select id="txRot"><option value="0">0°</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></div>
+          <div class="row" id="txNrmRow"><label>Relief</label><input type="range" id="txNrm" min="0" max="300"><output></output></div>
+          <label class="check" id="txDxRow"><input type="checkbox" id="txDx"> Normal map au format DirectX (vert inversé)</label>
+          <p class="hint" id="txNote"></p>
+        </div>
+
         <div class="sub" id="lcdUI">
           <h3>Dalle écran</h3>
           <div class="row"><label>Affichage</label><select id="lcdMode">
@@ -793,6 +809,7 @@ const PRESETS = {
   carbone:  { g: 'autre', n: 'Fibre de carbone', p: P({ color: '#2b2c2e', rough: .35, coat: 1, surf: 'carbone', sAmp: .6 }) },
   cerammat: { g: 'autre', n: 'Céramique mate', p: P({ color: '#e8e3d8', rough: .7, surf: 'fin', sAmp: .3 }) },
   papier:   { g: 'autre', n: 'Papier / carton', p: P({ color: '#d8cbb3', rough: .95, surf: 'fin', sAmp: .4 }) },
+  texture:  { g: 'autre', n: 'Texture (images)', p: P({ color: '#ffffff', rough: .6, metal: 0 }) },
   pcb:      { g: 'autre', n: 'Circuit (PCB)', p: P({ color: '#1f6b3a', rough: .45, coat: .3, surf: 'fin', sAmp: .4 }) },
 };
 const TEX_FLAGS = t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; };
@@ -815,7 +832,7 @@ function applyParams(part) {
   m.iridescenceThicknessRange = [120, 420];
   m.sheen = p.sheen; m.sheenRoughness = .6; m.sheenColor.set(p.color);
   m.specularIntensity = 1;
-  m.map = part.texMap || null; m.emissiveMap = null;
+  m.map = part.texMap || null; m.emissiveMap = null; m.metalnessMap = null;
   if (p.trans > 0) {
     // plastique teinté : la couleur vient surtout du volume
     m.attenuationColor.copy(col);
@@ -1144,8 +1161,89 @@ function setRepeat(t, tileMM) { const r = mmPerUnit() / tileMM; t.repeat.set(r, 
 // en relief, la surface est recalculée dans la tuile des masques : on limite le nombre de répétitions
 // pour que les détails fins (couches, sablé…) gardent assez de pixels
 const NMAX = { fin: 10, gros: 16, fdm: 8, brosse: 2, sable: 4, orange: 32, bois: 4, marbre: 1, carbone: 12, beton: 2, cuir: 8, tissage: 16 };
+/* ───────────── Texture perso (jeu d'images PBR) ───────────── */
+let txAssignExt = async () => {};
+const TX_SLOTS = [
+  ['color', 'Couleur'], ['normal', 'Normal'], ['rough', 'Rugosité'], ['metal', 'Métal'], ['height', 'Hauteur (relief)'],
+];
+const txDefault = () => ({ imgs: {}, names: {}, tex: {}, gloss: false, orm: false, dx: false, proj: 'box', size: 100, rep: 1, rot: 0, nrm: 1 });
+/** devine le rôle d'une image d'après son nom */
+function txGuess(name) {
+  // on lit le nom mot par mot en partant de la fin (le rôle est presque toujours le dernier mot)
+  const ROLES = {
+    color: ['diff', 'diffuse', 'albedo', 'basecolor', 'basecolour', 'color', 'colour', 'col', 'd', 'base'],
+    normal: ['normal', 'normalgl', 'normaldx', 'nor', 'nrm', 'norm', 'n'],
+    rough: ['rough', 'roughness', 'rgh'],
+    gloss: ['gloss', 'glossiness', 'smooth', 'smoothness'],
+    metal: ['metal', 'metallic', 'metalness', 'mtl'],
+    height: ['height', 'disp', 'displacement', 'bump', 'heightmap'],
+    orm: ['orm', 'arm'],
+    ignore: ['ao', 'ambientocclusion', 'occlusion', 'cavity', 'opacity', 'mask', 'alpha', 'emission', 'emissive', 'specular', 'spec'],
+  };
+  const toks = name.toLowerCase().replace(/\.[^.]+$/, '').split(/[_\-\s.]+/).filter(Boolean);
+  for (let i = toks.length - 1; i >= 0; i--) for (const [role, words] of Object.entries(ROLES)) if (words.includes(toks[i])) return role;
+  return 'color';
+}
+function imgCanvas(img, max = 2048) {
+  let w = img.naturalWidth || 1024, h = img.naturalHeight || 1024;
+  const k = Math.min(1, max / Math.max(w, h)); w = Math.max(1, Math.round(w * k)); h = Math.max(1, Math.round(h * k));
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.getContext('2d').drawImage(img, 0, 0, w, h);
+  return cv;
+}
+/** carte de hauteur → normal map (raccordée sur les bords) */
+function heightToNormal(img) {
+  const src = imgCanvas(img, 1024), w = src.width, h = src.height, d = src.getContext('2d').getImageData(0, 0, w, h).data;
+  const H = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) H[i] = (d[i * 4] * .299 + d[i * 4 + 1] * .587 + d[i * 4 + 2] * .114) / 255;
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d'), out = ctx.createImageData(w, h), o = out.data, k = 3;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const dx = (H[y * w + (x + 1) % w] - H[y * w + (x + w - 1) % w]) * k, dy = (H[((y + 1) % h) * w + x] - H[((y + h - 1) % h) * w + x]) * k;
+    let nx = -dx, ny = dy, nz = 1; const l = Math.hypot(nx, ny, nz), i = (y * w + x) * 4;
+    o[i] = (nx / l * .5 + .5) * 255; o[i + 1] = (ny / l * .5 + .5) * 255; o[i + 2] = (nz / l * .5 + .5) * 255; o[i + 3] = 255;
+  }
+  ctx.putImageData(out, 0, 0);
+  return cv;
+}
+function invertCanvas(img) {
+  const cv = imgCanvas(img), c = cv.getContext('2d'), id = c.getImageData(0, 0, cv.width, cv.height), d = id.data;
+  for (let i = 0; i < d.length; i += 4) { d[i] = 255 - d[i]; d[i + 1] = 255 - d[i + 1]; d[i + 2] = 255 - d[i + 2]; }
+  c.putImageData(id, 0, 0); return cv;
+}
+/** (re)crée les textures d'un slot */
+function txBuild(tx, slot) {
+  if (tx.tex[slot]) { tx.tex[slot].dispose(); delete tx.tex[slot]; }
+  const img = tx.imgs[slot]; if (!img) return;
+  let src;
+  if (slot === 'height') src = heightToNormal(img);
+  else if (slot === 'rough' && tx.gloss) src = invertCanvas(img);
+  else src = imgCanvas(img);
+  const t = new THREE.CanvasTexture(src);
+  t.colorSpace = slot === 'color' ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  TEX_FLAGS(t); t.anisotropy = 8;
+  tx.tex[slot] = t;
+}
+function txPlace(tx, t) {
+  if (tx.proj === 'file') t.repeat.set(tx.rep, tx.rep);
+  else { const r = mmPerUnit() / Math.max(1, tx.size); t.repeat.set(r, r); }
+  t.center.set(.5, .5); t.rotation = tx.rot * D2R; t.updateMatrix();
+}
+/** applique le jeu d'images ; renvoie ce qu'il prend en charge */
+function applyTextureSet(part) {
+  const m = part.mat, tx = part.tx || (part.tx = txDefault()), T = tx.tex;
+  const has = { map: !!T.color, normal: !!(T.normal || T.height), rough: !!T.rough, metal: !!(T.metal || (tx.orm && T.rough)) };
+  for (const t of Object.values(T)) txPlace(tx, t);
+  if (T.color) m.map = T.color;
+  const n = T.normal || T.height;
+  if (n) { m.normalMap = n; const k = tx.nrm; m.normalScale.set(k, (T.normal && tx.dx) ? -k : k); }
+  if (T.rough) { m.roughnessMap = T.rough; m.roughness = Math.max(.02, part.p.rough); }
+  if (T.metal) { m.metalnessMap = T.metal; m.metalness = Math.max(part.p.metal, 1); }
+  else if (tx.orm && T.rough) { m.metalnessMap = T.rough; m.metalness = Math.max(part.p.metal, 1); }
+  return has;
+}
 function applySurface(part) {
   const m = part.mat, p = part.p;
+  const tx = part.preset === 'texture' && part.uvMode !== 'screen' ? applyTextureSet(part) : null;
   const lays = (p.layers || []).filter(l => l.imgs.length && !l.off);
   const relLays = lays.filter(l => l.relief !== 'none' && l.depth > 0);
   const reliefOn = relLays.length > 0 && part.uvMode !== 'screen';
@@ -1153,7 +1251,8 @@ function applySurface(part) {
   if (reliefOn && p.surf && p.surf !== 'none') tile = Math.min(tile, surfTileMM(p) * NMAX[p.surf]);
   for (const l of lays) layerMask(l, tile);
   // relief : calques en relief (combinés avec la surface) ou surface seule
-  if (reliefOn) {
+  if (tx && tx.normal) { part.relKey = null; }
+  else if (reliefOn) {
     const key = [relLays.map(l => l._key + l.relief + l.depth).join('/'), p.surf, p.sAmp, surfTileMM(p).toFixed(3), tile.toFixed(2)].join('|');
     if (part.relKey !== key) {
       part.relKey = key;
@@ -1169,14 +1268,15 @@ function applySurface(part) {
     m.normalMap = part.nTex; m.normalScale.set(p.sAmp, p.sAmp);
   } else { part.relKey = null; m.normalMap = null; }
   // motif de couleur (bois, marbre, carbone…)
-  if (p.surf && SURFS[p.surf] && SURFS[p.surf].albedo && part.uvMode !== 'screen' && !part.texMap) {
+  if (!(tx && tx.map) && p.surf && SURFS[p.surf] && SURFS[p.surf].albedo && part.uvMode !== 'screen' && !part.texMap) {
     const cv = albedoCanvas(p.surf);
     if (!part.aTex || part.aTex.image !== cv) { if (part.aTex) part.aTex.dispose(); part.aTex = new THREE.CanvasTexture(cv); part.aTex.colorSpace = THREE.SRGBColorSpace; TEX_FLAGS(part.aTex); part.aTex.anisotropy = 8; }
     // en relief combiné, la surface est recalée dans la tuile des masques : on aligne la couleur dessus
     const st = reliefOn ? tile / clamp(Math.round(tile / surfTileMM(p)), 1, 32) : surfTileMM(p);
     setRepeat(part.aTex, st); m.map = part.aTex;
   }
-  // imperfections (brillance)
+  // imperfections (brillance) — pas si l'image fournit déjà sa rugosité
+  if (tx && tx.rough) { part.impKey = null; m.clearcoatRoughnessMap = null; return; }
   const glossLays = lays.filter(l => l.mode !== 'none' && l.amt > 0);
   const cust = glossLays.reduce((m, l) => Math.max(m, l.mode === 'mat' ? l.amt : 0), 0);
   const imp = Math.max(p.fp, p.scr, p.dust, cust);
@@ -1476,7 +1576,7 @@ function addPart(srcGeom, name, isSTL, presetId = 'satin', color = null, keepUV 
 function clearModel() {
   if (typeof picks !== 'undefined') picks.clear();
   if (typeof clearStickers === 'function' && stickers.length) clearStickers();
-  for (const p of parts) { disposeOverlays(p); p.mesh.geometry.dispose(); p.mat.dispose(); for (const t of [p.lcdTex, p.nTex, p.rTex, p.cTex, p.aTex, p.wearNTex, ...Object.values(p.dustTexs || {})]) if (t) t.dispose(); }
+  for (const p of parts) { disposeOverlays(p); p.mesh.geometry.dispose(); p.mat.dispose(); for (const t of [p.lcdTex, p.nTex, p.rTex, p.cTex, p.aTex, p.wearNTex, ...Object.values(p.dustTexs || {}), ...Object.values(p.tx?.tex || {})]) if (t) t.dispose(); }
   modelRoot.clear(); modelRoot.rotation.set(0, 0, 0); modelRoot.position.set(0, 0, 0); modelRoot.scale.set(1, 1, 1);
   parts = []; sel = null;
 }
@@ -1507,6 +1607,12 @@ async function loadFiles(files) {
   files = [...files];
   const env = files.find(f => /\.(hdr|exr)$/i.test(f.name));
   if (env) await loadHDRI(env);
+  const imgsDrop = files.filter(f => /\.(png|jpe?g|webp|tga|bmp)$/i.test(f.name));
+  if (imgsDrop.length && !files.some(f => /\.(obj|stl|glb|gltf)$/i.test(f.name))) {
+    if (sel) { if (sel.preset !== 'texture') setPreset(sel, 'texture'); setStatus('Chargement des textures…'); await txAssignExt(sel, imgsDrop); toast('Textures appliquées à « ' + sel.name + ' »'); }
+    else toast('Sélectionne d\'abord une pièce pour lui appliquer ces images');
+    return;
+  }
   files = files.filter(f => /\.(obj|stl|glb|gltf)$/i.test(f.name));
   if (!files.length && env) return;
   if (!files.length) { toast('Formats acceptés : OBJ, STL, GLB'); return; }
@@ -1602,6 +1708,17 @@ function finishLoad(sizeHint) {
   const tris = triCount(), lvl = tris > 1500000 ? 2 : tris > 300000 ? 1 : 0;
   if (lvl !== loadLevel) { loadLevel = lvl; applyLoad(); }
   toast(`${parts.length} pièce${parts.length > 1 ? 's' : ''} · ${Math.round(tris).toLocaleString('fr-FR')} triangles` + (lvl ? ' · modèle lourd : aperçu allégé' : ''), lvl ? 5000 : 2600);
+}
+/** recalcule la géométrie d'une seule pièce (normales, UV) et ce qui en dépend */
+function regenPart(part) {
+  const old = part.mesh.geometry;
+  part.mesh.geometry = prepGeometry(part.src, part.isSTL, part.keepUV);
+  old.dispose(); part.uvMode = 'box';
+  if (part.preset === 'lcd') applyLCD(part);
+  applyParams(part);
+  for (const st of stickers) if (st.part === part) buildSticker(st);
+  if (part.p.wear > 0 || part.p.dustTop > 0) buildOverlays(part);
+  needScene();
 }
 function regenGeometries() {
   for (const p of parts) {
@@ -1704,6 +1821,7 @@ function mergeParts(list) {
   const np = addPart(merged, name, list.some(p => p.isSTL), first.preset, null, list.every(p => p.keepUV));
   np.p = { ...first.p, layers: first.p.layers.map(l => ({ ...l, _key: null, _L: null })) };
   if (first.lcd) np.lcd = { ...first.lcd };
+  if (first.tx) { np.tx = { ...first.tx, imgs: { ...first.tx.imgs }, names: { ...first.tx.names }, tex: {} }; for (const k of Object.keys(np.tx.imgs)) txBuild(np.tx, k); }
   if (first.texMap) np.texMap = first.texMap;
   applyParams(np);
   parts = parts.filter(p => p !== np); parts.splice(Math.min(at, parts.length), 0, np);
@@ -1882,6 +2000,31 @@ function renderMatUI() {
   $('dAngleRow').classList.toggle('hidden', !(p.dustTop > 0));
   $('y2kSw').classList.toggle('hidden', !['y2k', 'givre', 'gelee', 'irise'].includes(sel.preset) && !isT);
   document.querySelectorAll('#swatches .sw').forEach(s => s.classList.toggle('on', s.dataset.c.toLowerCase() === p.color.toLowerCase()));
+  // texture perso
+  const isTx = sel.preset === 'texture';
+  $('txUI').classList.toggle('hidden', !isTx);
+  if (isTx) {
+    const tx = sel.tx || (sel.tx = txDefault());
+    const box = $('txSlots'); box.innerHTML = '';
+    for (const [slot, label] of TX_SLOTS) {
+      const r = document.createElement('div'); r.className = 'row';
+      const nm = tx.names[slot] ? tx.names[slot] + (slot === 'rough' && tx.gloss ? ' (brillance inversée)' : '') + (slot === 'rough' && tx.orm ? ' (ORM)' : '') : '—';
+      r.innerHTML = `<label>${label}</label><span class="hint" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><button class="btn" data-pick="${slot}" style="padding:4px 8px">${tx.imgs[slot] ? 'Changer' : 'Choisir'}</button>` + (tx.imgs[slot] ? `<button class="btn" data-del="${slot}" style="padding:4px 8px">×</button>` : '');
+      r.querySelector('.hint').textContent = nm;
+      box.appendChild(r);
+    }
+    box.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => { $('txSlotFile').dataset.slot = b.dataset.pick; $('txSlotFile').click(); });
+    box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { const k = b.dataset.del; delete tx.imgs[k]; delete tx.names[k]; txBuild(tx, k); if (k === 'rough') { tx.orm = false; tx.gloss = false; } applyParams(sel); needMaterials(); renderMatUI(); });
+    $('txProj').value = tx.proj; $('txRot').value = String(tx.rot); $('txDx').checked = !!tx.dx;
+    $('txSize').value = Math.round(tx.size); $('txSize').nextElementSibling.textContent = Math.round(tx.size);
+    $('txRep').value = tx.rep; $('txRep').nextElementSibling.textContent = tx.rep;
+    $('txNrm').value = Math.round(tx.nrm * 100); $('txNrm').nextElementSibling.textContent = tx.nrm.toFixed(2);
+    $('txSizeRow').classList.toggle('hidden', tx.proj === 'file'); $('txRepRow').classList.toggle('hidden', tx.proj !== 'file');
+    const hasN = !!(tx.imgs.normal || tx.imgs.height);
+    $('txNrmRow').classList.toggle('hidden', !hasN); $('txDxRow').classList.toggle('hidden', !tx.imgs.normal);
+    $('txNote').textContent = (tx.imgs.rough ? 'La rugosité vient de l\'image : le curseur Rugosité la module, les imperfections de brillance sont désactivées sur cette pièce. ' : '') +
+      (hasN ? 'Le relief vient de l\'image (remplace la « Surface »).' : '');
+  }
   const isL = sel.preset === 'lcd';
   $('lcdUI').classList.toggle('hidden', !isL);
   if (isL) {
@@ -1948,6 +2091,42 @@ function bindMatInputs() {
     im.src = URL.createObjectURL(f);
     e.target.value = '';
   };
+  // ── texture perso
+  txAssignExt = (part, files) => txAssign(part, files, null);
+  const txAssign = async (part, files, forced) => {
+    const tx = part.tx || (part.tx = txDefault());
+    for (const f of files) {
+      const im = new Image();
+      const ok = await new Promise(r => { im.onload = () => r(true); im.onerror = () => r(false); im.src = URL.createObjectURL(f); });
+      if (!ok) { toast('Image illisible : ' + f.name); continue; }
+      let slot = forced || (files.length === 1 && !forced ? txGuess(f.name) : txGuess(f.name));
+      if (files.length === 1 && !forced && slot === 'ignore') slot = 'color';
+      if (slot === 'ignore') continue;
+      if (slot === 'gloss') { slot = 'rough'; tx.gloss = true; } else if (slot === 'rough') tx.gloss = false;
+      if (slot === 'orm') { slot = 'rough'; tx.orm = true; tx.gloss = false; } else if (slot === 'rough') tx.orm = false;
+      if (/directx|normaldx|[_\-.]dx([_\-.]|$)/i.test(f.name) && slot === 'normal') tx.dx = true;
+      if (/opengl|normalgl|[_\-.]gl([_\-.]|$)/i.test(f.name) && slot === 'normal') tx.dx = false;
+      tx.imgs[slot] = im; tx.names[slot] = f.name;
+      if (slot === 'rough') part.p.rough = 1;
+      txBuild(tx, slot);
+    }
+    applyParams(part); needMaterials(); renderMatUI(); renderParts();
+  };
+  $('txAdd').onclick = () => $('txFile').click();
+  $('txFile').onchange = async e => { const f = [...e.target.files]; e.target.value = ''; if (f.length && sel) { setStatus('Chargement des textures…'); await txAssign(sel, f, null); toast('Textures appliquées'); } };
+  $('txSlotFile').onchange = async e => { const f = [...e.target.files]; const slot = e.target.dataset.slot; e.target.value = ''; if (f.length && sel) await txAssign(sel, f, slot); };
+  const txSet = (k, v, rebuild) => { if (!sel || !sel.tx) return; sel.tx[k] = v; if (rebuild) txBuild(sel.tx, rebuild); applyParams(sel); needMaterials(); };
+  $('txRot').onchange = e => txSet('rot', +e.target.value);
+  $('txDx').onchange = e => txSet('dx', e.target.checked);
+  $('txSize').oninput = e => { e.target.nextElementSibling.textContent = e.target.value; txSet('size', +e.target.value); };
+  $('txRep').oninput = e => { e.target.nextElementSibling.textContent = e.target.value; txSet('rep', +e.target.value); };
+  $('txNrm').oninput = e => { const v = +e.target.value / 100; e.target.nextElementSibling.textContent = v.toFixed(2); txSet('nrm', v); };
+  $('txProj').onchange = e => {
+    if (!sel) return; const part = sel, want = e.target.value;
+    if (want === 'file' && !part.src.attributes.uv) { toast('Ce fichier n\'a pas de coordonnées UV (un STL n\'en a jamais) : projection en boîte conservée.', 5000); e.target.value = 'box'; return; }
+    part.tx.proj = want; part.keepUV = want === 'file';
+    regenPart(part); renderMatUI();
+  };
   $('splitBtn').onclick = () => {
     if (!sel) return;
     const comps = splitComponents(sel.src);
@@ -1975,6 +2154,7 @@ function bindMatInputs() {
       if (p === sel) continue;
       p.preset = sel.preset; p.p = { ...sel.p, layers: sel.p.layers.map(l => ({ ...l, _key: null, _L: null })) };
       if (sel.preset === 'lcd') p.lcd = { ...sel.lcd };
+      if (sel.preset === 'texture' && sel.tx) { p.tx = { ...sel.tx, imgs: { ...sel.tx.imgs }, names: { ...sel.tx.names }, tex: {} }; for (const k of Object.keys(p.tx.imgs)) txBuild(p.tx, k); if (p.tx.proj === 'file' && !p.src.attributes.uv) p.tx.proj = 'box'; if ((p.tx.proj === 'file') !== !!p.keepUV) { p.keepUV = p.tx.proj === 'file'; regenPart(p); } }
       applyParams(p);
     }
     rebuildAllOverlays(); needScene(); renderParts(); toast(picks.size ? `Matériau appliqué aux ${picks.size} pièces cochées` : 'Matériau appliqué à toutes les pièces');
