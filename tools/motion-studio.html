@@ -1672,8 +1672,8 @@ function transformBody(g) {
     const relayer = () => { g.layers = {}; g.order = null; g.tracks = []; ui.trackSel = null; layerVersion++; clearTimeout(g._rt); g._rt = setTimeout(renderLayers, 200); };
     b.push(h('div', { class: 'row-h', style: 'margin-top:16px' }, h('label', { style: 'font-weight:600' }, 'Découpage en tuiles')),
       h('div', { class: 'hint', style: 'margin-top:0' }, 'Coupe l\'image en morceaux pour les faire apparaître l\'un après l\'autre, avec l\'enchaînement et l\'ordre.'),
-      rangeCtl({ k: 'cols', l: 'Colonnes', min: 1, max: 24, step: 1 }, g.tiles, relayer),
-      rangeCtl({ k: 'rows', l: 'Lignes', min: 1, max: 24, step: 1 }, g.tiles, relayer),
+      rangeCtl({ k: 'cols', l: 'Colonnes', min: 1, max: 64, step: 1 }, g.tiles, relayer),
+      rangeCtl({ k: 'rows', l: 'Lignes', min: 1, max: 64, step: 1 }, g.tiles, relayer),
       h('div', { class: 'btnrow' }, h('button', { class: 'btn', onclick: () => { setBgSrc(ASSETS[g.asset].data); S.bgImg.on = true; const n = g.name; S.groups.splice(S.groups.indexOf(g), 1); select(null, 'scene'); ui.tab = 'scene'; pushHist(); commit(); renderInspector(); toast(n + ' est maintenant l\'image de fond.'); } }, 'Utiliser comme image de fond')));
   }
   if (g.src === 'gif') b.push(...gifBody(g));
