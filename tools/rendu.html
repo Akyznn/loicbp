@@ -366,6 +366,30 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
     </div>
   </details>
 
+  <details class="sec" id="animSec">
+    <summary>Animation</summary>
+    <div class="body">
+      <div class="chips" id="animPresets"></div>
+      <div class="lbl" style="width:auto">Vitesse</div>
+      <div class="chips" id="animEases"></div>
+      <div class="row"><label>Durée (s)</label><input type="range" id="aDur" min="1" max="20" step="0.5"><output></output></div>
+      <div class="row" id="aTurnsRow"><label>Tours</label><input type="range" id="aTurns" min="1" max="4"><output></output></div>
+      <div class="row" id="aAmpRow"><label id="aAmpL">Amplitude</label><input type="range" id="aAmp" min="1" max="100"><output></output></div>
+      <div class="row" id="aHopRow"><label>Sautillements</label><input type="range" id="aHops" min="0" max="12"><output></output></div>
+      <div class="row"><label>Sens</label><select id="aDir"><option value="1">Horaire</option><option value="-1">Anti-horaire</option></select></div>
+      <label class="check" id="aPingRow"><input type="checkbox" id="aPing"> Aller-retour</label>
+      <div class="row"><label>Timeline</label><input type="range" id="aTime" min="0" max="1000" value="0"><output id="aTimeO">0.0 s</output></div>
+      <div class="btns"><button class="btn" id="aPlay">▶ Aperçu</button><button class="btn" id="aReset">Revenir au départ</button></div>
+      <div class="group-title">Export vidéo</div>
+      <div class="row"><label>Format</label><select id="aFmt"><option value="mp4">MP4 (H.264)</option><option value="webm">WebM (VP9)</option><option value="zip">Images PNG (.zip)</option></select></div>
+      <div class="row"><label>Résolution</label><select id="aRes"><option value="720">720p</option><option value="1080" selected>1080p</option><option value="1440">1440p</option><option value="2160">4K</option></select></div>
+      <div class="row"><label>Images / s</label><select id="aFps"><option>24</option><option selected>30</option><option>60</option></select></div>
+      <div class="row"><label>Échant. / image</label><select id="aSpp"><option>16</option><option>32</option><option selected>64</option><option>128</option><option>256</option></select></div>
+      <button class="btn ink big" id="aRender">Rendre l'animation</button>
+      <p class="hint" id="aHint"></p>
+    </div>
+  </details>
+
   <details class="sec">
     <summary>Finition photo</summary>
     <div class="body">
@@ -656,7 +680,7 @@ let envTex = null, bgTex = null;
 let hdri = null; // { data (RGBA float, de bas en haut), w, h, name }
 function hdriData(rot, mult) {
   const { data, w, h } = hdri, out = new Float32Array(data.length);
-  const shift = Math.round(rot / 360 * w);
+  const shift = -Math.round(rot / 360 * w);   // même sens que les éclairages générés
   for (let y = 0; y < h; y++) {
     const row = y * w;
     for (let x = 0; x < w; x++) {
@@ -721,10 +745,11 @@ function selectEnv(id) {
   document.querySelectorAll('#envChips .chip').forEach(c => c.classList.toggle('on', c.dataset.env === id));
   rebuildEnv();
 }
-function rebuildEnv() {
+function rebuildEnv(low = false) {
   const old = envTex;
   if (state.env === 'hdri' && hdri) envTex = makeEqTex(hdriData(state.envRot, state.envInt), hdri.w, hdri.h);
-  else envTex = makeEqTex(buildEnvData(ENVS[state.env] || ENVS.studio, state.envRot, state.envInt), 1024, 512);
+  else envTex = low ? makeEqTex(buildEnvData(ENVS[state.env] || ENVS.studio, state.envRot, state.envInt, 256, 128), 256, 128)
+                    : makeEqTex(buildEnvData(ENVS[state.env] || ENVS.studio, state.envRot, state.envInt), 1024, 512);
   scene.environment = envTex;
   applyBackground(false);
   if (old) old.dispose();
@@ -1598,6 +1623,7 @@ function addPart(srcGeom, name, isSTL, presetId = 'satin', color = null, keepUV 
   return part;
 }
 function clearModel() {
+  if (typeof animBase !== 'undefined' && animBase) { animBase = null; modelRoot.matrixAutoUpdate = true; stkGroup.matrixAutoUpdate = true; }
   if (typeof picks !== 'undefined') picks.clear();
   if (typeof clearStickers === 'function' && stickers.length) clearStickers();
   for (const p of parts) { disposeOverlays(p); p.mesh.geometry.dispose(); p.mat.dispose(); for (const t of [p.lcdTex, p.nTex, p.rTex, p.cTex, p.aTex, p.wearNTex, ...Object.values(p.dustTexs || {}), ...Object.values(p.tx?.tex || {})]) if (t) t.dispose(); }
@@ -3090,6 +3116,327 @@ async function snapshot() {
   if (ok) toast('Capture enregistrée ✓');
 }
 
+/* ───────────── Animation ───────────── */
+const ANIMS = {
+  turntable: { n: 'Turntable 360°', loop: true, turns: true },
+  orbit:     { n: 'Orbite caméra', amp: ['Angle (°)', 15, 360, 90] },
+  sweep:     { n: 'Balayage de reflet', loop: true, ping: true, amp: ['Angle (°)', 20, 360, 140] },
+  explode:   { n: 'Vue éclatée', loop: true, ping: true, amp: ['Écartement (%)', 5, 150, 40] },
+  float:     { n: 'Flottement', loop: true, turns: true, hops: true, amp: ['Hauteur (%)', 1, 15, 3] },
+};
+const EASES = {
+  linear: ['Linéaire', t => t],
+  douce: ['Douce', t => .5 - .5 * Math.cos(Math.PI * t)],
+  accel: ['Accélère', t => t * t * t],
+  ralentit: ['Ralentit', t => 1 - Math.pow(1 - t, 3)],
+  rebond: ['Rebond', t => { const n = 7.5625, d = 2.75; if (t < 1 / d) return n * t * t; if (t < 2 / d) return n * (t -= 1.5 / d) * t + .75; if (t < 2.5 / d) return n * (t -= 2.25 / d) * t + .9375; return n * (t -= 2.625 / d) * t + .984375; }],
+  elastique: ['Élastique', t => t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((10 * t - .75) * 2 * Math.PI / 3) + 1],
+  anticip: ['Anticipation', t => { const c = 1.70158 * 1.525; return t < .5 ? (Math.pow(2 * t, 2) * ((c + 1) * 2 * t - c)) / 2 : (Math.pow(2 * t - 2, 2) * ((c + 1) * (t * 2 - 2) + c) + 2) / 2; }],
+};
+const anim2 = { preset: 'turntable', ease: 'linear', dur: 6, turns: 1, amp: {}, hops: 4, dir: 1, ping: {} };
+for (const [k, a] of Object.entries(ANIMS)) { if (a.amp) anim2.amp[k] = a.amp[3]; anim2.ping[k] = !!a.ping; }
+let animBase = null, animPlaying = false;
+function animCapture() {
+  if (animBase) return;
+  animBase = { pos: camera.position.clone(), target: controls.target.clone(), envRot: state.envRot, mrPos: modelRoot.position.clone(), mrScale: modelRoot.scale.clone() };
+  // directions de la vue éclatée (en local)
+  const all = new THREE.Box3(); for (const p of parts) { p.mesh.geometry.computeBoundingBox(); all.union(p.mesh.geometry.boundingBox); }
+  const mc = all.getCenter(new THREE.Vector3()), size = all.getSize(new THREE.Vector3()).length() || 1;
+  animBase.explode = new Map(parts.map(p => {
+    const c = p.mesh.geometry.boundingBox.getCenter(new THREE.Vector3()), d = c.clone().sub(mc);
+    const dir = d.lengthSq() > 1e-12 ? d.clone().normalize() : new THREE.Vector3(0, 1, 0);
+    return [p, { d, dir, size }];
+  }));
+  animBase.center = mc.clone().multiplyScalar(modelRoot.scale.x).add(modelRoot.position);   // centre en monde
+}
+function setPartOffset(part, off) {
+  for (const o of [part.mesh, part.wearMesh, part.dustMesh]) if (o) o.position.copy(off);
+  const w = off.clone().multiplyScalar(modelRoot.scale.x);
+  for (const st of stickers) if (st.part === part && st.mesh) st.mesh.position.copy(w);
+}
+/** pose de l'animation au temps t (0..1) ; renvoie ce qui a changé */
+function animApply(t) {
+  animCapture();
+  const b = animBase, A = ANIMS[anim2.preset], ease = EASES[anim2.ease][1], dir = anim2.dir;
+  const ping = A.ping && anim2.ping[anim2.preset];
+  const u = ping ? (t < .5 ? t * 2 : 2 - t * 2) : t, e = ease(clamp(u, 0, 1));
+  const amp = anim2.amp[anim2.preset];
+  const ch = { cam: false, env: false, xf: false };
+  // remise à zéro des transformations
+  let xf = false;
+  modelRoot.matrixAutoUpdate = true; stkGroup.matrixAutoUpdate = true;
+  modelRoot.position.copy(b.mrPos); modelRoot.rotation.set(0, 0, 0); stkGroup.position.set(0, 0, 0); stkGroup.rotation.set(0, 0, 0);
+  const off = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0);
+  let camAngle = 0, envDelta = 0, elev = 0;
+  if (anim2.preset === 'turntable' || anim2.preset === 'float') camAngle = dir * anim2.turns * 360 * e;
+  if (anim2.preset === 'orbit') { camAngle = dir * amp * e; elev = 10 * e; }
+  if (anim2.preset === 'sweep') envDelta = dir * amp * (e - .5);
+  // caméra (et éclairage solidaire pour le turntable : équivaut à faire tourner l'objet)
+  const offv = b.pos.clone().sub(b.target).applyAxisAngle(Y, -camAngle * D2R);
+  if (elev) { const sp = new THREE.Spherical().setFromVector3(offv); sp.phi = clamp(sp.phi - elev * D2R, .05, Math.PI - .05); offv.setFromSpherical(sp); }
+  camera.position.copy(b.target).add(offv); controls.target.copy(b.target); camera.lookAt(b.target);
+  ch.cam = true;
+  const newEnv = b.envRot + ((anim2.preset === 'turntable' || anim2.preset === 'float') ? -camAngle : 0) + envDelta;
+  if (Math.abs(newEnv - state.envRot) > 1e-6) { state.envRot = ((newEnv + 540) % 360) - 180; ch.env = true; }
+  // vue éclatée
+  if (anim2.preset === 'explode') {
+    for (const p of parts) { const x = b.explode.get(p); if (!x) continue; off.copy(x.d).multiplyScalar(amp / 100 * 2 * e).addScaledVector(x.dir, x.size * amp / 100 * .15 * e); setPartOffset(p, off); }
+    xf = true;
+  } else if (animBase.explodedOnce) { for (const p of parts) setPartOffset(p, off.set(0, 0, 0)); xf = true; animBase.explodedOnce = false; }
+  if (anim2.preset === 'explode') animBase.explodedOnce = true;
+  // flottement : petits sauts et léger balancement
+  if (anim2.preset === 'float') {
+    const n = anim2.hops * anim2.turns, H = amp / 100 * 2;
+    const hop = n > 0 ? Math.pow(Math.abs(Math.sin(Math.PI * n * t)), .75) : .5 + .5 * Math.sin(2 * Math.PI * t);
+    const tilt = (n > 0 ? Math.sin(2 * Math.PI * n * t) : Math.sin(2 * Math.PI * t)) * amp * .5 * D2R;
+    const lift = H * (.35 + hop);
+    const c = b.center;
+    const D = new THREE.Matrix4().makeTranslation(0, lift, 0)
+      .multiply(new THREE.Matrix4().makeTranslation(c.x, c.y, c.z))
+      .multiply(new THREE.Matrix4().makeRotationZ(tilt)).multiply(new THREE.Matrix4().makeRotationX(tilt * .6))
+      .multiply(new THREE.Matrix4().makeTranslation(-c.x, -c.y, -c.z));
+    modelRoot.matrixAutoUpdate = false; stkGroup.matrixAutoUpdate = false;
+    modelRoot.matrix.copy(D).multiply(new THREE.Matrix4().compose(b.mrPos, new THREE.Quaternion(), b.mrScale));
+    stkGroup.matrix.copy(D);
+    modelRoot.updateMatrixWorld(true); stkGroup.updateMatrixWorld(true);
+    xf = true; animBase.floated = true;
+  } else if (animBase.floated) { xf = true; animBase.floated = false; }
+  ch.xf = xf;
+  return ch;
+}
+function animRestore() {
+  if (!animBase) return;
+  const b = animBase;
+  modelRoot.matrixAutoUpdate = true; stkGroup.matrixAutoUpdate = true;
+  modelRoot.position.copy(b.mrPos); modelRoot.rotation.set(0, 0, 0); stkGroup.position.set(0, 0, 0); stkGroup.rotation.set(0, 0, 0);
+  modelRoot.updateMatrixWorld(true); stkGroup.updateMatrixWorld(true);
+  for (const p of parts) setPartOffset(p, new THREE.Vector3());
+  camera.position.copy(b.pos); controls.target.copy(b.target); controls.update();
+  const envChanged = state.envRot !== b.envRot;
+  state.envRot = b.envRot;
+  animBase = null;
+  if (envChanged) rebuildEnv();
+  $('envRot').value = Math.round(state.envRot); $('envRotO').textContent = Math.round(state.envRot) + '°';
+  needScene();
+  $('aTime').value = 0; $('aTimeO').textContent = '0.0 s';
+}
+/** applique la pose t pour l'aperçu (rendu classique ou path tracing progressif) */
+function animShow(t, low = true) {
+  const ch = animApply(t);
+  if (ch.env) rebuildEnv(low);
+  if (ch.xf) { if (ptOn && pt && !animPlaying) needScene(); }
+  else needCamera();
+  $('aTimeO').textContent = (t * anim2.dur).toFixed(1) + ' s';
+}
+let playT0 = 0, ptBeforePlay = false;
+function animPlay() {
+  if (!parts.length) return;
+  if (animPlaying) { animStop(); return; }
+  animPlaying = true; ptBeforePlay = ptOn; ptOn = false;            // aperçu fluide en rendu classique
+  playT0 = performance.now() - (+$('aTime').value / 1000) * anim2.dur * 1000;
+  $('aPlay').textContent = '■ Stop';
+  const step = now => {
+    if (!animPlaying) return;
+    const t = ((now - playT0) / 1000 / anim2.dur) % 1;
+    $('aTime').value = Math.round(t * 1000);
+    animShow(t, true);
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+function animStop() {
+  animPlaying = false; ptOn = ptBeforePlay && !!pt;
+  $('aPlay').textContent = '▶ Aperçu';
+  animShow(+$('aTime').value / 1000, false);
+  needScene();
+}
+function animUI() {
+  const A = ANIMS[anim2.preset];
+  document.querySelectorAll('#animPresets .chip').forEach(c => c.classList.toggle('on', c.dataset.k === anim2.preset));
+  document.querySelectorAll('#animEases .chip').forEach(c => c.classList.toggle('on', c.dataset.k === anim2.ease));
+  $('aDur').value = anim2.dur; $('aDur').nextElementSibling.textContent = anim2.dur + ' s';
+  $('aTurnsRow').classList.toggle('hidden', !A.turns); $('aTurns').value = anim2.turns; $('aTurns').nextElementSibling.textContent = anim2.turns;
+  $('aHopRow').classList.toggle('hidden', !A.hops); $('aHops').value = anim2.hops; $('aHops').nextElementSibling.textContent = anim2.hops;
+  $('aAmpRow').classList.toggle('hidden', !A.amp);
+  if (A.amp) { $('aAmpL').textContent = A.amp[0]; $('aAmp').min = A.amp[1]; $('aAmp').max = A.amp[2]; $('aAmp').value = anim2.amp[anim2.preset]; $('aAmp').nextElementSibling.textContent = anim2.amp[anim2.preset]; }
+  $('aPingRow').classList.toggle('hidden', !A.ping); $('aPing').checked = !!anim2.ping[anim2.preset];
+  $('aDir').value = String(anim2.dir);
+  const fps = +$('aFps').value, n = Math.round(anim2.dur * fps);
+  $('aHint').textContent = `${n} images à calculer. Astuce : active « Finition photo › Réduction du bruit » pour des images propres avec peu d'échantillons.` +
+    (anim2.preset === 'explode' && parts.length < 2 ? ' La vue éclatée demande plusieurs pièces (Séparer en pièces).' : '') +
+    (state.bg === 'transparent' && $('aFmt').value !== 'zip' ? ' Une vidéo n\'a pas de transparence : choisis « Images PNG » pour garder le fond transparent.' : '');
+}
+function bindAnim() {
+  for (const [k, a] of Object.entries(ANIMS)) {
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = a.n; b.dataset.k = k;
+    b.onclick = () => { const wasPlaying = animPlaying; anim2.preset = k; animUI(); animShow(+$('aTime').value / 1000, !wasPlaying ? false : true); };
+    $('animPresets').appendChild(b);
+  }
+  for (const [k, [n]] of Object.entries(EASES)) {
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = n; b.dataset.k = k;
+    b.onclick = () => { anim2.ease = k; animUI(); };
+    $('animEases').appendChild(b);
+  }
+  const num = (id, fn) => $(id).addEventListener('input', e => { fn(+e.target.value); animUI(); if (!animPlaying && animBase) animShow(+$('aTime').value / 1000, true); });
+  num('aDur', v => anim2.dur = v); num('aTurns', v => anim2.turns = v); num('aHops', v => anim2.hops = v);
+  num('aAmp', v => anim2.amp[anim2.preset] = v);
+  $('aDir').onchange = e => { anim2.dir = +e.target.value; animUI(); };
+  $('aPing').onchange = e => { anim2.ping[anim2.preset] = e.target.checked; animUI(); };
+  $('aFps').onchange = animUI; $('aFmt').onchange = animUI;
+  $('aTime').addEventListener('input', e => { if (animPlaying) { playT0 = performance.now() - (+e.target.value / 1000) * anim2.dur * 1000; return; } animShow(+e.target.value / 1000, true); });
+  $('aTime').addEventListener('change', e => { if (!animPlaying) animShow(+e.target.value / 1000, false); });
+  $('aPlay').onclick = animPlay;
+  $('aReset').onclick = () => { if (animPlaying) animStop(); animRestore(); };
+  $('aRender').onclick = animRender;
+  animUI();
+}
+/* encodeurs : MP4 / WebM via WebCodecs, ou archive ZIP de PNG */
+async function loadMuxer(kind) {
+  const urls = kind === 'mp4'
+    ? ['https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/+esm', 'https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/build/mp4-muxer.mjs']
+    : ['https://cdn.jsdelivr.net/npm/webm-muxer@5.1.3/+esm', 'https://cdn.jsdelivr.net/npm/webm-muxer@5.1.3/build/webm-muxer.mjs'];
+  for (const u of urls) { try { const m = await import(u); if (m.Muxer) return m; } catch (e) { console.warn(u, e); } }
+  throw new Error('bibliothèque vidéo introuvable');
+}
+async function makeVideoWriter(kind, W, H, fps) {
+  if (typeof VideoEncoder === 'undefined') throw new Error('ce navigateur ne sait pas encoder de vidéo (WebCodecs)');
+  const M = await loadMuxer(kind);
+  const bitrate = Math.round(W * H * fps * .16);
+  const cands = kind === 'mp4' ? ['avc1.640033', 'avc1.64002A', 'avc1.640028', 'avc1.4D4028', 'avc1.42E01F'] : ['vp09.00.40.08', 'vp09.00.10.08', 'vp8'];
+  let cfg = null;
+  for (const codec of cands) {
+    const c = { codec, width: W, height: H, bitrate, framerate: fps, ...(kind === 'mp4' ? { avc: { format: 'avc' } } : {}) };
+    try { const r = await VideoEncoder.isConfigSupported(c); if (r.supported) { cfg = c; break; } } catch (e) { }
+  }
+  if (!cfg) throw new Error('format vidéo non pris en charge à cette résolution');
+  const muxer = new M.Muxer({
+    target: new M.ArrayBufferTarget(),
+    video: kind === 'mp4' ? { codec: 'avc', width: W, height: H, frameRate: fps } : { codec: cfg.codec === 'vp8' ? 'V_VP8' : 'V_VP9', width: W, height: H, frameRate: fps },
+    ...(kind === 'mp4' ? { fastStart: 'in-memory' } : {}),
+  });
+  let err = null;
+  const enc = new VideoEncoder({ output: (chunk, meta) => muxer.addVideoChunk(chunk, meta), error: e => { err = e; } });
+  enc.configure(cfg);
+  let i = 0;
+  return {
+    async add(src) {
+      if (err) throw err;
+      const vf = new VideoFrame(src, { timestamp: Math.round(i * 1e6 / fps), duration: Math.round(1e6 / fps) });
+      enc.encode(vf, { keyFrame: i % (fps * 2) === 0 }); vf.close(); i++;
+      while (enc.encodeQueueSize > 4) await new Promise(r => setTimeout(r, 10));
+    },
+    async finish() { await enc.flush(); enc.close(); muxer.finalize(); return new Blob([muxer.target.buffer], { type: kind === 'mp4' ? 'video/mp4' : 'video/webm' }); },
+    count: () => i,
+  };
+}
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+/** archive ZIP sans compression (les PNG sont déjà compressés) */
+function makeZipWriter() {
+  const parts = [], central = []; let offset = 0, n = 0;
+  const enc = new TextEncoder();
+  return {
+    async add(name, blob) {
+      const data = new Uint8Array(await blob.arrayBuffer()), nm = enc.encode(name), crc = crc32(data);
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(8, 0, true); h.setUint32(14, crc, true);
+      h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, nm.length, true);
+      parts.push(h.buffer, nm, data);
+      const c = new DataView(new ArrayBuffer(46));
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint32(16, crc, true);
+      c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, nm.length, true); c.setUint32(42, offset, true);
+      central.push(c.buffer, nm);
+      offset += 30 + nm.length + data.length; n++;
+    },
+    finish() {
+      const size = central.reduce((s, b) => s + (b.byteLength ?? b.length), 0);
+      const e = new DataView(new ArrayBuffer(22));
+      e.setUint32(0, 0x06054b50, true); e.setUint16(8, n, true); e.setUint16(10, n, true); e.setUint32(12, size, true); e.setUint32(16, offset, true);
+      return new Blob([...parts, ...central, e.buffer], { type: 'application/zip' });
+    },
+    count: () => n,
+  };
+}
+/** rendu image par image */
+async function animRender() {
+  if (!parts.length) { toast('Charge d\'abord un modèle'); return; }
+  if (animPlaying) animStop();
+  const fmt = $('aFmt').value, fps = +$('aFps').value, spp = +$('aSpp').value, res = +$('aRes').value;
+  const a = viewW / viewH;
+  let W = a >= 1 ? Math.round(res * a) : res, H = a >= 1 ? res : Math.round(res / a);
+  W -= W % 2; H -= H % 2;
+  const A = ANIMS[anim2.preset], ping = A.ping && anim2.ping[anim2.preset], loop = A.loop || ping;
+  const N = Math.max(2, Math.round(anim2.dur * fps));
+  const noBg = state.bg === 'transparent' && fmt === 'zip';
+  exporting = true; cancelExport = false; stopExport = false; snapExport = false;
+  $('busy').classList.add('show'); $('busyTitle').textContent = 'Animation…'; $('busyBar').style.width = '0%';
+  $('busySnap').disabled = true; $('busyStop').disabled = false;
+  const save = { bg: scene.background, floorIn: floor.parent === scene };
+  const ptSave = pt ? { scale: pt.renderScale, tiles: pt.tiles.clone(), fade: pt.fadeDuration, min: pt.minSamples, delay: pt.renderDelay, low: pt.dynamicLowRes, bounces: pt.bounces } : null;
+  let writer = null, done = 0;
+  try {
+    writer = fmt === 'zip' ? makeZipWriter() : await makeVideoWriter(fmt, W, H, fps);
+    if (fmt !== 'zip' && state.bg === 'transparent') { scene.background = new THREE.Color(state.bgC1); }
+    if (noBg) { scene.background = null; scene.remove(floor); }
+    renderer.setPixelRatio(1); renderer.setSize(W, H, false);
+    camera.aspect = W / H; camera.updateProjectionMatrix();
+    const usePT = ptOn && pt;
+    if (usePT) {
+      const t = Math.max(LOADS[loadLevel].tiles, Math.ceil(Math.max(W, H) / (loadLevel ? 320 : 512)));
+      pt.renderScale = 1; pt.tiles.set(t, t); pt.fadeDuration = 0; pt.minSamples = 1; pt.renderDelay = 0; pt.dynamicLowRes = false;
+      pt.bounces = loadLevel ? 6 : 8; pt.filterGlossyFactor = .4;
+      syncScene();
+    }
+    const t0 = performance.now();
+    for (let i = 0; i < N; i++) {
+      if (cancelExport || stopExport) break;
+      const t = loop ? i / N : i / (N - 1);
+      const ch = animApply(t);
+      if (ch.env) rebuildEnv(false);
+      if (usePT) {
+        if (ch.xf) syncScene(); else { pt.updateCamera(); if (ch.env) pt.updateEnvironment(); }
+        pt.reset();
+        await new Promise(res => {
+          const step = () => {
+            if (cancelExport || stopExport) return res();
+            const fs = performance.now();
+            let n = 0; while (n++ < 3 && performance.now() - fs < 20 && pt.samples < spp) pt.renderSample();
+            if (pt.samples >= spp) return res();
+            requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        });
+        if (cancelExport || (stopExport && pt.samples < spp)) break;
+      } else {
+        renderer.render(scene, camera);
+        await new Promise(r => requestAnimationFrame(r));
+      }
+      const src = fxActive() ? postProcess(canvas, W) : canvas;
+      if (fmt === 'zip') await writer.add(`${modelName}_${String(i).padStart(4, '0')}.png`, await new Promise(r => src.toBlob(r, 'image/png')));
+      else await writer.add(src);
+      done++;
+      const el = (performance.now() - t0) / 1000, eta = el / done * (N - done);
+      $('busyBar').style.width = Math.round(100 * done / N) + '%';
+      $('busyInfo').textContent = `Image ${done}/${N} · ${W}×${H} · ~${eta > 90 ? Math.ceil(eta / 60) + ' min' : Math.ceil(eta) + ' s'}`;
+    }
+    if (!cancelExport && done > 0) {
+      $('busyTitle').textContent = 'Assemblage…';
+      const blob = await writer.finish();
+      const ext = fmt === 'zip' ? 'zip' : fmt;
+      const ok = await saveBlob(blob, `${modelName}-${anim2.preset}-${W}x${H}-${fps}ips.${ext}`);
+      if (ok) toast(`Animation exportée (${done} images) ✓`);
+    }
+  } catch (e) {
+    console.error(e); toast('Animation impossible : ' + e.message + (fmt !== 'zip' ? ' — essaie « Images PNG (.zip) ».' : ''), 7000);
+  } finally {
+    scene.background = save.bg; if (save.floorIn && floor.parent !== scene) scene.add(floor);
+    if (pt && ptSave) { pt.renderScale = ptSave.scale; pt.tiles.copy(ptSave.tiles); pt.fadeDuration = ptSave.fade; pt.minSamples = ptSave.min; pt.renderDelay = ptSave.delay; pt.dynamicLowRes = ptSave.low; pt.bounces = ptSave.bounces; pt.filterGlossyFactor = .5; }
+    exporting = false; $('busy').classList.remove('show'); $('busySnap').disabled = false;
+    animRestore();
+    layout();
+  }
+}
+
 /* ───────────── Export ───────────── */
 async function saveBlob(blob, filename) {
   try {
@@ -3262,7 +3609,7 @@ window.addEventListener('keydown', e => {
 });
 
 /* ───────────── Démarrage ───────────── */
-buildPresetChips(); buildSurfChips(); bindStickers(); bindFx(); buildEnvChips(); buildViewChips(); bindMatInputs();
+buildPresetChips(); buildSurfChips(); bindStickers(); bindFx(); bindAnim(); buildEnvChips(); buildViewChips(); bindMatInputs();
 setFocal(60, false);
 rebuildEnv(); applyBackground(false); applyFloor();
 layout();
