@@ -29,6 +29,9 @@ body{display:flex;height:100dvh;overflow:hidden;padding-bottom:env(safe-area-ins
 #stage{position:relative;flex:1;min-width:0;background:var(--stage);display:flex;align-items:center;justify-content:center;overflow:hidden}
 #stage.checker{background-color:#bdbdbd;background-image:linear-gradient(45deg,#d9d9d9 25%,transparent 25%,transparent 75%,#d9d9d9 75%),linear-gradient(45deg,#d9d9d9 25%,transparent 25%,transparent 75%,#d9d9d9 75%);background-size:24px 24px;background-position:0 0,12px 12px}
 #cv{display:block;touch-action:none;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+#cvWrap{position:relative;line-height:0}
+#post{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:none}
+#post.on{display:block}
 #selbox{position:absolute;pointer-events:none;border:1.5px dashed var(--accent);border-radius:4px;display:none;mix-blend-mode:normal}
 #hud{position:absolute;left:12px;bottom:12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;pointer-events:none}
 .pill{background:rgba(20,20,20,.72);color:#fff;font:500 12px "IBM Plex Mono",monospace;padding:5px 10px;border-radius:99px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
@@ -125,12 +128,12 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
 </head>
 <body>
 <div id="stage">
-  <canvas id="cv"></canvas>
+  <div id="cvWrap"><canvas id="cv"></canvas><canvas id="post"></canvas></div>
   <div id="selbox"></div>
   <div id="viewbar"></div>
   <div id="hud"><span class="pill" id="status">Chargement…</span></div>
   <div id="drop">Dépose ton modèle ici</div>
-  <div id="busy"><div class="card"><b id="busyTitle">Rendu en cours…</b><div class="prog"><i id="busyBar"></i></div><span class="hint" id="busyInfo"></span><button class="btn" id="busyCancel">Annuler</button></div></div>
+  <div id="busy"><div class="card"><b id="busyTitle">Rendu en cours…</b><div class="prog"><i id="busyBar"></i></div><span class="hint" id="busyInfo"></span><div class="btns"><button class="btn" id="busySnap" title="Enregistre l'image telle qu'elle est maintenant, le rendu continue">Capturer maintenant</button><button class="btn" id="busyStop" title="Arrête le rendu et enregistre l'image actuelle">Arrêter et garder</button><button class="btn" id="busyCancel">Annuler</button></div></div></div>
 </div>
 
 <aside id="panel">
@@ -363,6 +366,26 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
     </div>
   </details>
 
+  <details class="sec">
+    <summary>Finition photo</summary>
+    <div class="body">
+      <label class="check"><input type="checkbox" id="fxOn"> Activer la finition (aperçu, captures et exports)</label>
+      <div id="fxUI" style="display:flex;flex-direction:column;gap:10px">
+        <div class="row"><label>Réduction du bruit</label><input type="range" id="fxDen" min="0" max="100"><output></output></div>
+        <div class="row"><label>Halo lumineux</label><input type="range" id="fxBloom" min="0" max="100"><output></output></div>
+        <div class="row"><label>Seuil du halo</label><input type="range" id="fxThr" min="40" max="98"><output></output></div>
+        <div class="row"><label>Vignettage</label><input type="range" id="fxVig" min="0" max="100"><output></output></div>
+        <div class="row"><label>Grain photo</label><input type="range" id="fxGrain" min="0" max="100"><output></output></div>
+        <div class="row"><label>Aberration</label><input type="range" id="fxCa" min="0" max="100"><output></output></div>
+        <div class="row"><label>Température</label><input type="range" id="fxTemp" min="-100" max="100"><output></output></div>
+        <div class="row"><label>Contraste</label><input type="range" id="fxCon" min="-50" max="50"><output></output></div>
+        <div class="row"><label>Saturation</label><input type="range" id="fxSat" min="-100" max="100"><output></output></div>
+        <div class="btns"><button class="btn" id="fxPro">Préréglage « produit »</button><button class="btn" id="fxReset">Réinitialiser</button></div>
+        <p class="hint">Le halo fait rayonner les écrans, LED et reflets forts. La réduction du bruit permet d'exporter avec moins d'échantillons (plus vite).</p>
+      </div>
+    </div>
+  </details>
+
   <details class="sec" open>
     <summary>Rendu &amp; export</summary>
     <div class="body">
@@ -374,6 +397,7 @@ details.adv>div{display:flex;flex-direction:column;gap:9px;margin-top:9px}
       <div class="row"><label>Échant. export</label><select id="expSpp"><option>256</option><option selected>512</option><option>1024</option><option>2048</option></select></div>
       <label class="check"><input type="checkbox" id="expNoBg"> Exporter sans fond (PNG transparent)</label>
       <button class="btn ink big" id="exportBtn">Rendre et exporter le PNG</button>
+      <button class="btn" id="snapBtn">Capturer l'aperçu actuel (PNG)</button>
       <p class="hint" id="expHint"></p>
     </div>
   </details>
@@ -2924,7 +2948,7 @@ function frame(now) {
   } catch (e) {
     if (ptOn) ptFail(e); else if (!frame.err) { frame.err = 1; console.error(e); toast('Erreur d\'affichage : ' + e.message, 7000); }
   }
-  try { updateHUD(); updateSelBox(); } catch (e) { console.error(e); }
+  try { updateHUD(); updateSelBox(); updatePostPreview(); } catch (e) { console.error(e); }
 }
 /* caméra libre : sous le sol, on retire le sol (sinon son dessous bouche la vue : écran gris) */
 controls.addEventListener('change', () => {
@@ -2932,6 +2956,139 @@ controls.addEventListener('change', () => {
   if (below !== camBelow) { camBelow = below; syncFloorPresence(); }
   needCamera();
 });
+
+/* ───────────── Finition photo (post-traitement 2D, appliqué à l'aperçu, aux captures et aux exports) ───────────── */
+const FX_DEF = { den: 0, bloom: 0, thr: 80, vig: 0, grain: 0, ca: 0, temp: 0, con: 0, sat: 0 };
+const fx = { on: false, ...FX_DEF };
+const FX_KEYS = [['fxDen', 'den'], ['fxBloom', 'bloom'], ['fxThr', 'thr'], ['fxVig', 'vig'], ['fxGrain', 'grain'], ['fxCa', 'ca'], ['fxTemp', 'temp'], ['fxCon', 'con'], ['fxSat', 'sat']];
+function fxActive() { return fx.on && FX_KEYS.some(([, k]) => k !== 'thr' && fx[k] !== 0); }
+/** flou boîte séparable (3 passes ≈ gaussien) sur un tableau RGB float */
+function boxBlur(src, w, h, r) {
+  const tmp = new Float32Array(src.length), out = new Float32Array(src.length), n = 2 * r + 1;
+  for (let pass = 0; pass < 3; pass++) {
+    const a = pass === 0 ? src : out;
+    for (let y = 0; y < h; y++) for (let c = 0; c < 3; c++) {
+      let acc = 0; for (let i = -r; i <= r; i++) acc += a[(y * w + clamp(i, 0, w - 1)) * 3 + c];
+      for (let x = 0; x < w; x++) { tmp[(y * w + x) * 3 + c] = acc / n; acc += a[(y * w + Math.min(w - 1, x + r + 1)) * 3 + c] - a[(y * w + Math.max(0, x - r)) * 3 + c]; }
+    }
+    for (let x = 0; x < w; x++) for (let c = 0; c < 3; c++) {
+      let acc = 0; for (let i = -r; i <= r; i++) acc += tmp[(clamp(i, 0, h - 1) * w + x) * 3 + c];
+      for (let y = 0; y < h; y++) { out[(y * w + x) * 3 + c] = acc / n; acc += tmp[(Math.min(h - 1, y + r + 1) * w + x) * 3 + c] - tmp[(Math.max(0, y - r) * w + x) * 3 + c]; }
+    }
+  }
+  return out;
+}
+/** applique la finition à une image (canvas source → nouveau canvas) ; ref = largeur de référence pour garder les tailles d'effets */
+function postProcess(src, ref = 1600) {
+  const w = src.width, h = src.height, k = w / ref;
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d'); ctx.drawImage(src, 0, 0);
+  const id = ctx.getImageData(0, 0, w, h), d = id.data, N = w * h;
+  const f = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) { f[i * 3] = d[i * 4]; f[i * 3 + 1] = d[i * 4 + 1]; f[i * 3 + 2] = d[i * 4 + 2]; }
+  // 1) réduction du bruit : filtre bilatéral (préserve les contours)
+  if (fx.den > 0) {
+    // 2 passes 3×3 à pas croissant (à-trous) : rapide et assez large pour le bruit de path tracing
+    const sr = 6 + fx.den * .9, LUT = new Float32Array(1024), scale = 1023 / (3 * 255 * 255 * .25);
+    for (let i = 0; i < 1024; i++) LUT[i] = Math.exp(-(i / scale) / (2 * sr * sr));
+    const mix = Math.min(1, fx.den / 70);
+    for (const st of [Math.max(1, Math.round(k)), Math.max(2, Math.round(2.5 * k))]) {
+      const g = new Float32Array(f.length);
+      for (let y = 0; y < h; y++) {
+        const ys = [Math.max(0, y - st), y, Math.min(h - 1, y + st)];
+        for (let x = 0; x < w; x++) {
+          const o = (y * w + x) * 3, r0 = f[o], g0 = f[o + 1], b0 = f[o + 2], xs0 = Math.max(0, x - st), xs2 = Math.min(w - 1, x + st);
+          let sw = 0, ar = 0, ag = 0, ab = 0;
+          for (let j = 0; j < 3; j++) { const row = ys[j] * w;
+            for (let i = 0; i < 3; i++) { const q = (row + (i === 0 ? xs0 : i === 1 ? x : xs2)) * 3;
+              const dr = f[q] - r0, dg = f[q + 1] - g0, db = f[q + 2] - b0;
+              const wt = LUT[Math.min(1023, ((dr * dr + dg * dg + db * db) * scale) | 0)] * (i === 1 && j === 1 ? 1 : (i === 1 || j === 1) ? .6 : .36);
+              sw += wt; ar += f[q] * wt; ag += f[q + 1] * wt; ab += f[q + 2] * wt; } }
+          g[o] = r0 + (ar / sw - r0) * mix; g[o + 1] = g0 + (ag / sw - g0) * mix; g[o + 2] = b0 + (ab / sw - b0) * mix;
+        }
+      }
+      f.set(g);
+    }
+  }
+  // 2) halo : zones très claires, floutées à basse résolution, ajoutées
+  let glow = null, gw = 0, gh = 0, ds = 1;
+  if (fx.bloom > 0) {
+    ds = Math.max(2, Math.round(4 * k)); gw = Math.ceil(w / ds); gh = Math.ceil(h / ds);
+    const sm = new Float32Array(gw * gh * 3), thr = fx.thr / 100 * 255;
+    for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+      const q = (Math.min(h - 1, y * ds) * w + Math.min(w - 1, x * ds)) * 3;
+      const lum = .2126 * f[q] + .7152 * f[q + 1] + .0722 * f[q + 2], t = Math.max(0, lum - thr) / Math.max(1, 255 - thr);
+      for (let c = 0; c < 3; c++) sm[(y * gw + x) * 3 + c] = f[q + c] * t;
+    }
+    const b1 = boxBlur(sm, gw, gh, Math.max(2, Math.round(gw / 120))), b2 = boxBlur(sm, gw, gh, Math.max(4, Math.round(gw / 40)));
+    glow = new Float32Array(b1.length); for (let i = 0; i < b1.length; i++) glow[i] = b1[i] * .6 + b2[i] * .9;
+  }
+  // 3) étalonnage, vignettage, aberration, grain
+  const tR = 1 + fx.temp / 100 * .12, tB = 1 - fx.temp / 100 * .12, con = 1 + fx.con / 100, sat = 1 + fx.sat / 100;
+  const cx = w / 2, cy = h / 2, irmax2 = 1 / (cx * cx + cy * cy), ca = fx.ca / 100 * 4 * k, bl = fx.bloom / 100 * 1.6, vg = fx.vig / 100 * .65, gr = fx.grain * .35;
+  const at = (x, y, c) => { const xx = clamp(Math.round(x), 0, w - 1), yy = clamp(Math.round(y), 0, h - 1); return f[(yy * w + xx) * 3 + c]; };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x, o = i * 3, dx = x - cx, dy = y - cy, r2 = (dx * dx + dy * dy) * irmax2;
+    let r = f[o], g = f[o + 1], b = f[o + 2];
+    if (ca > 0) { const s = ca * Math.sqrt(irmax2); r = at(x + dx * s, y + dy * s, 0); b = at(x - dx * s, y - dy * s, 2); }
+    if (glow) { const q = (Math.min(gh - 1, Math.floor(y / ds)) * gw + Math.min(gw - 1, Math.floor(x / ds))) * 3; r += glow[q] * bl; g += glow[q + 1] * bl; b += glow[q + 2] * bl; }
+    r *= tR; b *= tB;
+    if (con !== 1) { r = (r - 128) * con + 128; g = (g - 128) * con + 128; b = (b - 128) * con + 128; }
+    if (sat !== 1) { const L = .2126 * r + .7152 * g + .0722 * b; r = L + (r - L) * sat; g = L + (g - L) * sat; b = L + (b - L) * sat; }
+    if (vg > 0) { const v = 1 - vg * r2 * Math.sqrt(r2) * .9; r *= v; g *= v; b *= v; }
+    if (gr > 0) { const n = (hash3(x, y, 99) + hash3(x, y, 98) - 1) * gr; r += n; g += n; b += n; }
+    d[i * 4] = r; d[i * 4 + 1] = g; d[i * 4 + 2] = b;
+    if (glow && d[i * 4 + 3] < 255) d[i * 4 + 3] = Math.max(d[i * 4 + 3], Math.min(255, (r + g + b) / 3 * 1.2));   // halo visible sur fond transparent
+  }
+  ctx.putImageData(id, 0, 0);
+  return cv;
+}
+// aperçu : copie réduite du rendu, retraitée à intervalle régulier
+const postCv = $('post');
+let postLast = 0, postSamples = -1;
+let interacting = false;
+controls.addEventListener('start', () => { interacting = true; postCv.classList.remove('on'); });
+controls.addEventListener('end', () => { interacting = false; setTimeout(() => updatePostPreview(true), 250); });
+function updatePostPreview(force = false) {
+  const on = fxActive() && !interacting && !anim && !stkDrag;
+  postCv.classList.toggle('on', on);
+  if (!on || exporting) return;
+  const now = performance.now(), smp = pt && ptOn ? Math.floor(pt.samples) : -2;
+  if (!force && (now - postLast < 700 || smp === postSamples)) return;
+  postLast = now; postSamples = smp;
+  const k = Math.min(1, 640 / canvas.width), tmp = document.createElement('canvas');
+  tmp.width = Math.max(1, Math.round(canvas.width * k)); tmp.height = Math.max(1, Math.round(canvas.height * k));
+  tmp.getContext('2d').drawImage(canvas, 0, 0, tmp.width, tmp.height);
+  const out = postProcess(tmp, 640);
+  postCv.width = out.width; postCv.height = out.height; postCv.getContext('2d').drawImage(out, 0, 0);
+}
+function bindFx() {
+  const sync = () => {
+    $('fxOn').checked = fx.on; $('fxUI').style.opacity = fx.on ? 1 : .5;
+    for (const [id, k] of FX_KEYS) { $(id).value = fx[k]; $(id).nextElementSibling.textContent = fx[k]; }
+  };
+  $('fxOn').onchange = e => { fx.on = e.target.checked; sync(); updatePostPreview(true); };
+  for (const [id, k] of FX_KEYS) $(id).addEventListener('input', e => {
+    fx[k] = +e.target.value; e.target.nextElementSibling.textContent = fx[k];
+    if (!fx.on) { fx.on = true; $('fxOn').checked = true; $('fxUI').style.opacity = 1; }
+    clearTimeout(bindFx._t); bindFx._t = setTimeout(() => updatePostPreview(true), 60);
+  });
+  $('fxReset').onclick = () => { Object.assign(fx, FX_DEF); sync(); updatePostPreview(true); };
+  $('fxPro').onclick = () => { Object.assign(fx, { on: true, den: 45, bloom: 25, thr: 82, vig: 18, grain: 8, ca: 6, temp: 0, con: 8, sat: 5 }); sync(); updatePostPreview(true); };
+  sync();
+}
+/** capture de l'aperçu tel qu'il est (le rendu continue) */
+async function snapshot() {
+  if (!parts.length) return;
+  // l'image du canvas correspond au dernier échantillon rendu
+  let src = canvas;
+  if (fxActive()) src = postProcess(canvas, canvas.width);
+  const blob = await new Promise(r => src.toBlob(r, 'image/png'));
+  if (!blob) { toast('Capture impossible'); return; }
+  const smp = pt && ptOn ? Math.floor(pt.samples) + 'ech' : 'apercu';
+  const ok = await saveBlob(blob, `${modelName}-capture-${canvas.width}x${canvas.height}-${smp}.png`);
+  if (ok) toast('Capture enregistrée ✓');
+}
 
 /* ───────────── Export ───────────── */
 async function saveBlob(blob, filename) {
@@ -2950,13 +3107,14 @@ async function saveBlob(blob, filename) {
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 3000);
   return true;
 }
-let cancelExport = false;
+let cancelExport = false, stopExport = false, snapExport = false;
 async function doExport() {
   if (!parts.length) { toast('Charge d\'abord un modèle'); return; }
   const long = +$('expSize').value, target = +$('expSpp').value, noBg = $('expNoBg').checked || state.bg === 'transparent';
   const a = viewW / viewH;
   const W = a >= 1 ? long : Math.round(long * a), H = a >= 1 ? Math.round(long / a) : long;
-  exporting = true; cancelExport = false;
+  exporting = true; cancelExport = false; stopExport = false; snapExport = false;
+  $('busySnap').disabled = !(ptOn && pt); $('busyStop').disabled = !(ptOn && pt);
   $('busy').classList.add('show'); $('busyTitle').textContent = 'Rendu en cours…'; $('busyBar').style.width = '0%';
   const save = { bg: scene.background, floorIn: floor.parent === scene };
   const ptSave = pt ? { scale: pt.renderScale, tiles: pt.tiles.clone(), fade: pt.fadeDuration, min: pt.minSamples, delay: pt.renderDelay, low: pt.dynamicLowRes, bounces: pt.bounces } : null;
@@ -2968,12 +3126,17 @@ async function doExport() {
     if (ptOn && pt) {
       if (ptDirty || noBg) syncScene(); else pt.updateCamera();
       pt.renderScale = 1; const t = Math.max(LOADS[loadLevel].tiles, Math.ceil(Math.max(W, H) / (loadLevel ? 320 : 512))); pt.tiles.set(t, t);
-      pt.fadeDuration = 0; pt.minSamples = 1; pt.renderDelay = 0; pt.dynamicLowRes = false; pt.bounces = loadLevel === 2 ? 8 : loadLevel === 1 ? 10 : 12;
+      pt.fadeDuration = 0; pt.minSamples = 1; pt.renderDelay = 0; pt.dynamicLowRes = false; pt.filterGlossyFactor = target >= 512 ? .25 : .4; pt.bounces = loadLevel === 2 ? 8 : loadLevel === 1 ? 10 : 12;
       pt.reset();
       const t0 = performance.now();
       await new Promise(res => {
         const step = () => {
-          if (cancelExport) return res();
+          if (cancelExport || stopExport) return res();
+          if (snapExport) {                         // capture intermédiaire, le rendu continue
+            snapExport = false;
+            const s0 = Math.floor(pt.samples), src = fxActive() ? postProcess(canvas, W) : canvas;
+            src.toBlob(b => { if (b) saveBlob(b, `${modelName}-${W}x${H}-${s0}ech${noBg ? '-transparent' : ''}.png`).then(ok => ok && toast(`Capture à ${s0} échantillons ✓`)); }, 'image/png');
+          }
           const fs = performance.now();
           let n = 0; while (n++ < 3 && performance.now() - fs < 20 && pt.samples < target) pt.renderSample();
           const s = Math.floor(pt.samples), pc = Math.round(100 * s / target);
@@ -2985,10 +3148,16 @@ async function doExport() {
         };
         requestAnimationFrame(step);
       });
-      if (!cancelExport) blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+      if (!cancelExport) {
+        if (fxActive()) $('busyTitle').textContent = 'Finition…';
+        await new Promise(r => setTimeout(r, 20));
+        const src = fxActive() ? postProcess(canvas, W) : canvas;
+        blob = await new Promise(r => src.toBlob(r, 'image/png'));
+      }
     } else {
       renderer.render(scene, camera);
-      blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+      const src = fxActive() ? postProcess(canvas, W) : canvas;
+      blob = await new Promise(r => src.toBlob(r, 'image/png'));
     }
     if (blob && !cancelExport) {
       $('busyTitle').textContent = 'Enregistrement…';
@@ -2999,13 +3168,16 @@ async function doExport() {
     console.error(e); toast('Export impossible : ' + e.message, 4500);
   } finally {
     scene.background = save.bg; if (save.floorIn && floor.parent !== scene) scene.add(floor);
-    if (pt && ptSave) { pt.renderScale = ptSave.scale; pt.tiles.copy(ptSave.tiles); pt.fadeDuration = ptSave.fade; pt.minSamples = ptSave.min; pt.renderDelay = ptSave.delay; pt.dynamicLowRes = ptSave.low; pt.bounces = ptSave.bounces; }
+    if (pt && ptSave) { pt.renderScale = ptSave.scale; pt.tiles.copy(ptSave.tiles); pt.fadeDuration = ptSave.fade; pt.minSamples = ptSave.min; pt.renderDelay = ptSave.delay; pt.dynamicLowRes = ptSave.low; pt.bounces = ptSave.bounces; pt.filterGlossyFactor = .5; }
     exporting = false; $('busy').classList.remove('show');
     if (noBg && pt) syncScene();
     layout();
   }
 }
 $('busyCancel').onclick = () => { cancelExport = true; };
+$('busyStop').onclick = () => { stopExport = true; };
+$('busySnap').onclick = () => { snapExport = true; };
+$('snapBtn').onclick = snapshot;
 $('exportBtn').onclick = doExport;
 
 /* ───────────── Branchements UI ───────────── */
@@ -3024,6 +3196,8 @@ function buildViewChips() {
     b.onclick = () => setView(v.id); el.appendChild(b);
     if (i < 4) { const q = document.createElement('button'); q.textContent = v.n; q.onclick = () => setView(v.id); bar.appendChild(q); }
   });
+  const cap = document.createElement('button'); cap.textContent = '● Capture'; cap.title = 'Enregistre l\'image actuelle en PNG (le rendu continue)';
+  cap.onclick = snapshot; bar.appendChild(cap);
 }
 let envTimer = 0;
 const envSoon = () => { clearTimeout(envTimer); envTimer = setTimeout(rebuildEnv, 90); };
@@ -3088,7 +3262,7 @@ window.addEventListener('keydown', e => {
 });
 
 /* ───────────── Démarrage ───────────── */
-buildPresetChips(); buildSurfChips(); bindStickers(); buildEnvChips(); buildViewChips(); bindMatInputs();
+buildPresetChips(); buildSurfChips(); bindStickers(); bindFx(); buildEnvChips(); buildViewChips(); bindMatInputs();
 setFocal(60, false);
 rebuildEnv(); applyBackground(false); applyFloor();
 layout();
