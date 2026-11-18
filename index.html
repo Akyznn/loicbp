@@ -251,6 +251,20 @@
       0%, 100% { opacity: 0.3; }
       50%       { opacity: 0.08; }
     }
+  
+    /* ── Titres : Allo (Josh Puckett, SIL OFL) — graisse 700, rondeur 20. Les textes courants restent en Piazzolla ── */
+    @font-face {
+      font-family: 'Allo';
+      src: url('assets/fonts/AlloVariable.woff2') format('woff2');
+      font-weight: 100 900; font-style: normal; font-display: swap;
+    }
+    .title {
+      font-family: 'Allo', 'Piazzolla', serif;
+      font-weight: 700;
+      font-variation-settings: 'ROND' 20;
+      font-optical-sizing: auto;
+      letter-spacing: -0.025em;
+    }
   </style>
 </head>
 <body>
