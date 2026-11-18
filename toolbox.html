@@ -266,6 +266,20 @@
       letter-spacing: 0.01em;
       font-size: clamp(0.86rem, 1.15vw, 0.98rem);
     }
+  
+    /* Survol / état actif des boutons et liens : surlignage bleu (comme la sélection de texte) à la place du soulignage */
+    .back-link, .tool .name {
+      background-image: linear-gradient(#2A3DFF, #2A3DFF);
+      background-repeat: no-repeat;
+      background-position: 0 50%;
+      background-size: 0% 100%;
+      padding-inline: 0.35em;
+      margin-inline: -0.35em;
+      -webkit-box-decoration-break: clone; box-decoration-break: clone;
+      transition: background-size 0.25s cubic-bezier(0.23, 1, 0.32, 1), color 0.15s ease;
+    }
+    .back-link:hover, .back-link:focus-visible, a.tool:hover .name, a.tool:focus-visible .name { background-size: 100% 100%; color: #fff; }
+    .back-link::after, .tool .name::after { content: none; display: none; }
   </style>
 </head>
 <body>
