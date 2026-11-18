@@ -110,7 +110,6 @@
     .label {
       font-size: clamp(0.6rem, 1vw, 0.72rem);
       letter-spacing: 0.22em;
-      text-transform: uppercase;
       font-style: italic;
       opacity: 0;
       transform: translateY(6px);
@@ -177,7 +176,6 @@
     .links a {
       font-size: clamp(0.6rem, 1vw, 0.72rem);
       letter-spacing: 0.2em;
-      text-transform: uppercase;
       text-decoration: none;
       color: var(--ink);
       display: flex;
@@ -215,7 +213,6 @@
       z-index: 10;
       font-size: clamp(0.6rem, 1vw, 0.72rem);
       letter-spacing: 0.2em;
-      text-transform: uppercase;
       text-decoration: none;
       font-style: italic;
       color: var(--ink);
@@ -265,13 +262,14 @@
       font-optical-sizing: auto;
       letter-spacing: -0.035em;
     }
-      @font-face { font-family: 'Allo'; src: url('assets/fonts/Allo-Oblique.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
-    @font-face { font-family: 'Allo'; src: url('assets/fonts/Allo-MediumOblique.woff2') format('woff2'); font-weight: 500; font-style: italic; font-display: swap; }
-    /* Règle : jamais de Piazzolla en capitales — tout texte en capitales passe en Allo (oblique vrai pour l'italique) */
+      /* Règle : Allo uniquement pour les titres (et l'heure). Tout le reste est en Piazzolla, jamais en capitales. */
     .label, .links a, .toolbox-link {
-      font-family: 'Allo', 'Piazzolla', serif;
-      font-weight: 500;
-      font-variation-settings: 'ROND' 20;
+      font-family: 'Piazzolla', serif;
+      font-weight: 400;
+      font-variation-settings: normal;
+      text-transform: none;
+      letter-spacing: 0.01em;
+      font-size: clamp(0.86rem, 1.15vw, 0.98rem);
     }
   </style>
 </head>

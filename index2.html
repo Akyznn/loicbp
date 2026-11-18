@@ -213,7 +213,7 @@
       clip-path: inset(0 100% 0 0);           /* état initial : se dévoile à l'entrée */
     }
     .media:focus-visible { outline: none; }
-    .media.noimg::after { content: attr(aria-label); position: absolute; inset: 0; display: grid; place-items: center; padding: 1rem; text-align: center; font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; }
+    .media.noimg::after { content: attr(aria-label); position: absolute; inset: 0; display: grid; place-items: center; padding: 1rem; text-align: center; font-size: 0.8rem; letter-spacing: 0.1em; opacity: 0.5; }
     .par { position: absolute; inset: 0 -18px; will-change: transform; }   /* calque de parallaxe */
     .media img {
       display: block;
@@ -269,7 +269,6 @@
     .cap-m, .cap-y {
       font-size: clamp(0.6rem, 1vw, 0.72rem);
       letter-spacing: 0.2em;
-      text-transform: uppercase;
       font-style: italic;
     }
     .cap-m { margin-top: 0.35rem; opacity: 0.55; }
@@ -290,7 +289,6 @@
       padding: 0.9rem var(--gutter) clamp(0.9rem, 2.4vh, 1.5rem);
       font-size: clamp(0.6rem, 1vw, 0.72rem);
       letter-spacing: 0.2em;
-      text-transform: uppercase;
       font-style: italic;
       opacity: 0;
       animation: fadeUp 0.5s ease forwards 0.9s;
@@ -377,7 +375,6 @@
     .pn-meta, .pn-liv, .pn-nav, .pn-close {
       font-size: clamp(0.6rem, 1vw, 0.72rem);
       letter-spacing: 0.2em;
-      text-transform: uppercase;
       font-style: italic;
     }
     .pn-meta { color: rgba(15, 15, 15, 0.6); }
@@ -451,13 +448,14 @@
       font-optical-sizing: auto;
       letter-spacing: -0.035em;
     }
-      @font-face { font-family: 'Allo'; src: url('assets/fonts/Allo-Oblique.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
-    @font-face { font-family: 'Allo'; src: url('assets/fonts/Allo-MediumOblique.woff2') format('woff2'); font-weight: 500; font-style: italic; font-display: swap; }
-    /* Règle : jamais de Piazzolla en capitales — tout texte en capitales passe en Allo (oblique vrai pour l'italique) */
-    .cap-m, .cap-y, .hud, .pn-meta, .pn-liv, .pn-nav, .pn-close, .views button, .media.noimg::after {
-      font-family: 'Allo', 'Piazzolla', serif;
-      font-weight: 500;
-      font-variation-settings: 'ROND' 20;
+      /* Règle : Allo uniquement pour les titres (et l'heure). Tout le reste est en Piazzolla, jamais en capitales. */
+    .cap-m, .cap-y, .hud, .pn-meta, .pn-liv, .pn-nav, .pn-nav button, .pn-close, .views button, .media.noimg::after {
+      font-family: 'Piazzolla', serif;
+      font-weight: 400;
+      font-variation-settings: normal;
+      text-transform: none;
+      letter-spacing: 0.01em;
+      font-size: clamp(0.86rem, 1.15vw, 0.98rem);
     }
   </style>
 </head>

@@ -33,8 +33,11 @@
 
   var font = document.createElement('link');
   font.rel = 'stylesheet';
-  font.href = 'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap';
+  font.href = 'https://fonts.googleapis.com/css2?family=Piazzolla:ital,wght@0,400;1,400&display=swap';
   document.head.appendChild(font);
+  var allo = document.createElement('style');           // Allo (titres) : chargé ici aussi, pour les pages d'outils
+  allo.textContent = '@font-face{font-family:"Allo";src:url("' + BASE + 'assets/fonts/AlloVariable.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap}';
+  document.head.appendChild(allo);
 
   var css = document.createElement('style');
   css.textContent = [
@@ -45,10 +48,10 @@
     '#lbp-gate,#lbp-gate *{box-sizing:border-box;margin:0;padding:0;font-family:"Piazzolla",serif;font-weight:400;letter-spacing:normal;text-transform:none;line-height:normal}',
     '#lbp-gate a,#lbp-gate button,#lbp-gate input,#lbp-gate label{cursor:none}',
     '#lbp-gate .g-in{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3.5rem 16px 2rem}',
-    '#lbp-gate .g-small{font-size:clamp(.6rem,1vw,.72rem);letter-spacing:.22em;text-transform:uppercase;font-style:italic;font-family:"Allo","Piazzolla",serif;font-weight:500;font-variation-settings:"ROND" 20}',
+    '#lbp-gate .g-small{font-size:clamp(.6rem,1vw,.72rem);letter-spacing:.01em;text-transform:none;font-style:italic;font-size:clamp(.86rem,1.15vw,.98rem);letter-spacing:.01em}',
     '#lbp-gate .g-label{opacity:0;transform:translateY(6px);animation:g-up .6s ease forwards .2s}',
     '#lbp-gate .g-tw{overflow:hidden;margin:.9rem 0 1.1rem}',
-    '#lbp-gate .g-title{display:block;font-size:clamp(2.6rem,6.5vw,4.5rem);letter-spacing:-.03em;line-height:1;clip-path:inset(0 100% 0 0);animation:g-wipe .9s var(--g-ease) forwards .5s}',
+    '#lbp-gate .g-title{display:block;font-family:"Allo","Piazzolla",serif;font-weight:700;font-variation-settings:"ROND" 20;font-optical-sizing:auto;font-size:clamp(2.6rem,6.5vw,4.5rem);letter-spacing:-.035em;line-height:1;clip-path:inset(0 100% 0 0);animation:g-wipe .9s var(--g-ease) forwards .5s}',
     '#lbp-gate .g-rule{width:0;height:1px;background:var(--g-ink);margin:0 auto 1.8rem;animation:g-x .6s ease forwards 1.1s;max-width:360px}',
     '#lbp-gate .g-forms{width:100%;max-width:360px;opacity:0;transform:translateY(8px);animation:g-up .6s ease forwards 1.3s}',
     '#lbp-gate form{display:flex;flex-direction:column;align-items:center;gap:.8rem}',
@@ -69,7 +72,7 @@
     '#lbp-gate input[type=checkbox]::before{content:"";width:5px;height:5px;background:var(--g-ink);transform:scale(0);transition:transform .2s ease}',
     '#lbp-gate input[type=checkbox]:checked::before{transform:scale(1)}',
     '#lbp-gate input[type=checkbox]:focus-visible{outline:1px solid var(--g-ink);outline-offset:3px}',
-    '#lbp-gate .g-sw,#lbp-gate .g-back{position:relative;background:none;border:0;color:var(--g-ink);text-decoration:none;padding:.4em 0;font-size:clamp(.6rem,1vw,.72rem);letter-spacing:.2em;text-transform:uppercase;font-style:italic;font-family:"Allo","Piazzolla",serif;font-weight:500;font-variation-settings:"ROND" 20}',
+    '#lbp-gate .g-sw,#lbp-gate .g-back{position:relative;background:none;border:0;color:var(--g-ink);text-decoration:none;padding:.4em 0;font-size:clamp(.6rem,1vw,.72rem);letter-spacing:.01em;text-transform:none;font-style:italic;font-size:clamp(.86rem,1.15vw,.98rem);letter-spacing:.01em}',
     '#lbp-gate .g-sw{opacity:.55;margin-top:.2rem;transition:opacity .3s ease}',
     '#lbp-gate .g-sw:hover,#lbp-gate .g-sw:focus-visible{opacity:1}',
     '#lbp-gate .g-sw::after,#lbp-gate .g-back::after{content:"";position:absolute;bottom:0;left:0;width:0;height:1px;background:var(--g-ink);transition:width .3s ease}',
