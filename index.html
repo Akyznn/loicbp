@@ -155,6 +155,25 @@
       animation: blink-sep 1s step-end infinite 1.5s;
     }
 
+    /* Micro-interaction : la lettre survolée passe au bleu, avec contour blanc et ombre « sticker » */
+    .ch {
+      -webkit-text-stroke: 0 #fff;
+      paint-order: stroke fill;
+      transition: color 0.5s cubic-bezier(0.23, 1, 0.32, 1), -webkit-text-stroke-width 0.5s cubic-bezier(0.23, 1, 0.32, 1), text-shadow 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .ch:hover {
+        color: #2A3DFF;
+        -webkit-text-stroke: 0.1em #fff;
+        text-shadow: 0 0.025em 0 rgba(15, 15, 15, 0.22), 0 0.06em 0.07em rgba(15, 15, 15, 0.28);
+        position: relative;
+        z-index: 1;
+        transition-duration: 0.12s;
+      }
+    }
+    .title-wrap.ready, .clock-wrap.ready { overflow: visible; }
+    .title-wrap.ready .title, .clock-wrap.ready .clock { clip-path: none; animation: none; }
+
     .rule {
       width: 0;
       height: 1px;
@@ -310,9 +329,21 @@
     function updateClock() {
       const now = new Date();
       const pad = n => String(n).padStart(2, '0');
-      document.getElementById('hh').textContent = pad(now.getHours());
-      document.getElementById('mm').textContent = pad(now.getMinutes());
+      setDigits(document.getElementById('hh'), pad(now.getHours()));
+      setDigits(document.getElementById('mm'), pad(now.getMinutes()));
     }
+    /* Chaque caractère est un <span class="ch"> pour la micro-interaction au survol ; on ne reconstruit que si la valeur change */
+    const splitChars = s => [...s].map(c => '<span class="ch">' + c + '</span>').join('');
+    function setDigits(el, v) { if (el.dataset.v !== v) { el.dataset.v = v; el.innerHTML = splitChars(v); } }
+    const ttl = document.querySelector('.title');
+    ttl.setAttribute('aria-label', ttl.textContent.trim());
+    ttl.innerHTML = splitChars(ttl.textContent.trim());
+    /* Une fois la révélation terminée, on retire le masque pour que le contour et l'ombre ne soient pas coupés */
+    ['.title', '.clock'].forEach(sel => {
+      const el = document.querySelector(sel), done = () => el.parentElement.classList.add('ready');
+      el.addEventListener('animationend', e => { if (e.animationName === 'wipe') done(); });
+      setTimeout(done, 2500);
+    });
     updateClock();
     setInterval(updateClock, 1000);
 
