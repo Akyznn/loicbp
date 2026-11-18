@@ -449,7 +449,15 @@
       font-weight: 700;
       font-variation-settings: 'ROND' 20;
       font-optical-sizing: auto;
-      letter-spacing: -0.025em;
+      letter-spacing: -0.035em;
+    }
+      @font-face { font-family: 'Allo'; src: url('assets/fonts/Allo-Oblique.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
+    @font-face { font-family: 'Allo'; src: url('assets/fonts/Allo-MediumOblique.woff2') format('woff2'); font-weight: 500; font-style: italic; font-display: swap; }
+    /* Règle : jamais de Piazzolla en capitales — tout texte en capitales passe en Allo (oblique vrai pour l'italique) */
+    .cap-m, .cap-y, .hud, .pn-meta, .pn-liv, .pn-nav, .pn-close, .views button, .media.noimg::after {
+      font-family: 'Allo', 'Piazzolla', serif;
+      font-weight: 500;
+      font-variation-settings: 'ROND' 20;
     }
   </style>
 </head>
