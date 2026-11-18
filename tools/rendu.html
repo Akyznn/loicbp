@@ -497,11 +497,25 @@ function makePT() {
   applyLoad(t);
   return t;
 }
+/** une pièce visible est-elle transparente (verre, plastique translucide…) ? */
+function hasGlass() { try { return parts.some(p => !p.hidden && p.mat.transmission > 0); } catch (e) { return false; } }   // « parts » n'existe pas encore au tout premier appel
+/** rebonds de lumière : le verre en consomme 2 par traversée, plus les reflets internes */
+function bouncesFor(kind) {
+  const g = hasGlass();
+  if (kind === 'export') return g ? [20, 16, 12][loadLevel] : [12, 10, 8][loadLevel];
+  if (kind === 'anim') return g ? [14, 12, 10][loadLevel] : [8, 6, 6][loadLevel];
+  return g ? Math.max(LOADS[loadLevel].bounces, [12, 10, 8][loadLevel]) : LOADS[loadLevel].bounces;
+}
+function updateBounces() {
+  try { if (!pt || exporting) return; } catch (e) { return; }
+  const b = bouncesFor('preview');
+  if (pt.bounces !== b) { pt.bounces = b; pt.reset(); }
+}
 function applyLoad(t = pt) {
   if (!t) return;
   const L = LOADS[loadLevel], q = +($('prevQ')?.value || .5);
   t.tiles.set(L.tiles, L.tiles);            // petits morceaux par image : évite que le GPU sature
-  t.bounces = L.bounces;                    // aperçu ; l'export monte à 12
+  t.bounces = bouncesFor('preview');
   t.renderScale = Math.min(q, L.scale);
 }
 const PT_SOURCES = [
@@ -544,7 +558,7 @@ let ptSceneTimer = 0;
 function needScene() { ptDirty = true; clearTimeout(ptSceneTimer); ptSceneTimer = setTimeout(syncScene, 30); }
 function syncScene() {
   if (!pt) { ptDirty = false; return; }
-  try { pt.setScene(scene, camera); ptDirty = false; }
+  try { updateBounces(); pt.setScene(scene, camera); ptDirty = false; }
   catch (e) { ptDirty = false; ptFail(e); }
 }
 function ptFail(e) {
@@ -553,7 +567,7 @@ function ptFail(e) {
   lastErr = (e && e.message) || String(e);
   toast('Le path tracing a planté (' + lastErr + '). Passage en aperçu classique, tu peux réessayer en recochant la case.', 7000);
 }
-function needMaterials() { if (pt && !ptDirty) { try { pt.updateMaterials(); } catch (e) { needScene(); } } }
+function needMaterials() { updateBounces(); if (pt && !ptDirty) { try { pt.updateMaterials(); } catch (e) { needScene(); } } }
 function needCamera() { if (pt && !ptDirty) pt.updateCamera(); }
 function needEnv() { if (pt && !ptDirty) { try { pt.updateEnvironment(); } catch (e) { needScene(); } } }
 
@@ -827,6 +841,11 @@ const PRESETS = {
   givre:    { g: 'translucide', n: 'Givré', p: P({ color: '#5fb8ff', rough: .5, trans: 1, dens: .45, ior: 1.5 }) },
   irise:    { g: 'translucide', n: 'Irisé', p: P({ color: '#eef3ff', rough: .1, trans: 1, dens: .2, ior: 1.5, iri: 1 }) },
   verre:    { g: 'translucide', n: 'Verre', p: P({ color: '#ffffff', rough: 0, trans: 1, dens: 0, ior: 1.5 }) },
+  vertbout: { g: 'translucide', n: 'Verre de bouteille', p: P({ color: '#3f8f4a', rough: 0, trans: 1, dens: .45, ior: 1.52 }) },
+  cristalpb:{ g: 'translucide', n: 'Cristal taillé', p: P({ color: '#ffffff', rough: 0, trans: 1, dens: 0, ior: 1.9 }) },
+  diamant:  { g: 'translucide', n: 'Diamant', p: P({ color: '#ffffff', rough: 0, trans: 1, dens: 0, ior: 2.42 }) },
+  eau:      { g: 'translucide', n: 'Eau / liquide', p: P({ color: '#bfe6ff', rough: 0, trans: 1, dens: .12, ior: 1.33 }) },
+  plexi:    { g: 'translucide', n: 'Plexiglas', p: P({ color: '#ffffff', rough: .01, trans: 1, dens: 0, ior: 1.49 }) },
   gelee:    { g: 'translucide', n: 'Gelée', p: P({ color: '#ff6fb5', rough: .2, trans: 1, dens: .9, ior: 1.4 }) },
   acry:     { g: 'translucide', n: 'Acrylique teinté', p: P({ color: '#ff8a2a', rough: .03, trans: 1, dens: .5, ior: 1.49, coat: .2 }) },
   fume:     { g: 'translucide', n: 'Verre fumé', p: P({ color: '#3b3b47', rough: .02, trans: 1, dens: .6, ior: 1.5 }) },
@@ -3384,7 +3403,7 @@ async function animRender() {
     if (usePT) {
       const t = Math.max(LOADS[loadLevel].tiles, Math.ceil(Math.max(W, H) / (loadLevel ? 320 : 512)));
       pt.renderScale = 1; pt.tiles.set(t, t); pt.fadeDuration = 0; pt.minSamples = 1; pt.renderDelay = 0; pt.dynamicLowRes = false;
-      pt.bounces = loadLevel ? 6 : 8; pt.filterGlossyFactor = .4;
+      pt.bounces = bouncesFor('anim'); pt.filterGlossyFactor = .4;
       syncScene();
     }
     const t0 = performance.now();
@@ -3473,7 +3492,7 @@ async function doExport() {
     if (ptOn && pt) {
       if (ptDirty || noBg) syncScene(); else pt.updateCamera();
       pt.renderScale = 1; const t = Math.max(LOADS[loadLevel].tiles, Math.ceil(Math.max(W, H) / (loadLevel ? 320 : 512))); pt.tiles.set(t, t);
-      pt.fadeDuration = 0; pt.minSamples = 1; pt.renderDelay = 0; pt.dynamicLowRes = false; pt.filterGlossyFactor = target >= 512 ? .25 : .4; pt.bounces = loadLevel === 2 ? 8 : loadLevel === 1 ? 10 : 12;
+      pt.fadeDuration = 0; pt.minSamples = 1; pt.renderDelay = 0; pt.dynamicLowRes = false; pt.filterGlossyFactor = target >= 512 ? .25 : .4; pt.bounces = bouncesFor('export');
       pt.reset();
       const t0 = performance.now();
       await new Promise(res => {
