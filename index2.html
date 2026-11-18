@@ -7,988 +7,664 @@
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <title>loïc bp — designer graphique</title>
+  <meta name="description" content="Loïc Bosse-Platière — portfolio de design graphique : identités visuelles, édition, direction artistique." />
+  <script src="analytics.js"></script>
+  <script src="gate.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Piazzolla:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
-  <title>lbp — index2</title>
-  <meta name="description" content="Loïc BP — portfolio de design graphique : identités visuelles, éditions, direction artistique." />
-  <script src="gate.js"></script>
+  <link rel="preload" href="assets/projets.json" as="fetch" crossorigin />
   <style>
-    *, *::before, *::after {
-      margin: 0; padding: 0; box-sizing: border-box;
-    }
-
-    :root {
-      --bg: #fdfdfd;
-    --check-a: #fdfdfd;
-    --check-b: #efefef;
-    --check: 11px;      /* taille d'une case du damier */
-    --trame: 720px;     /* largeur d'UNE occurrence de la trame (assets/trame.svg) */
-    --trame-x: -30px;   /* décalage : la trame dépasse en haut à gauche */
-    --trame-y: -20px;
-      --ink: #0f0f0f;
-    }
-
-    html, body {
-      height: 100%;
-      cursor: none;
-    }
-
-    body {
-      background-color: var(--check-a);
-    background-image:
-      url('assets/trame.svg?v=3'),
-      conic-gradient(var(--check-b) 25%, var(--check-a) 0 50%, var(--check-b) 0 75%, var(--check-a) 0);
-    /* une seule trame par bloc de 2×2 : vide autour (haut/bas/gauche/droite ET diagonales) de la taille du SVG */
-    background-size:
-      calc(var(--trame) * 2) auto,
-      calc(var(--check) * 2) calc(var(--check) * 2);
-    background-position:
-      calc(var(--trame-x) - var(--bgx, 0px)) var(--trame-y),
-      0 0;
-    background-repeat: repeat, repeat;
-      color: var(--ink);
-      font-family: 'Piazzolla', serif;
-      min-height: 100vh;
-      user-select: none;
-    }
-
-    /* ── Curseur main (PNG) ── */
-    #cursor {
-      position: fixed;
-      top: 0; left: 0;
-      width: 32px;
-      height: auto;
-      pointer-events: none;
-      z-index: 9999;
-      /* hotspot = bout de l'index (≈ 5px, 1px) */
-      transform: translate(-5px, -1px);
-      will-change: left, top;
-    }
-
-    /* ── Sélection "Photoshop" : tracé pointillé noir/blanc animé (fourmis) ──
-       --ant = longueur d'un tiret (px) ; --ant-speed = durée d'un cycle            */
-    :root { --ant: 4px; --ant-speed: 0.4s; }
-
-    /* Le rond qui suit la souris : même effet, se morphe sur l'élément survolé */
-    #ring {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 9998;
-      overflow: visible;
-    }
-    #ring rect { fill: none; stroke-width: 1; stroke-dasharray: var(--ant) var(--ant); }
-    #ring .rb { stroke: #0f0f0f; animation: march var(--ant-speed) linear infinite; }
-    #ring .rw { stroke: #fff; stroke-dashoffset: var(--ant); animation: march-w var(--ant-speed) linear infinite; }
-
-    /* Contour exact d'un SVG (logo) : calque de tracés clonés, visible au survol */
-    .ants { opacity: 0; pointer-events: none; transition: opacity 0.15s ease; }
-    .ants-on .ants { opacity: 1; }
-    .ants * {
-      fill: none;
-      stroke-width: 1px;
-      vector-effect: non-scaling-stroke;   /* 1px et tirets constants quelle que soit la taille du logo */
-      stroke-dasharray: var(--ant) var(--ant);
-    }
-    .ants .ab { stroke: #0f0f0f; animation: march var(--ant-speed) linear infinite; }
-    .ants .aw { stroke: #fff; stroke-dashoffset: var(--ant); animation: march-w var(--ant-speed) linear infinite; }
-
-    @keyframes march   { to { stroke-dashoffset: calc(var(--ant) * -2); } }
-    @keyframes march-w { to { stroke-dashoffset: calc(var(--ant) * -1); } }
-
-    @media (prefers-reduced-motion: reduce) {
-      #ring .rb, #ring .rw, .ants .ab, .ants .aw { animation: none; }
-    }
-
-    /* ── Écrans tactiles : pas de curseur custom ── */
-    @media (hover: none) {
-      html, body { cursor: auto; }
-      #cursor, #ring { display: none; }
-    }
-
-    /* ── En-tête : logo centré en haut ── */
-    :root { --logo-w: clamp(140px, 15vw, 280px); }
-
-    ::selection { background: #2A3DFF; color: #fff; }
-    ::-moz-selection { background: #2A3DFF; color: #fff; }
-    .cap-l, .cap-y, .pn-body, .pn-meta { -webkit-user-select: text; user-select: text; cursor: none; }
-    .site-header {
-      display: flex;
-      justify-content: center;
-      padding: clamp(1.5rem, 4vw, 3.2rem) 1.2rem 0;
-    }
-    .site-header .logo {
-      display: block;
-      width: var(--logo-w);
-      height: auto;
-      overflow: visible;
-    }
-
-    /* ── Apparition du logo : le symbole se dévoile (même "wipe" que les titres), puis les lettres montent une à une ── */
-    .logo .wipe {
-      transform-box: fill-box;
-      transform-origin: 0 50%;
-      transform: scaleX(0);
-      animation: logo-wipe 0.6s cubic-bezier(0.77, 0, 0.175, 1) forwards 0.1s;
-    }
-    .logo .lt {
-      opacity: 0;
-      transform: translateY(10px);
-      animation: logo-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      animation-delay: calc(0.55s + var(--i) * 0.045s);
-    }
-    @keyframes logo-wipe { to { transform: scaleX(1); } }
-    @keyframes logo-rise { to { opacity: 1; transform: translateY(0); } }
-
-    @media (prefers-reduced-motion: reduce) {
-      .logo .wipe, .logo .lt { animation-duration: 0.01s; animation-delay: 0s; }
-    }
-
-    /* ═════════════ Galerie horizontale ═════════════ */
-    :root {
-      --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-      --gutter: clamp(1.2rem, 4vw, 3rem);
-      --gap: clamp(1rem, 2.2vw, 2rem);
-      --vpad: clamp(0.6rem, 2vh, 1.4rem);
-      --cap-h: 66px;               /* hauteur réservée à la légende sous l'image */
-      --card-max: 720px;           /* hauteur max d'une image sur très grand écran */
-      --line: rgba(15, 15, 15, 0.14);
-    }
-
-    /* La page ne défile pas : le logo en haut, la bande de projets au milieu, la barre en bas */
-    html, body { height: 100%; overflow: hidden; }
-    body { display: flex; flex-direction: column; min-height: 0; height: 100dvh; }
-
-    ::selection { background: #2A3DFF; color: #fff; }
-    ::-moz-selection { background: #2A3DFF; color: #fff; }
-    .site-header { flex: none; padding: clamp(1rem, 2.6vh, 2.2rem) 1.2rem 0; }
-    :root { --logo-w: clamp(120px, min(15vw, 17vh), 240px); }
-
-    .rail {
-      flex: 1;
-      min-height: 0;
-      container-type: size;                 /* permet d'utiliser 100cqh = hauteur de la bande */
-      overflow-x: auto;
-      overflow-y: hidden;
-      scrollbar-width: none;
-      overscroll-behavior-x: contain;
-      touch-action: pan-x;
-    }
-    .rail::-webkit-scrollbar { display: none; }
-
-    .track {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: var(--gap);
-      width: max-content;
-      height: 100%;
-      padding: 0 var(--gutter);
-    }
-
-    .card {
-      flex: none;
-      --enter: 70px;
-      --img-h: min(calc(100cqh - var(--cap-h) - var(--vpad) * 2), 74cqh, var(--card-max));
-      width: calc(var(--img-h) * var(--ar));
-      transition: opacity 0.2s ease;
-    }
-
-    /* ── Image ── */
-    .media {
-      position: relative;
-      display: block;
-      width: 100%;
-      height: var(--img-h);
-      padding: 0;
-      border: 1px solid var(--line);
-      background: #fff;
-      overflow: hidden;
-      cursor: none;
-      font: inherit;
-      color: inherit;
-      clip-path: inset(0 100% 0 0);           /* état initial : se dévoile à l'entrée */
-    }
-    .media:focus-visible { outline: none; }
-    .media.noimg::after { content: attr(aria-label); position: absolute; inset: 0; display: grid; place-items: center; padding: 1rem; text-align: center; font-size: 0.8rem; letter-spacing: 0.1em; opacity: 0.5; }
-    .par { position: absolute; inset: 0 -18px; will-change: transform; }   /* calque de parallaxe */
-    .media img {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      opacity: 0;
-      transform: scale(1.18);
-      user-select: none;
-      -webkit-user-drag: none;
-    }
-    .media img.contain { object-fit: contain; padding: 10%; }
-    .media img.ok { opacity: 1; }
-
-    /* Révélation : le cadre se dévoile (même "wipe" que les titres), l'image se pose */
-    .card.in .media {
-      clip-path: inset(0 0 0 0);
-      transition: clip-path 0.5s var(--ease-out) var(--rd, 0s);
-    }
-    .card.in .media img {
-      transform: scale(var(--s, 1));
-      transition: transform 0.6s var(--ease-out) var(--rd, 0s), opacity 0.25s ease var(--rd, 0s);
-    }
-    .card.done .media { transition: none; }
-    .card.done .media img { transition: transform 0.45s var(--ease-out), opacity 0.3s ease; }
-
-    /* ── Légende ── */
-    .cap {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 1rem;
-      height: var(--cap-h);
-      padding-top: 0.75rem;
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    .card.in .cap {
-      opacity: 1;
-      transform: none;
-      transition: opacity 0.3s ease calc(var(--rd, 0s) + 0.2s), transform 0.45s var(--ease-out) calc(var(--rd, 0s) + 0.2s);
-    }
-    .cap-l { min-width: 0; }
-    .cap-t {
-      display: inline;
-      font-size: clamp(1.05rem, 1.5vw, 1.3rem);
-      font-weight: 400;
-      line-height: 1.15;
-      letter-spacing: -0.045em;
-      background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
-      transition: background-size 0.2s ease-out;
-    }
-    .cap-m, .cap-y {
-      font-size: clamp(0.6rem, 1vw, 0.72rem);
-      letter-spacing: 0.2em;
-      font-style: italic;
-    }
-    .cap-m { margin-top: 0.35rem; opacity: 0.55; }
-    .cap-y { flex: none; opacity: 0.55; padding-top: 0.25em; }
-
-    @media (hover: hover) {
-      .card:hover .media img { --s: 1.045; }
-      .card:hover .cap-t { background-size: 100% 1px; }
-      .track:has(.card:hover) .card:not(:hover) { opacity: 0.42; }
-    }
-
-    /* ── Barre du bas : compteur, progression, indication ── */
-    .hud {
-      flex: none;
-      display: flex;
-      align-items: center;
-      gap: 1.4rem;
-      padding: 0.9rem var(--gutter) clamp(0.9rem, 2.4vh, 1.5rem);
-      font-size: clamp(0.6rem, 1vw, 0.72rem);
-      letter-spacing: 0.2em;
-      font-style: italic;
-      opacity: 0;
-      animation: fadeUp 0.5s ease forwards 0.9s;
-    }
-    .count { display: inline-block; min-width: 6.5ch; overflow: hidden; font-variant-numeric: tabular-nums; }
-    .count b { display: inline-block; font-weight: 400; }
-    .count b.tick { animation: tick 0.45s var(--ease-out); }
-    .bar { position: relative; flex: 1; height: 1px; background: var(--line); }
-    .bar i { position: absolute; inset: 0; background: var(--ink); transform-origin: 0 50%; transform: scaleX(var(--p, 0)); }
-    .hint { display: inline-flex; gap: 0.6em; align-items: center; transition: opacity 0.5s ease; }
-    .hint span { display: inline-block; animation: nudge 1.6s ease-in-out infinite; }
-    body.moved .hint { opacity: 0; }
-    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
-    .views { display: inline-flex; gap: 1.2rem; flex: none; }
-    .views button {
-      background: none; border: 0; padding: 0.4em 0; font: inherit; letter-spacing: inherit; text-transform: inherit;
-      color: inherit; cursor: none; opacity: 0.5; border-bottom: 1px solid transparent; transition: opacity 0.25s ease, border-color 0.25s ease;
-    }
-    .views button:hover, .views button:focus-visible { opacity: 0.85; outline: none; }
-    .views button[aria-pressed="true"] { opacity: 1; border-bottom-color: var(--ink); }
-
-    /* ── Vue Galerie : colonnes, proportions naturelles de chaque image ── */
-    .grid { display: none; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 1.2rem var(--gutter) 1.5rem; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
-    body.view-grid .grid { display: block; }
-    body.view-grid .rail { display: none; }
-    body.view-grid .hint { display: none; }
-    .gcols { column-count: 3; column-gap: var(--gap); }
-    .card.gi { display: block; width: auto; break-inside: avoid; margin-bottom: clamp(1.4rem, 3vw, 2.4rem); }
-    .gi .media { height: auto; aspect-ratio: var(--ar); }
-    .gi .cap { height: auto; min-height: var(--cap-h); }
-    @media (max-width: 1100px) { .gcols { column-count: 2; } }
-    @media (max-width: 560px)  { .gcols { column-count: 1; } }
-    @media (hover: none) { .views button { cursor: auto; } }
-    /* Retour d'appui : l'interface « sent » le clic */
-    .views button, .pn-nav button, .pn-close { transition: transform 0.16s var(--ease-out), opacity 0.25s ease, border-color 0.25s ease; }
-    .views button:active, .pn-nav button:active, .pn-close:active { transform: scale(0.96); }
-    .media:active img { --s: 1.02; }
-    @keyframes tick  { from { transform: translateY(70%); opacity: 0; } to { transform: none; opacity: 1; } }
-    @keyframes nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(6px); } }
-
-    /* ═════════════ Fiche projet (panneau) ═════════════ */
-    .panel {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-      display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-      background-color: var(--check-a);
-      background-image: conic-gradient(var(--check-b) 25%, var(--check-a) 0 50%, var(--check-b) 0 75%, var(--check-a) 0);
-      background-size: calc(var(--check) * 2) calc(var(--check) * 2);
-      clip-path: inset(0 0 0 0);
-    }
-    .panel[hidden] { display: none; }
-
-    .pn-media { padding: clamp(4rem, 9vh, 6rem) 0 var(--gutter) var(--gutter); min-height: 0; }
-    .pn-frame {
-      position: relative;
-      height: 100%;
-      display: grid;
-      place-items: center;
-      background: #fff;
-      border: 1px solid var(--line);
-      overflow: hidden;
-      clip-path: inset(100% 0 0 0);
-    }
-    .panel.open .pn-frame { clip-path: inset(0 0 0 0); transition: clip-path 0.45s var(--ease-out) 0.1s; }
-    .pn-frame img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; }
-    .pn-frame img.contain { padding: 8%; }
-
-    .pn-body {
-      min-height: 0;
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      padding: clamp(4rem, 9vh, 6rem) var(--gutter) var(--gutter) clamp(1.4rem, 3.5vw, 3.5rem);
-      scrollbar-width: thin;
-      scrollbar-color: var(--line) transparent;
-    }
-    .rv { opacity: 0; transform: translateY(10px); }
-    .panel.open .rv {
-      opacity: 1;
-      transform: none;
-      transition: opacity 0.3s ease calc(0.22s + var(--i, 0) * 0.045s), transform 0.4s var(--ease-out) calc(0.22s + var(--i, 0) * 0.045s);
-    }
-    .pn-meta, .pn-liv, .pn-nav, .pn-close {
-      font-size: clamp(0.6rem, 1vw, 0.72rem);
-      letter-spacing: 0.2em;
-      font-style: italic;
-    }
-    .pn-meta { color: rgba(15, 15, 15, 0.6); }
-    .pn-title-wrap { overflow: hidden; margin: 1.1rem 0 1.4rem; }
-    .pn-title {
-      display: block;
-      font-size: clamp(1.8rem, 3.6vw, 3.2rem);
-      font-weight: 400;
-      line-height: 1;
-      letter-spacing: -0.06em;
-      clip-path: inset(0 100% 0 0);
-    }
-    .panel.open .pn-title { clip-path: inset(0 0 0 0); transition: clip-path 0.45s var(--ease-out) 0.22s; }
-    .pn-lead { font-size: clamp(1.05rem, 1.45vw, 1.3rem); line-height: 1.25; font-style: italic; margin-bottom: 1.6rem; max-width: 34ch; }
-    .pn-text p { font-size: clamp(0.9rem, 1vw, 1rem); line-height: 1.45; max-width: 46ch; margin-bottom: 1em; }
-    .pn-liv { margin: 1.8rem 0 0; padding-top: 1.1rem; border-top: 1px solid var(--line); line-height: 1.9; color: rgba(15, 15, 15, 0.72); }
-    .pn-nav { display: flex; align-items: center; gap: 1.4rem; margin-top: 2.2rem; }
-    .pn-nav button, .pn-close {
-      position: relative;
-      background: none;
-      border: 0;
-      padding: 0.5em 0;
-      color: var(--ink);
-      font-family: inherit;
-      cursor: none;
-    }
-    .pn-nav button::after, .pn-close::after {
-      content: '';
-      position: absolute;
-      bottom: 0.1em; left: 0;
-      width: 0; height: 1px;
-      background: var(--ink);
-      transition: width 0.3s ease;
-    }
-    .pn-nav button:hover::after, .pn-close:hover::after,
-    .pn-nav button:focus-visible::after, .pn-close:focus-visible::after { width: 100%; }
-    .pn-nav button:focus-visible, .pn-close:focus-visible { outline: none; }
-    .pn-n { opacity: 0.5; font-variant-numeric: tabular-nums; }
-    .pn-close { position: absolute; top: clamp(1rem, 2.5vw, 1.8rem); right: clamp(1rem, 2.5vw, 1.8rem); z-index: 2; }
-
-    .panel.closing .pn-media, .panel.closing .pn-body, .panel.closing .pn-close { opacity: 0; transition: opacity 0.15s ease; }
-
-    @media (max-width: 760px) {
-      .panel { grid-template-columns: 1fr; grid-template-rows: 40dvh minmax(0, 1fr); }
-      .pn-media { padding: 3.6rem var(--gutter) 0; }
-      .pn-body { padding: 1.4rem var(--gutter) var(--gutter); }
-    }
-
-    @media (hover: none) {
-      .media, .pn-nav button, .pn-close { cursor: auto; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .media { clip-path: none !important; }
-      .media img { transform: none !important; transition: opacity 0.3s ease !important; }
-      .cap { opacity: 1 !important; transform: none !important; transition: none !important; }
-      .hint span, .count b.tick { animation: none; }
-      .pn-frame, .pn-title { clip-path: none !important; }
-      .rv { opacity: 1 !important; transform: none !important; transition: none !important; }
-    }
-  
-    /* ── Titres : Allo (Josh Puckett, SIL OFL) — graisse 700, rondeur 20. Les textes courants restent en Piazzolla ── */
     @font-face {
       font-family: 'Allo';
       src: url('assets/fonts/AlloVariable.woff2') format('woff2');
       font-weight: 100 900; font-style: normal; font-display: swap;
     }
-    .cap-t, .pn-title {
-      font-family: 'Allo', 'Piazzolla', serif;
-      font-weight: 700;
-      font-variation-settings: 'ROND' 20;
-      font-optical-sizing: auto;
-      letter-spacing: -0.035em;
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      /* Fond : damier + trame (identique à index.html) */
+      --check-a: #fdfdfd;
+      --check-b: #efefef;
+      --check: 11px;
+      --trame: 720px;
+      --trame-x: -30px;
+      --trame-y: -20px;
+
+      --ink: #0f0f0f;
+      --blue: #2A3DFF;
+      --frame: #c9c9c9;      /* cadre gris des vignettes */
+      --frame-modal: #cbcbcb;
+      --placeholder: #b3b3b3;
+      --media-bg: #e3e3e3;
+
+      --ease: cubic-bezier(0.7, 0, 0.2, 1);
+      --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+      /* Largeur du logo : tout le groupe logo + boutons en dépend */
+      --L: clamp(150px, 12.6vw, 240px);
     }
-      /* Règle : Allo uniquement pour les titres (et l'heure). Tout le reste est en Piazzolla, jamais en capitales. */
-    .cap-m, .cap-y, .hud, .pn-meta, .pn-liv, .pn-nav, .pn-nav button, .pn-close, .views button, .media.noimg::after {
+
+    html { background: var(--check-a); }
+    html.lock, html.lock body { overflow: hidden; }
+
+    body {
+      min-height: 100vh;
+      background-color: var(--check-a);
+      background-image:
+        url('assets/trame.svg?v=3'),
+        conic-gradient(var(--check-b) 25%, var(--check-a) 0 50%, var(--check-b) 0 75%, var(--check-a) 0);
+      background-size: calc(var(--trame) * 2) auto, calc(var(--check) * 2) calc(var(--check) * 2);
+      background-position: var(--trame-x) var(--trame-y), 0 0;
+      background-attachment: fixed, fixed;
+      color: var(--ink);
       font-family: 'Piazzolla', serif;
-      font-weight: 400;
-      font-variation-settings: normal;
-      text-transform: none;
-      letter-spacing: 0.01em;
-      font-size: clamp(0.86rem, 1.15vw, 0.98rem);
+      -webkit-font-smoothing: antialiased;
     }
-  
-    /* Survol / état actif des boutons et liens : surlignage bleu (comme la sélection de texte) à la place du soulignage */
-    .views button, .pn-nav button, .pn-close, .cap-t {
-      background-image: linear-gradient(#2A3DFF, #2A3DFF);
-      background-repeat: no-repeat;
-      background-position: 0 50%;
-      background-size: 0% 100%;
-      padding-inline: 0.35em;
-      margin-inline: -0.35em;
-      -webkit-box-decoration-break: clone; box-decoration-break: clone;
-      transition: background-size 0.25s cubic-bezier(0.23, 1, 0.32, 1), color 0.15s ease;
+
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; overflow: hidden;
+      clip: rect(0 0 0 0); white-space: nowrap;
     }
-    .views button:hover, .views button:focus-visible, .views button[aria-pressed="true"], .pn-nav button:hover, .pn-nav button:focus-visible, .pn-close:hover, .pn-close:focus-visible, .card:hover .cap-t { background-size: 100% 100%; color: #fff; }
-    .pn-nav button::after, .pn-close::after { content: none; display: none; }
-    .views button { border-bottom: 0; opacity: 1; }
-    .views button:not([aria-pressed="true"]):not(:hover):not(:focus-visible) { opacity: 0.55; }
-    .cap-t { background-size: 0% 100%; }
-    @media (hover: hover) { .card:hover .cap-t { background-size: 100% 100%; } }
+
+    /* ── Curseur main (souris uniquement) ── */
+    #cursor {
+      position: fixed; top: 0; left: 0; width: 32px; height: auto;
+      pointer-events: none; z-index: 9999;
+      transform: translate(-5px, -1px);
+      opacity: 0; transition: opacity .2s;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      html, body, a, button { cursor: none; }
+      body.has-cursor #cursor { opacity: 1; }
+    }
+
+    /* ── Scène : toutes les cartes + le groupe logo sont positionnés en JS (translate) ── */
+    #stage { position: relative; width: 100%; height: 100vh; }
+
+    /* ── Groupe logo + boutons ── */
+    #cluster {
+      position: absolute; left: 0; top: 0; z-index: 20;
+      width: var(--L); height: calc(var(--L) * 0.2285);
+      will-change: transform;
+    }
+    .logo { display: block; color: var(--ink); width: 100%; }
+    .logo svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+    /* Boutons bleus — positions reprises de la maquette, exprimées en largeur de logo */
+    .btn {
+      position: absolute;
+      left: calc(var(--L) * (0.5 + var(--dx)));
+      top:  calc(var(--L) * (0.114 + var(--dy)));
+      transform: translate(-50%, -50%) scale(var(--s, 1));
+      font: 700 clamp(11px, 0.82vw, 14px)/1 'Allo', sans-serif;
+      font-variation-settings: 'ROND' 20;
+      letter-spacing: -0.01em;
+      color: #fff; background: var(--blue);
+      border: 0; border-radius: 3px;
+      padding: 0.52em 0.62em 0.56em;
+      text-decoration: none; white-space: nowrap;
+      box-shadow: inset 0 0 0 1.5px var(--blue);
+      transition: transform .3s var(--ease-out), background-color .2s, color .2s;
+    }
+    .btn:hover, .btn:focus-visible { --s: 1.3; }
+    .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+    .b-toolbox { --dx: -0.26;  --dy: -0.28; }
+    .b-contact { --dx: -0.685; --dy: 0.195; }
+    .b-work    { --dx: 0.46;   --dy: 0.255; }
+    /* État actif de « work » : bouton inversé (fond blanc, texte et contour bleus) */
+    .b-work[aria-pressed="true"] { background: #fff; color: var(--blue); }
+
+    /* ── Cartes ── */
+    .card {
+      position: absolute; left: 0; top: 0;
+      width: var(--cw); height: var(--ch);
+      padding: 0; border: 0; background: none;
+      z-index: 1;
+      opacity: 0;
+      will-change: transform;
+    }
+    #stage.ready .card { opacity: 1; transition: opacity .6s var(--ease-out); }
+    #stage.anim .card { transition: transform .95s var(--ease), opacity .6s var(--ease-out); }
+    .card:hover, .card:focus-visible { z-index: 5; }
+    .card:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 4px; }
+    .card.is-open { visibility: hidden; }
+    .card-in {
+      display: block; width: 100%; height: 100%;
+      padding: 3px; border-radius: 4px; background: var(--frame);
+    }
+    .card img {
+      display: block; width: 100%; height: 100%;
+      object-fit: cover; border-radius: 2px; background: var(--placeholder);
+    }
+    .card img.contain { object-fit: contain; background: #fff; }
+
+    /* ── Survol : étiquette (avec retard) + aperçu collé au curseur ── */
+    #tag, #peek {
+      position: fixed; left: 0; top: 0; z-index: 60; pointer-events: none;
+      opacity: 0; transition: opacity .18s;
+    }
+    #tag {
+      font: 700 clamp(11px, 0.82vw, 14px)/1 'Allo', sans-serif;
+      font-variation-settings: 'ROND' 20;
+      color: #fff; background: var(--blue); border-radius: 3px;
+      padding: 0.52em 0.62em 0.56em; white-space: nowrap;
+    }
+    #peek {
+      width: calc(var(--cw) * 1.5);
+      padding: 3px; border-radius: 4px; background: var(--frame);
+      z-index: 59;
+    }
+    #peek img { display: block; width: 100%; height: auto; max-height: calc(var(--cw) * 1.5); object-fit: contain; border-radius: 2px; background: var(--placeholder); }
+    body.peeking #tag, body.peeking #peek { opacity: 1; }
+
+    /* ── Fiche projet (modale) ── */
+    #modal {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    #modal[hidden] { display: none; }
+    .m-frame {
+      position: relative;
+      width: min(58vw, calc((100vh - 210px) * 16 / 9 + 26px), 1100px);
+      min-width: 320px;
+      background: var(--frame-modal); border-radius: 5px;
+      padding: 13px 13px 0;
+      transform-origin: 0 0;
+    }
+    .m-media {
+      position: relative; aspect-ratio: 16 / 9;
+      background: var(--media-bg); border-radius: 3px; overflow: hidden;
+      touch-action: pan-y;
+    }
+    .m-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+    .m-media img.fade { animation: imgIn .35s var(--ease-out); }
+    @keyframes imgIn { from { opacity: 0; } }
+
+    .m-bar {
+      display: grid; grid-template-columns: 1fr auto; align-items: center;
+      column-gap: 1rem; row-gap: 2px;
+      padding: 9px 2px 11px;
+      transition: opacity .25s;
+    }
+    .m-head { display: flex; align-items: baseline; gap: .55em; flex-wrap: wrap; min-width: 0; }
+    .m-title {
+      font: 700 clamp(13px, 0.95vw, 16px)/1.15 'Allo', sans-serif;
+      font-variation-settings: 'ROND' 20; letter-spacing: -0.01em;
+    }
+    .m-meta { font-size: 11px; line-height: 1.3; }
+    .m-text { grid-column: 1; font-size: 12.5px; line-height: 1.35; max-width: 70ch; }
+    .m-nav { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; gap: 6px; }
+    .m-nav[hidden] { display: none; }
+    .m-nav .btn { position: static; transform: scale(var(--s, 1)); padding: .45em .6em .5em; }
+    .m-count { font-size: 11px; font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: center; }
+    #modal.entering .m-bar, #modal.leaving .m-bar, #modal.entering .m-close, #modal.leaving .m-close { opacity: 0; }
+
+    /* Fermer : petit carré bleu dans l'angle → au survol, il devient un bouton « × » à droite du cadre */
+    .m-close {
+      position: absolute; top: 0; right: 0;
+      width: 14px; height: 14px;
+      border: 0; border-radius: 2px; background: var(--blue); color: #fff;
+      display: grid; place-items: center;
+      transition: width .28s var(--ease-out), height .28s var(--ease-out), top .28s var(--ease-out), right .28s var(--ease-out), opacity .2s;
+    }
+    .m-close::before { content: ''; position: absolute; inset: -16px; }
+    /* zone de survol élargie vers l'angle du cadre : le bouton ne « fuit » pas sous la souris quand il se déplace */
+    .m-close:hover::before, .m-close:focus-visible::before { inset: -16px -16px -16px -64px; }
+    .m-close svg { width: 55%; height: 55%; opacity: 0; transition: opacity .15s; }
+    .m-close:hover, .m-close:focus-visible { width: 34px; height: 34px; top: -10px; right: -46px; }
+    .m-close:hover svg, .m-close:focus-visible svg { opacity: 1; transition-delay: .1s; }
+    .m-close:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+    /* ── Mobile / tactile : grille simple, pas de survol ── */
+    @media (max-width: 720px), (hover: none) {
+      :root { --L: clamp(150px, 46vw, 220px); }
+      .btn { font-size: 13px; }
+      .btn:hover { --s: 1; }
+      #tag, #peek { display: none; }
+      #modal { padding: 12px; }
+      .m-frame { width: 100%; min-width: 0; padding: 8px 8px 0; }
+      .m-media { aspect-ratio: 4 / 5; max-height: calc(100vh - 190px); }
+      .m-close, .m-close:hover, .m-close:focus-visible { width: 34px; height: 34px; top: -6px; right: -6px; }
+      .m-close svg { opacity: 1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #stage.anim .card, .btn, .m-close { transition: none !important; }
+    }
   </style>
 </head>
 <body>
-
   <img id="cursor" src="assets/curseur-main.png" alt="" width="32" height="30" aria-hidden="true" />
-  <svg id="ring" aria-hidden="true">
-    <rect class="rb"/>
-    <rect class="rw"/>
-  </svg>
 
-  <!-- Page vierge : le contenu du portfolio viendra ici -->
-  <header class="site-header">
-    <svg class="logo" data-ants="contour" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280.57 139.767" width="280" height="140" role="img" aria-label="loic.bp">
-      <defs>
-        <clipPath id="logo-wipe"><rect class="wipe" x="0" y="0" width="280.57" height="139.767"/></clipPath>
-      </defs>
-      <g fill="#0f0f0f">
-        <path class="sym" clip-path="url(#logo-wipe)" d="M105.408 18.25 L107.927 0.819 C147.075 0.638 186.226 0.509 225.374 0.255 C238.032 0.173 250.69 0.09 263.348 0.005 C266.944 -0.019 270.569 0.053 274.19 0.051 C278.62 0.048 281.715 4.388 280.165 8.43 L280.165 8.43 C278.132 13.734 276.058 19.028 274.089 24.355 C267.397 42.455 260.46 60.484 253.464 78.469 C252.331 81.383 251.177 84.29 250.072 87.215 C249.367 89.082 248.78 91.008 247.887 92.795 C246.825 94.918 244.025 97.982 243.489 100.061 C241.735 100.046 231.876 100.257 231.008 99.855 C229.96 99.369 228.978 97.948 228.166 97.136 C228.166 94.434 229.482 91.586 230.243 89.008 C231.844 83.584 233.418 78.154 235.041 72.737 C239.999 56.197 244.669 39.565 249.777 23.07 L232.814 23.175 C233.528 24.927 234.6 26.493 235.288 28.264 C238.323 36.074 239.162 44.264 238.125 52.564 C236.997 61.593 232.845 70.903 227.004 77.837 C225.182 79.999 223.416 82.232 221.3 84.147 C206.548 97.5 185.434 103.527 166.101 97.255 C138.878 88.423 128.379 58.807 139.935 33.528 C141.526 30.048 143.403 26.606 145.783 23.593 L125.48 23.593 C126.202 28.152 126.643 32.767 127.249 37.343 C128.614 47.647 129.954 57.952 131.244 68.268 C131.818 72.863 132.352 77.465 133.007 82.05 C133.355 84.485 134.16 87.308 133.926 89.768 C133.778 91.329 132.272 95.65 131.61 97.181 C131.194 98.143 130.499 99.045 130.258 100.061 L119.614 100.061 L117.724 90.959 C115.478 92.411 113.458 94.151 111.091 95.443 C103.815 99.416 94.823 100.603 86.637 99.954 C83.825 99.731 81.07 99.16 78.278 98.81 C77.237 95.397 75.652 92.131 74.457 88.766 C74.114 87.8 73.651 86.919 73.451 85.904 C74.664 85.419 76.707 83.516 77.853 83.456 C79.421 83.375 82.431 84.628 84.194 84.92 C90.831 86.017 98.887 85.676 104.616 81.785 C105.623 81.101 106.506 80.708 107.101 79.585 C104.438 79.918 101.813 80.361 99.105 80.092 C91.708 79.357 84.721 74.152 80.472 68.291 C75.204 61.025 71.98 50.381 76.579 41.987 C77.86 39.65 79.635 37.681 81.985 36.36 C85.83 34.198 90.195 34.37 94.458 34.245 C89.382 29.375 76.338 23.49 69.255 23.916 C66.813 24.062 64.188 24.477 61.896 25.346 C60.477 25.883 59.034 26.915 57.538 27.222 C55.293 27.683 52.555 27.082 50.271 27.035 C48.392 22.453 46.796 17.756 44.932 13.169 C43.749 10.258 42.08 7.097 41.488 4.008 C56.633 -2.208 76.664 2.293 90.859 9.204 C95.132 11.285 99.1 13.545 102.914 16.356 C103.779 16.994 104.629 17.478 105.408 18.25 Z M162.65 34.252 C161.414 34.607 158.363 39.213 157.564 40.451 C152.667 48.038 151.353 57.831 154.336 66.395 C160.764 84.852 184.345 89.919 200.069 80.248 C198.361 79.964 196.639 79.725 195.031 79.044 C191.803 77.677 189.362 75.395 187.431 72.533 C181.655 63.975 181.954 54.022 187.616 45.389 C191.256 39.839 197.22 35.267 203.955 34.377 C206.375 34.057 209.099 34.317 211.528 34.468 C210.939 33.67 209.745 32.931 209.471 31.968 C208.32 31.576 207.325 30.126 206.351 29.381 C204.208 27.744 201.696 26.375 199.196 25.367 C192.825 22.798 184.342 22.799 177.79 24.737 C175.268 25.483 172.9 26.738 170.595 27.983 C168.925 28.885 163.195 32.622 162.65 34.252 Z"/>
-        <g class="lts">
-        <polygon class="lt" style="--i:0" points="0,133.595 11.935,133.595 20.109,103.063 8.175,103.063"/>
-        <path class="lt" style="--i:1" d="M17.616 125.421 C17.616 133.963 26.2 134.454 32.862 134.454 C39.729 134.454 45.042 133.35 48.148 126.81 C49.824 123.213 50.846 119.494 50.846 115.488 C50.846 108.131 41.077 108.009 35.886 108.009 C26.486 108.009 23.543 109.725 21.417 112.954 C19.21 116.347 17.616 121.292 17.616 125.421 Z M29.102 124.399 C29.142 120.843 30.369 116.919 34.129 116.919 C37.317 116.919 38.257 117.573 38.257 119.698 C38.257 122.232 36.99 126.688 32.739 126.688 C30.328 126.688 29.102 125.993 29.102 124.399 Z"/>
-        <path class="lt" style="--i:2" d="M49.579 133.595 L61.514 133.595 L68.217 108.499 C66.786 108.704 65.029 108.867 62.454 108.867 L62.372 108.867 C61.228 108.867 60.042 108.826 58.98 108.744 C57.958 108.704 57.018 108.581 56.282 108.499 Z M62.454 101.142 C58.285 101.142 58.08 101.428 57.508 103.063 C57.222 104.003 57.018 105.107 57.018 105.72 C57.018 106.66 58.53 106.701 61.473 106.701 L63.353 106.701 C66.868 106.701 68.789 106.66 69.157 105.475 C69.525 104.289 70.015 102.327 70.015 102 C70.015 101.428 69.28 101.142 67.849 101.142 Z"/>
-        <path class="lt" style="--i:3" d="M93.436 125.666 C90.493 126.156 87.509 126.688 84.566 126.688 C81.01 126.688 79.784 126.034 79.784 123.132 C79.784 122.028 80.601 117.655 86.855 117.655 C89.88 117.655 92.659 117.941 95.316 118.431 L97.85 109.562 C93.436 108.744 88.94 108.009 83.871 108.009 C77.25 108.009 73.53 109.235 70.506 114.426 C68.83 117.287 67.195 122.764 67.195 126.851 C67.195 133.8 71.569 134.454 77.373 134.454 C82.073 134.454 86.855 134.086 91.474 133.146 Z"/>
-        <path class="lt" style="--i:4" d="M100.874 125.911 C97.441 125.911 94.662 127.137 94.662 131.47 C94.662 134.086 96.501 134.454 99.894 134.454 C105.82 134.454 106.883 132.287 106.883 128.69 C106.883 125.952 104.022 125.911 100.874 125.911 Z"/>
-        <path class="lt" style="--i:5" d="M123.682 123.827 C123.682 121.783 125.071 117.655 128.872 117.655 C131.039 117.655 132.02 118.636 132.02 120.107 C132.02 124.031 130.017 126.688 126.911 126.688 C124.744 126.688 123.682 125.911 123.682 123.827 Z M109.049 133.595 L120.984 133.595 L122.292 128.609 L122.374 128.609 C123.028 134.167 128.096 134.454 130.998 134.454 C139.172 134.454 142.074 128.772 143.791 122.232 C144.649 118.922 145.017 116.592 145.017 115.243 C145.017 110.216 142.197 108.009 136.924 108.009 C131.57 108.009 128.382 109.889 126.093 114.385 L126.011 114.385 L129.281 103.063 L117.387 103.063 Z"/>
-        <path class="lt" style="--i:6" d="M158.178 124.276 C158.178 121.415 159.241 117.655 163.369 117.655 C165.045 117.655 166.516 118.39 166.516 120.107 C166.516 123.786 164.473 126.688 160.958 126.688 C158.955 126.688 158.178 125.952 158.178 124.276 Z M141.87 139.767 L153.887 139.767 L156.789 128.609 L156.87 128.609 C157.402 134.413 162.593 134.454 165.495 134.454 C173.669 134.454 176.571 128.772 178.288 122.232 C179.146 118.922 179.514 116.919 179.514 114.467 C179.514 110.093 176.694 108.009 171.421 108.009 C166.067 108.009 163.124 110.257 160.59 114.385 L160.508 114.385 L162.102 108.867 L150.331 108.867 Z"/>
-        </g>
-      </g>
-    </svg>
-  </header>
+  <h1 class="sr-only">Loïc Bosse-Platière — designer graphique</h1>
 
-  <main class="rail" id="rail" aria-label="Projets">
-    <div class="track" id="track"></div>
-    <noscript><p style="padding:2rem">Cette galerie nécessite JavaScript.</p></noscript>
+  <main id="stage">
+    <nav id="cluster" aria-label="Navigation principale">
+      <a class="logo" href="./index2.html" aria-label="loïc bp — accueil"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 242.731 55.463" aria-hidden="true" focusable="false">
+  <g fill="currentColor">
+    <g stroke="currentColor" stroke-miterlimit="10">
+      <path d="M8.08 6.372 C6.099 6.666 3.852 7.216 2.175 8.475 C1.969 8.738 2.52 9.212 3.067 9.966 C3.749 10.875 4.332 11.522 4.69 12.087 C4.701 12.861 4.158 40.492 4.131 42.33 C3.206 42.986 0.099 42.775 0.543 44.678 C1.755 44.996 10.611 44.693 11.934 44.791 C12.27 44.816 12.202 43.626 11.901 43.524 C11.398 43.297 9.063 42.78 8.542 42.617 C7.892 41.926 8.491 24.334 8.294 13.844 C8.195 9.647 8.498 6.592 8.165 6.365 Z"/>
+      <path d="M30.125 20.811 C17.887 14.244 9.093 29.281 14.917 39.871 C17.798 45.452 25.632 46.914 30.516 43.112 C37.247 38.123 37.306 25.576 30.284 20.912 Z M30.343 38.101 C28.833 42.073 23.78 43.97 20.489 41.004 C17.626 38.653 16.83 33.803 17.296 29.859 C17.647 22.801 24.473 19.202 29.234 24.664 C31.955 28.126 32.032 33.955 30.421 37.922 Z"/>
+      <path d="M44.434 19.154 C42.316 19.422 40.092 20.095 38.289 21.288 C38.17 21.4 38.359 21.504 38.554 21.781 C39.126 22.5 40.145 23.778 40.595 24.343 C40.738 24.524 40.811 24.611 40.83 24.644 C40.859 24.686 40.388 41.636 40.376 42.407 C39.338 42.646 38.164 42.951 37.239 43.375 C36.931 43.495 36.731 43.567 36.735 43.951 C36.738 44.358 36.723 44.774 36.759 44.771 C39.309 44.794 48.077 44.79 48.359 44.774 C48.407 44.51 48.39 43.709 48.361 43.581 C47.683 43.26 45.371 42.813 44.6 42.564 C44.384 36.214 44.651 24.988 44.507 19.148 Z"/>
+      <path d="M36.44 14.08 C37.667 14.362 39.629 13.254 39.966 12.013 C40.286 10.765 39.462 9.29 38.431 8.592 C37.042 7.668 34.252 9.215 34.173 10.779 C34.169 12.047 35.092 13.573 36.27 14.032 Z"/>
+      <path d="M44.362 14.08 C45.589 14.362 47.552 13.254 47.888 12.013 C48.208 10.765 47.384 9.29 46.353 8.592 C44.965 7.668 42.174 9.215 42.095 10.779 C42.091 12.047 43.014 13.573 44.192 14.032 Z"/>
+      <path d="M64.429 41.953 C60.503 41.873 56.176 40.713 54.478 36.728 C51.993 31.618 53.449 22.911 60.089 22.579 C63.084 22.466 64.934 25.076 66.992 25.274 C68.739 24.556 67.019 21.093 65.501 20.223 C61.764 17.988 56.251 19.515 53.093 22.277 C49.888 25.123 48.6 29.575 48.992 33.939 C49.319 40.877 55.626 46.786 62.542 44.749 C64.421 44.304 68.249 42.286 64.565 41.969 Z"/>
+    </g>
+    <path d="M92.324 34.777 C93.478 31.149 93.692 26.864 92.186 23.741 C90.599 20.052 86.209 19.576 83.36 22.189 C81.833 23.381 80.373 25.549 79.312 27.016 C78.704 27.84 78.284 28.293 78.085 28.221 C77.633 28.065 78.235 25.577 78.997 22.475 C79.587 18.727 83.247 8.829 79.905 6.939 C78.353 6.144 75.964 6.791 75.076 8.215 C74.459 9.305 74.874 10.478 75.069 11.735 C75.385 13.213 75.238 14.939 74.874 16.49 C73.554 22.514 70.897 34.237 69.591 40.253 C69.37 41.326 69.105 42.93 69.435 43.692 C69.776 44.448 70.519 44.489 71.325 44.572 C72.687 44.656 74.198 44.693 75.604 44.814 C84.036 46.258 89.273 43.152 92.261 34.969 Z M87.547 32.259 C86.719 35.675 85.252 40.02 81.938 41.603 C79.833 42.631 76.889 41.904 76.18 39.504 C75.45 37.403 76.714 34.355 77.98 31.825 C79.554 29.019 82.378 23.114 85.81 23.6 C88.805 24.975 88.033 29.344 87.592 32.047 Z"/>
+    <path d="M116.612 21.302 C111.061 16.949 106.197 24.718 103.842 27.593 C103.276 28.169 103.22 27.56 103.248 27.03 C103.306 25.588 103.588 21.969 101.797 20.611 C100.252 19.4 97.239 19.932 96.25 21.544 C95.833 22.401 96.344 23.162 96.745 23.948 C97.148 24.718 97.387 25.447 97.392 26.425 C96.694 32.394 94.273 40.349 93.057 46.214 C92.677 49.171 89.694 53.084 90.078 54.003 C91.142 55.74 94.767 55.507 96.756 55.369 C98.358 55.141 100.478 54.999 100.081 53.063 C99.342 49.611 97.9 44.9 103.41 44.587 C112.558 45.856 118.718 37.89 119.189 29.295 C119.332 26.524 118.804 23.37 116.736 21.414 Z M113.116 29.025 C112.634 34.116 110.636 42.656 104.105 42.067 C99.285 40.969 101.238 35.685 103.2 31.832 C104.741 29.02 107.462 23.44 110.69 23.505 C112.965 23.95 113.166 26.846 113.126 28.813 Z"/>
+    <path d="M161.774 46.456 C162.132 49.157 161.2 52.675 160.417 55.061 L153.825 55.14 L152.763 50.272 C146.5 55.425 139.239 56.078 131.188 54.463 L127.993 46.327 C135.078 45.987 140.355 48.856 146.601 44.08 C139.753 44.286 135.826 42.197 132.274 37.355 C128.959 32.838 127.418 25.749 131.501 21.237 C132.866 19.728 136.626 19.032 139.352 18.338 C129.043 10.746 125.555 14.129 115.867 15.133 L110.679 1.84 C123.677 -1.943 135.461 2.427 146.025 9.792 L147.398 0.2 L238.912 0 C239.871 -0.002 242.005 0.442 242.136 1.185 L242.731 4.559 L228.785 41.582 L222.783 55.353 L213.719 54.764 L218.194 36.039 C210.262 49.715 197.031 57.652 181.606 54.035 C170.635 51.463 162.946 42.32 162.714 30.908 C162.588 24.688 164.671 19.839 167.272 13.382 L157.372 13.24 Z M192.5 41.331 C188.551 36.918 188.274 30.324 191.144 25.562 C193.94 20.924 198.399 18.424 204.343 18.453 C197.891 11.666 189.09 11.548 182.227 15.48 C175.514 19.328 171.157 26.505 172.906 34.665 C174.112 40.292 178.689 44.306 182.945 45.765 C188.569 47.693 193.786 46.393 198.298 44.373 C196.13 43.492 193.494 42.441 192.5 41.331 Z M225.601 12.783 L217.127 12.715 C218.597 18.383 219.392 22.691 220.524 29.64 Z"/>
+  </g>
+</svg></a>
+      <a class="btn b-toolbox" href="toolbox.html" data-umami-event="clic-toolbox">toolbox</a>
+      <a class="btn b-contact" href="mailto:contact@loicbp.fr" data-umami-event="clic-email">contact</a>
+      <button class="btn b-work" id="btn-work" type="button" aria-pressed="false" data-umami-event="clic-work">work</button>
+    </nav>
   </main>
 
-  <section class="grid" id="grid" aria-label="Galerie des projets"><div class="gcols" id="gcols"></div></section>
+  <div id="tag" aria-hidden="true"></div>
+  <div id="peek" aria-hidden="true"><img alt="" /></div>
 
-  <footer class="hud" id="hud">
-    <span class="count" aria-live="polite"><b id="count">01 / 25</b></span>
-    <div class="bar" aria-hidden="true"><i id="bar"></i></div>
-    <span class="hint">Faire défiler <span aria-hidden="true">→</span></span>
-    <div class="views" role="group" aria-label="Mode d'affichage">
-      <button type="button" id="v-rail" data-ants aria-pressed="true">Bande</button>
-      <button type="button" id="v-grid" data-ants aria-pressed="false">Galerie</button>
-    </div>
-  </footer>
-
-  <div class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="pn-t" hidden>
-    <button class="pn-close" id="pn-close" type="button" data-ants>Fermer</button>
-    <div class="pn-media"><div class="pn-frame"><img id="pn-img" alt="" draggable="false"></div></div>
-    <div class="pn-body" id="pn-body">
-      <p class="pn-meta rv" id="pn-meta" style="--i:0"></p>
-      <div class="pn-title-wrap"><h2 class="pn-title" id="pn-t"></h2></div>
-      <p class="pn-lead rv" id="pn-lead" style="--i:2"></p>
-      <div class="pn-text rv" id="pn-text" style="--i:3"></div>
-      <p class="pn-liv rv" id="pn-liv" style="--i:4"></p>
-      <nav class="pn-nav rv" style="--i:5" aria-label="Navigation entre projets">
-        <button type="button" id="pn-prev" data-ants>← Précédent</button>
-        <span class="pn-n" id="pn-n"></span>
-        <button type="button" id="pn-next" data-ants>Suivant →</button>
-      </nav>
+  <div id="modal" role="dialog" aria-modal="true" aria-labelledby="m-title" hidden>
+    <div class="m-frame">
+      <div class="m-media"><img alt="" /></div>
+      <div class="m-bar">
+        <div class="m-head">
+          <h2 class="m-title" id="m-title"></h2>
+          <p class="m-meta"></p>
+        </div>
+        <p class="m-text"></p>
+        <div class="m-nav" hidden>
+          <button class="btn m-prev" type="button" aria-label="Image précédente">←</button>
+          <span class="m-count" aria-live="polite"></span>
+          <button class="btn m-next" type="button" aria-label="Image suivante">→</button>
+        </div>
+      </div>
+      <button class="m-close" type="button" aria-label="Fermer le projet">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4 16 16M16 4 4 16" stroke="currentColor" stroke-width="3.2" stroke-linecap="square"/></svg>
+      </button>
     </div>
   </div>
 
   <script>
-    /* ── Curseur main ── */
-    const cursorEl = document.getElementById('cursor');
-    const ring     = document.getElementById('ring');
-    const rects    = ring.querySelectorAll('rect');
-    let mx = -100, my = -100;   // souris
-    let fx = -100, fy = -100;   // position retardée du rond
+  (() => {
+    'use strict';
+    const $ = (s, r = document) => r.querySelector(s);
+    const stage = $('#stage'), cluster = $('#cluster'), btnWork = $('#btn-work');
+    const tag = $('#tag'), peek = $('#peek'), peekImg = $('img', peek);
+    const modal = $('#modal'), frame = $('.m-frame'), media = $('.m-media'), mImg = $('img', media);
+    const mTitle = $('.m-title'), mMeta = $('.m-meta'), mText = $('.m-text');
+    const mNav = $('.m-nav'), mCount = $('.m-count'), mClose = $('.m-close');
+    const cursorEl = $('#cursor');
 
-    document.addEventListener('mousemove', e => {
-      mx = e.clientX;
-      my = e.clientY;
-      cursorEl.style.left = mx + 'px';
-      cursorEl.style.top  = my + 'px';
-    });
+    const mqMobile = matchMedia('(max-width: 720px), (hover: none)');
+    const fine = matchMedia('(hover: hover) and (pointer: fine)');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)');
 
-    /* ── Contour exact des SVG [data-ants="contour"] : on clone chaque tracé en 2 calques (noir + blanc) ── */
-    document.querySelectorAll('svg[data-ants="contour"]').forEach(svg => {
-      const NS = 'http://www.w3.org/2000/svg';
-      const g = document.createElementNS(NS, 'g');
-      g.setAttribute('class', 'ants');
-      svg.querySelectorAll('path, polygon').forEach(sh => {
-        if (sh.closest('defs, clipPath')) return;
-        ['ab', 'aw'].forEach(cls => {
-          const c = document.createElementNS(NS, sh.tagName);
-          ['d', 'points'].forEach(a => sh.hasAttribute(a) && c.setAttribute(a, sh.getAttribute(a)));
-          c.setAttribute('class', cls);
-          g.appendChild(c);
-        });
-      });
-      svg.appendChild(g);
-    });
+    let projects = [], cards = [], depth = [];
+    let mode = 'scatter';           // 'scatter' | 'work'
+    let isMobile = mqMobile.matches;
+    let current = null, imgIndex = 0, pushedOpen = false;
+    let mx = innerWidth / 2, my = innerHeight / 2;
 
-    /* ── Cible survolée : tout [data-ants], lien ou bouton ──
-       data-ants="contour" → contour exact (le rond disparaît)
-       sinon               → le rond se morphe en rectangle autour de l'élément */
-    const PAD = 6;
-    let target = null;
+    const track = (n, d) => { try { window.lbpTrack && window.lbpTrack(n, d); } catch (e) {} };
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-    function setTarget(el) {
-      if (el === target) return;
-      if (target) target.classList.remove('ants-on');
-      target = el;
-      if (target && target.dataset.ants === 'contour') target.classList.add('ants-on');
-    }
-    const pick = el => el && el.closest ? el.closest('[data-ants], a, button') : null;
-
-    document.addEventListener('mouseover', e => setTarget(pick(e.target)));
-    document.addEventListener('mouseleave', () => setTarget(null));
-    document.addEventListener('focusin',  e => { const t = pick(e.target); if (t && t.matches(':focus-visible')) setTarget(t); });
-    document.addEventListener('focusout', () => setTarget(null));
-
-    /* ── Rond : cercle au repos → rectangle pointillé sur la cible ── */
-    const REST = 26;
-    const st = { x: -100, y: -100, w: REST, h: REST, r: REST / 2, o: 0.55 };
-
-    (function frame() {
-      fx += (mx - fx) * 0.11;
-      fy += (my - fy) * 0.11;
-
-      let g, k;
-      if (target && target.dataset.ants === 'contour') {
-        g = { x: fx, y: fy, w: 0, h: 0, r: 0, o: 0 };                   // le rond se résorbe, le contour prend le relais
-        k = 0.25;
-      } else if (target) {
-        const b = target.getBoundingClientRect();
-        g = { x: b.left - PAD, y: b.top - PAD, w: b.width + PAD * 2, h: b.height + PAD * 2, r: 0, o: 1 };
-        k = 0.28;                                                      // snap rapide
-      } else {
-        g = { x: fx - REST / 2, y: fy - REST / 2, w: REST, h: REST, r: REST / 2, o: 0.55 };
-        k = 0.22;
-      }
-      for (const p in g) st[p] += (g[p] - st[p]) * k;
-
-      const w = Math.max(st.w, 0), h = Math.max(st.h, 0);
-      const r = Math.min(Math.max(st.r, 0), w / 2, h / 2);
-      rects.forEach(el => {
-        el.setAttribute('x', st.x + 0.5);                              // +0.5 : trait de 1px bien net
-        el.setAttribute('y', st.y + 0.5);
-        el.setAttribute('width',  w);
-        el.setAttribute('height', h);
-        el.setAttribute('rx', r);
-      });
-      ring.style.opacity = st.o < 0.01 ? 0 : st.o;
-      requestAnimationFrame(frame);
-    })();
-  </script>
-  <script>
-  /* ═════════════ Galerie horizontale ═════════════ */
-  (async function () {
-    const rail  = document.getElementById('rail');
-    const track = document.getElementById('track');
-    const bar   = document.getElementById('bar');
-    const countEl = document.getElementById('count');
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
-    const pad2 = n => String(n).padStart(2, '0');
-    const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-
-    /* ── Données ── */
-    let data = [];
-    try { data = await (await fetch('assets/projets.json')).json(); }
-    catch (e) { console.error('projets.json introuvable', e); return; }
-    const N = data.length;
-    countEl.textContent = '01 / ' + pad2(N);
-
-    /* ── Cartes ── */
-    const tpl = (p, i, cls, arMax) => {
-      const contain = p.cover.fit === 'contain';
-      const ar = contain ? (cls ? 1.3 : 1.7) : clamp(p.cover.w / p.cover.h, 0.62, arMax);
-      return '<article class="card' + cls + '" data-i="' + i + '" style="--ar:' + ar.toFixed(3) + '">' +
-        '<button class="media" type="button" data-ants aria-label="Ouvrir le projet ' + esc(p.titre) + '">' +
-          '<div class="par"><img src="' + esc(p.cover.src) + '" alt="' + esc(p.titre) + '" width="' + p.cover.w + '" height="' + p.cover.h + '"' +
-          (i < 4 ? '' : ' loading="lazy"') + ' decoding="async" draggable="false"' + (contain ? ' class="contain"' : '') + '></div>' +
-        '</button>' +
-        '<div class="cap"><div class="cap-l"><h2 class="cap-t">' + esc(p.titre) + '</h2>' +
-          '<p class="cap-m">' + esc(p.disciplines.join(' / ')) + '</p></div>' +
-          '<span class="cap-y">' + (p.annee || '') + '</span></div>' +
-      '</article>';
-    };
-    track.innerHTML = data.map((p, i) => tpl(p, i, '', 1.6)).join('');
-    const gcols = document.getElementById('gcols'), gridEl = document.getElementById('grid');
-    gcols.innerHTML = data.map((p, i) => tpl(p, i, ' gi', 1.85)).join('');
-    const gcards = [...gcols.children];
-    gcards.forEach(c => {
-      const img = c.querySelector('img');
-      const ok = () => img.classList.add('ok');
-      img.complete && img.naturalWidth ? ok() : img.addEventListener('load', ok, { once: true });
-    });
-
-    document.querySelectorAll('.card img').forEach(img => img.addEventListener('error', () => {
-      const m = img.closest('.media'); m.classList.add('noimg'); img.remove();
-    }));
-    const cards = [...track.children];
-    const pars  = cards.map(c => c.querySelector('.par'));
-    cards.forEach(c => {
-      const img = c.querySelector('img');
-      const ok = () => img.classList.add('ok');
-      img.complete && img.naturalWidth ? ok() : img.addEventListener('load', ok, { once: true });
-    });
-
-    /* ── Révélation à l'entrée dans l'écran ── */
-    const t0 = performance.now();
-    const io = new IntersectionObserver(entries => {
-      const first = performance.now() - t0 < 2800;
-      let rank = 0;
-      entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.left - b.boundingClientRect.left).forEach(e => {
-        const c = e.target; io.unobserve(c);
-        const d = (first ? 0.4 : 0) + rank++ * 0.055;
-        c.style.setProperty('--rd', d + 's');
-        c.classList.add('in');
-        setTimeout(() => c.classList.add('done'), (d + 1.3) * 1000);
-      });
-    }, { root: rail, threshold: 0.08 });
-    cards.forEach(c => io.observe(c));
-
-    /* ── Géométrie mise en cache ── */
-    let lefts = [], widths = [], maxScroll = 0;
-    function measure() {
-      lefts = cards.map(c => c.offsetLeft);
-      widths = cards.map(c => c.offsetWidth);
-      maxScroll = Math.max(0, rail.scrollWidth - rail.clientWidth);
-    }
-    new ResizeObserver(measure).observe(track);
-    new ResizeObserver(measure).observe(rail);
-    measure();
-
-    /* ── Défilement fluide : molette verticale → horizontal, glisser, clavier ── */
-    let view = 'rail';
-    let tx = 0, cx = 0, lastSet = 0, running = false, lastT = 0, panelOpen = false;
-    const setScroll = v => { lastSet = v; rail.scrollLeft = v; };
-
-    function visuals() {
-      if (view === 'grid') return;
-      const sl = rail.scrollLeft, vw = rail.clientWidth, mid = sl + vw / 2;
-      const p = maxScroll ? clamp(sl / maxScroll, 0, 1) : 0;
-      bar.style.setProperty('--p', p.toFixed(4));
-      document.body.style.setProperty('--bgx', (sl * 0.22).toFixed(1) + 'px');       // la trame glisse plus lentement que la bande
-      let best = 0, bd = Infinity;
-      for (let i = 0; i < N; i++) {
-        const cc = lefts[i] + widths[i] / 2;
-        const off = cc - mid;
-        if (Math.abs(off) < bd) { bd = Math.abs(off); best = i; }
-        if (cc + widths[i] < sl - 200 || cc - widths[i] > sl + vw + 200) continue;   // hors écran : pas de calcul
-        pars[i].style.transform = 'translate3d(' + clamp(off * -0.03, -14, 14).toFixed(1) + 'px,0,0)';
-      }
-      const label = pad2(best + 1) + ' / ' + pad2(N);
-      if (countEl.textContent !== label) {
-        countEl.textContent = label;
-        countEl.classList.remove('tick'); void countEl.offsetWidth; countEl.classList.add('tick');
-      }
-      if (sl > 8) document.body.classList.add('moved');
-    }
-
-    let prevCx = 0, sv = 0;
-    function loop(now) {
-      const dt = Math.min((now - lastT) / 1000 || 0.016, 0.05); lastT = now;
-      const k = reduce ? 1 : 1 - Math.exp(-dt * 13);
-      cx += (tx - cx) * k;
-      if (Math.abs(tx - cx) < 0.3) cx = tx;
-      setScroll(cx);
-      // la bande se penche selon la vitesse puis revient en ressort : sensation d'élasticité
-      const vel = cx - prevCx; prevCx = cx;
-      sv = 0;
-      track.style.transform = Math.abs(sv) > 0.02 ? 'skewX(' + sv.toFixed(2) + 'deg)' : '';
-      visuals();
-      if (cx !== tx || Math.abs(sv) > 0.02) requestAnimationFrame(loop); else running = false;
-    }
-    function kick() { if (!running) { running = true; lastT = performance.now(); prevCx = cx; requestAnimationFrame(loop); } }
-    const to = v => { tx = clamp(v, 0, maxScroll); kick(); };
-
-    rail.addEventListener('scroll', () => {                      // défilement natif (tactile, barre...) : on resynchronise
-      if (Math.abs(rail.scrollLeft - lastSet) > 1.5) { tx = cx = rail.scrollLeft; lastSet = cx; }
-      visuals();
-    }, { passive: true });
-
-    window.addEventListener('wheel', e => {
-      if (panelOpen || view === 'grid' || e.ctrlKey) return;
-      e.preventDefault();
-      let d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-      if (e.deltaMode === 1) d *= 32;
-      to(tx + d);
-    }, { passive: false });
-
-    /* ── Aimant : quand le geste s'arrête, la bande se cale sur le projet le plus proche (ou le suivant si on a franchi un seuil) ── */
-    let snapT = null, gStart = 0;
-    const nearest = v => {
-      const mid = v + rail.clientWidth / 2; let b = 0, bd = Infinity;
-      for (let i = 0; i < N; i++) { const dd = Math.abs(lefts[i] + widths[i] / 2 - mid); if (dd < bd) { bd = dd; b = i; } }
-      return b;
-    };
-    const snapNow = () => {
-      snapT = null;
-      if (panelOpen || drag) return;
-      let i = nearest(tx);
-      const startC = lefts[gStart] + widths[gStart] / 2 - rail.clientWidth / 2;
-      if (i === gStart && Math.abs(tx - startC) > 36) i = clamp(gStart + (tx > startC ? 1 : -1), 0, N - 1);
-      to(clamp(lefts[i] + widths[i] / 2 - rail.clientWidth / 2, 0, maxScroll));
-    };
-    const armSnap = (ms) => { clearTimeout(snapT); snapT = setTimeout(snapNow, ms || 130); };
-
-    /* glisser à la souris */
-    let drag = null, dragged = false;
-    rail.addEventListener('pointerdown', e => {
-      if (e.pointerType !== 'mouse' || e.button !== 0 || e.target.closest('.cap')) return;
-      gStart = nearest(tx);
-      drag = { x: e.clientX, tx: tx };
-    });
-    window.addEventListener('pointermove', e => {
-      if (!drag) return;
-      const dx = e.clientX - drag.x;
-      if (Math.abs(dx) > 6) dragged = true;
-      if (dragged) to(drag.tx - dx);
-    });
-    const endDrag = () => { drag = null; setTimeout(() => dragged = false, 0); };
-    window.addEventListener('pointerup', endDrag);
-    window.addEventListener('pointercancel', endDrag);
-    window.addEventListener('blur', endDrag);
-    rail.addEventListener('click', e => { if (dragged) { e.stopPropagation(); e.preventDefault(); } }, true);
-
-    const centerOn = (i, instant) => {
-      if (view === 'grid') { gcards[i].scrollIntoView({ block: 'center' }); return; }
-      const v = clamp(lefts[i] + widths[i] / 2 - rail.clientWidth / 2, 0, maxScroll);
-      if (instant) { tx = cx = v; setScroll(v); visuals(); } else to(v);
-    };
-
-    /* ── Magnétisme : les cadres et les boutons sont attirés par le curseur (ressort avec léger dépassement) ── */
-    const MAG = new Map(); let magRun = false;
-    function magSet(el, t) {
-      let m = MAG.get(el);
-      if (!m) { m = { x: 0, y: 0, rx: 0, ry: 0, vx: 0, vy: 0, vrx: 0, vry: 0, t: { x: 0, y: 0, rx: 0, ry: 0 } }; MAG.set(el, m); }
-      Object.assign(m.t, t);
-      if (!magRun) { magRun = true; requestAnimationFrame(magLoop); }
-    }
-    function magLoop() {
-      let busy = false;
-      MAG.forEach((m, el) => {
-        [['x', 'vx'], ['y', 'vy'], ['rx', 'vrx'], ['ry', 'vry']].forEach(([k, v]) => {
-          m[v] = (m[v] + (m.t[k] - m[k]) * 0.14) * 0.74;
-          m[k] += m[v];
-          if (Math.abs(m[v]) > 0.01 || Math.abs(m.t[k] - m[k]) > 0.01) busy = true; else { m[k] = m.t[k]; m[v] = 0; }
-        });
-        el.style.transform = el.classList.contains('media')
-          ? 'perspective(900px) translate3d(' + m.x.toFixed(2) + 'px,' + m.y.toFixed(2) + 'px,0) rotateX(' + m.rx.toFixed(2) + 'deg) rotateY(' + m.ry.toFixed(2) + 'deg)'
-          : 'translate3d(' + m.x.toFixed(2) + 'px,' + m.y.toFixed(2) + 'px,0)';
-      });
-      if (busy) requestAnimationFrame(magLoop); else magRun = false;
-    }
-    const Z = { x: 0, y: 0, rx: 0, ry: 0 };
-    let hov = null;
-    if (!reduce && matchMedia('(hover: hover)').matches) {
-      window.addEventListener('pointermove', e => {
-        if (e.pointerType !== 'mouse' || panelOpen) return;
-        const m = drag && dragged ? null : e.target.closest && e.target.closest('.media');
-        if (hov && hov !== m) { magSet(hov, Z); hov = null; }
-        if (m) {
-          const r = m.getBoundingClientRect();
-          const rx = clamp((e.clientX - r.left) / r.width * 2 - 1, -1, 1), ry = clamp((e.clientY - r.top) / r.height * 2 - 1, -1, 1);
-          magSet(m, { x: rx * 12, y: ry * 9, rx: -ry * 3.2, ry: rx * 3.2 });
-          hov = m;
-        }
-      });
-      [rail, gridEl].forEach(el => el.addEventListener('pointerleave', () => { if (hov) { magSet(hov, Z); hov = null; } }));
-    }
-
-    /* ── Fiche projet ── */
-    const panel = document.getElementById('panel');
-    const $ = id => document.getElementById(id);
-    const inertEls = [document.querySelector('.site-header'), rail, gridEl, $('hud')];
-    const cur_cards = () => view === 'grid' ? gcards : cards;
-    let cur = 0, opener = null, closing = false;
-
-    function fill(i) {
-      const p = data[i];
-      $('pn-meta').textContent = [p.client, p.annee, p.cadre].filter(Boolean).join('  ·  ');
-      $('pn-t').textContent = p.titre;
-      $('pn-lead').textContent = p.accroche;
-      $('pn-text').innerHTML = p.texte.map(t => '<p>' + esc(t) + '</p>').join('');
-      $('pn-liv').innerHTML = [p.disciplines.join(' / '), p.livrables.join(' / ')].filter(Boolean).map(esc).join('<br>');
-      const img = $('pn-img');
-      img.src = p.cover.src; img.alt = p.titre;
-      img.className = p.cover.fit === 'contain' ? 'contain' : '';
-      $('pn-n').textContent = pad2(i + 1) + ' / ' + pad2(N);
-      $('pn-body').scrollTop = 0;
-    }
-    const insetOf = el => {
-      const r = el.getBoundingClientRect();
-      return 'inset(' + r.top + 'px ' + (innerWidth - r.right) + 'px ' + (innerHeight - r.bottom) + 'px ' + r.left + 'px)';
-    };
-
-    function openPanel(i) {
-      if (panelOpen) return;
-      cur = i; opener = cur_cards()[i].querySelector('.media');
-      fill(i);
-      panelOpen = true; closing = false;
-      panel.hidden = false;
-      inertEls.forEach(el => el.inert = true);
-      panel.classList.remove('open', 'closing');
-      panel.style.opacity = '';
-      if (reduce) { panel.style.clipPath = 'inset(0 0 0 0)'; }
-      else {
-        panel.style.transition = 'none';
-        panel.style.opacity = '';
-        panel.style.clipPath = insetOf(opener);                      // part du cadre de l'image cliquée…
-        void panel.offsetWidth;
-        panel.style.transition = 'clip-path 0.5s var(--ease-out)';
-        panel.style.clipPath = 'inset(0px 0px 0px 0px)';             // …et occupe tout l'écran
-      }
-      panel.classList.add('open');
-      $('pn-close').focus({ preventScroll: true });
-    }
-
-    function closePanel() {
-      if (!panelOpen || closing) return;
-      closing = true;
-      centerOn(cur, true);                                           // la carte courante est visible pour le retour
-      opener = cur_cards()[cur].querySelector('.media');
-      panel.classList.add('closing');
-      const done = () => {
-        panel.classList.remove('open', 'closing');
-        panel.hidden = true; panelOpen = false; closing = false;
-        inertEls.forEach(el => el.inert = false);
-        opener.focus({ preventScroll: true });
+    /* Générateur pseudo-aléatoire à graine fixe : même composition à chaque visite pour une taille d'écran donnée */
+    function rng(seed) {
+      return () => {
+        seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+        let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
       };
-      if (reduce) { done(); return; }
-      panel.style.transition = 'clip-path 0.35s var(--ease-out), opacity 0.15s ease 0.2s';
-      panel.style.clipPath = insetOf(opener);
-      panel.style.opacity = '0';
-      let fired = false;
-      const fin = () => { if (fired) return; fired = true; done(); };
-      panel.addEventListener('transitionend', e => { if (e.target === panel) fin(); }, { once: true });
-      setTimeout(fin, 500);
     }
 
-    function go(d) {
-      cur = (cur + d + N) % N;
-      fill(cur);
-      centerOn(cur, true);
-      $('pn-body').querySelectorAll('.rv').forEach(el => { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; });
-    }
+    const thumb = p => 'assets/projets/thumbs/' + p.slug + '.webp';
+    const images = p => (p.images && p.images.length ? p.images : [p.cover]).map(x => typeof x === 'string' ? { src: x } : x);
+    const meta = p => [(p.disciplines || []).join(', '), p.cadre, p.annee].filter(Boolean).join(' / ');
 
-    gcols.addEventListener('click', e => {
-      const m = e.target.closest('.media');
-      if (m) openPanel(+m.closest('.card').dataset.i);
-    });
-    track.addEventListener('click', e => {
-      const m = e.target.closest('.media');
-      if (m) openPanel(+m.closest('.card').dataset.i);
-    });
-    $('pn-close').addEventListener('click', closePanel);
-    $('pn-prev').addEventListener('click', () => go(-1));
-    $('pn-next').addEventListener('click', () => go(1));
-
-    window.addEventListener('keydown', e => {
-      if (panelOpen) {
-        if (e.key === 'Escape') { e.preventDefault(); closePanel(); }
-        else if (e.key === 'ArrowLeft')  { e.preventDefault(); go(-1); }
-        else if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
-        else if (e.key === 'Tab') {                                  // le focus reste dans la fiche
-          const f = [...panel.querySelectorAll('button')];
-          const a = document.activeElement, first = f[0], last = f[f.length - 1];
-          if (e.shiftKey && a === first) { e.preventDefault(); last.focus(); }
-          else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
-        }
-        return;
-      }
-      if (view === 'grid') return;
-      if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); to(tx + rail.clientWidth * 0.6); }
-      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); to(tx - rail.clientWidth * 0.6); }
-      else if (e.key === 'Home') { e.preventDefault(); to(0); }
-      else if (e.key === 'End')  { e.preventDefault(); to(maxScroll); }
-    });
-
-    /* ── Bascule Bande / Galerie ── */
-    const vb = { rail: $('v-rail'), grid: $('v-grid') };
-    const gio = new IntersectionObserver(entries => {
-      let rank = 0;
-      entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top || a.boundingClientRect.left - b.boundingClientRect.left).forEach(e => {
-        const c = e.target; gio.unobserve(c);
-        c.style.setProperty('--rd', (rank++ * 0.06) + 's');
-        c.classList.add('in');
-        setTimeout(() => c.classList.add('done'), 1300 + rank * 60);
+    /* ───────── Construction ───────── */
+    function build() {
+      const r = rng(11);
+      projects.forEach((p, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'card';
+        b.dataset.slug = p.slug;
+        b.setAttribute('aria-label', p.titre + (p.annee ? ' (' + p.annee + ')' : ''));
+        const ratio = p.cover ? p.cover.w / p.cover.h : 1.6;
+        const img = new Image();
+        img.src = thumb(p); img.alt = ''; img.decoding = 'async';
+        if (ratio > 2.6 || ratio < 0.4) img.className = 'contain';
+        const inner = document.createElement('span');
+        inner.className = 'card-in';
+        inner.appendChild(img);
+        b.appendChild(inner);
+        b.addEventListener('click', () => open(p.slug, { from: b }));
+        b.addEventListener('mouseenter', () => showPeek(p));
+        b.addEventListener('mouseleave', hidePeek);
+        stage.appendChild(b);
+        cards.push(b);
+        depth.push(0.35 + r() * 0.65);
       });
-    }, { root: gridEl, threshold: 0.05 });
-    function gridHud() {
-      const max = gridEl.scrollHeight - gridEl.clientHeight;
-      bar.style.setProperty('--p', (max > 0 ? clamp(gridEl.scrollTop / max, 0, 1) : 0).toFixed(4));
     }
-    gridEl.addEventListener('scroll', gridHud, { passive: true });
-    function setView(v, save) {
-      if (v === view) return;
-      view = v;
-      document.body.classList.toggle('view-grid', v === 'grid');
-      vb.rail.setAttribute('aria-pressed', v === 'rail');
-      vb.grid.setAttribute('aria-pressed', v === 'grid');
-      if (save) { try { localStorage.setItem('loicbp_view', v); } catch (e) {} }
-      if (v === 'grid') {
-        countEl.textContent = pad2(N) + ' projets';
-        gcards.forEach(c => { c.classList.remove('in', 'done'); gio.observe(c); });
-        gridEl.scrollTop = 0; gridHud();
+
+    /* ───────── Mise en page ───────── */
+    function metrics() {
+      const vw = document.documentElement.clientWidth, vh = innerHeight;
+      const L = cluster.getBoundingClientRect().width;
+      const cw = isMobile
+        ? Math.floor((vw - 2 * 16 - 14) / 2)
+        : Math.round(clamp(vw * 0.1, 118, 170));
+      const ch = Math.round(cw * 0.565);
+      return { vw, vh, L, LH: L * 0.2285, cw, ch };
+    }
+
+    /* Boîte englobante du groupe logo + boutons, relative à son origine */
+    function clusterBox() {
+      const o = cluster.getBoundingClientRect();
+      let x0 = 0, y0 = 0, x1 = o.width, y1 = o.height;
+      cluster.querySelectorAll('.btn').forEach(el => {
+        const w = el.offsetWidth, h = el.offsetHeight;
+        const cx = el.offsetLeft, cy = el.offsetTop;   // centre (translate -50 %)
+        x0 = Math.min(x0, cx - w / 2); y0 = Math.min(y0, cy - h / 2);
+        x1 = Math.max(x1, cx + w / 2); y1 = Math.max(y1, cy + h / 2);
+      });
+      return { x0, y0, x1, y1 };
+    }
+
+    function gap(a, b) {
+      const dx = Math.max(a.x0 - b.x1, b.x0 - a.x1);
+      const dy = Math.max(a.y0 - b.y1, b.y0 - a.y1);
+      if (dx < 0 && dy < 0) return Math.max(dx, dy);  // chevauchement → négatif
+      return Math.hypot(Math.max(dx, 0), Math.max(dy, 0));
+    }
+
+    /* Éparpillé : placement « meilleur candidat » (Mitchell) — chaque carte prend
+       la position la plus éloignée des autres et du logo, parmi N essais. */
+    function scatterLayout(m, excl) {
+      const r = rng(7);
+      const pad = 28, topPad = 36;
+      const zone = { x0: excl.x0 - m.cw * 0.45, y0: excl.y0 - m.ch * 0.5, x1: excl.x1 + m.cw * 0.45, y1: excl.y1 + m.ch * 0.5 };
+      const placed = [], out = [];
+      for (let i = 0; i < projects.length; i++) {
+        let best = null, bestScore = -Infinity;
+        for (let k = 0; k < 90; k++) {
+          const x = pad + r() * Math.max(1, m.vw - 2 * pad - m.cw);
+          const y = topPad + r() * Math.max(1, m.vh - topPad - pad - m.ch);
+          const box = { x0: x, y0: y, x1: x + m.cw, y1: y + m.ch };
+          let s = gap(box, zone) * 1.15;
+          for (const q of placed) { s = Math.min(s, gap(box, q)); if (s < bestScore) break; }
+          if (s > bestScore) { bestScore = s; best = box; }
+        }
+        placed.push(best);
+        out.push({ x: best.x0, y: best.y0 });
+      }
+      return out;
+    }
+
+    function gridLayout(m, top) {
+      const g = isMobile ? 14 : Math.round(m.cw * 0.23);
+      const side = isMobile ? 16 : 48;
+      const cols = isMobile ? 2 : clamp(Math.floor((m.vw - 2 * side + g) / (m.cw + g)), 1, 5);
+      const totalW = cols * m.cw + (cols - 1) * g;
+      const x0 = (m.vw - totalW) / 2;
+      const pos = projects.map((p, i) => ({ x: x0 + (i % cols) * (m.cw + g), y: top + Math.floor(i / cols) * (m.ch + g) }));
+      const rows = Math.ceil(projects.length / cols);
+      return { pos, height: top + rows * (m.ch + g) - g + (isMobile ? 48 : 96) };
+    }
+
+    function apply(animate) {
+      const m = metrics();
+      document.documentElement.style.setProperty('--cw', m.cw + 'px');
+      document.documentElement.style.setProperty('--ch', m.ch + 'px');
+      const work = isMobile || mode === 'work';
+      btnWork.setAttribute('aria-pressed', String(work));
+      document.documentElement.classList.toggle('lock', !work);
+
+      const cy = work ? (isMobile ? m.L * 0.3 + 34 : clamp(m.vh * 0.12, 72, 120)) : m.vh / 2;
+      const ox = m.vw / 2 - m.L / 2, oy = cy - m.LH / 2;
+      const box = clusterBox();
+      const excl = { x0: ox + box.x0, y0: oy + box.y0, x1: ox + box.x1, y1: oy + box.y1 };
+
+      let pos, height;
+      if (work) ({ pos, height } = gridLayout(m, excl.y1 + (isMobile ? 36 : 72)));
+      else { pos = scatterLayout(m, excl); height = m.vh; }
+
+      const anim = animate && !reduce.matches;
+      stage.classList.toggle('anim', anim);
+      cluster.style.transition = anim ? 'transform .95s var(--ease)' : 'none';
+      cluster.style.transform = `translate(${ox}px, ${oy}px)`;
+      cards.forEach((c, i) => {
+        c.style.transitionDelay = anim ? (i * 14) + 'ms' : '0ms';
+        c.style.transform = `translate(${pos[i].x}px, ${pos[i].y}px)`;
+      });
+      stage.style.height = height + 'px';
+    }
+
+    function setMode(next, { push = true, animate = true } = {}) {
+      if (next === mode) return;
+      mode = next;
+      if (mode === 'scatter' && scrollY > 0) scrollTo({ top: 0, behavior: reduce.matches ? 'auto' : 'smooth' });
+      if (push) history.pushState({ mode }, '', urlFor(null));
+      hidePeek();
+      apply(animate);
+    }
+
+    btnWork.addEventListener('click', () => {
+      if (isMobile) return;
+      setMode(mode === 'work' ? 'scatter' : 'work');
+    });
+
+    $('.logo').addEventListener('click', e => {
+      e.preventDefault();
+      if (current) close();
+      setMode('scatter');
+    });
+
+    /* ───────── Survol : étiquette + aperçu ───────── */
+    let tx = mx, ty = my, px = mx, py = my, peeking = false;
+    function showPeek(p) {
+      if (isMobile || !fine.matches || current) return;
+      tag.textContent = p.titre;
+      peekImg.src = thumb(p);
+      if (!peeking) { tx = px = mx; ty = py = my; }
+      peeking = true;
+      document.body.classList.add('peeking');
+    }
+    function hidePeek() { peeking = false; document.body.classList.remove('peeking'); }
+
+    /* ───────── Boucle d'animation : curseur, étiquette, aperçu, parallaxe ───────── */
+    let parX = 0, parY = 0;
+    addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      cursorEl.style.left = mx + 'px'; cursorEl.style.top = my + 'px';
+      document.body.classList.add('has-cursor');
+    }, { passive: true });
+    document.addEventListener('mouseleave', () => document.body.classList.remove('has-cursor'));
+
+    function frameLoop() {
+      if (peeking) {
+        // Étiquette : au-dessus du curseur, avec un léger retard
+        tx += (mx - tx) * 0.16; ty += (my - ty) * 0.16;
+        const tw = tag.offsetWidth, th = tag.offsetHeight;
+        const lx = clamp(tx - tw / 2, 6, innerWidth - tw - 6), ly = clamp(ty - th - 12, 6, innerHeight - th - 6);
+        tag.style.transform = `translate(${lx}px, ${ly}px)`;
+        // Aperçu : collé au curseur, bascule de côté pour ne jamais sortir de l'écran
+        px += (mx - px) * 0.45; py += (my - py) * 0.45;
+        const pw = peek.offsetWidth, ph = peek.offsetHeight;
+        let ax = px + 36; if (ax + pw > innerWidth - 8) ax = px - 20 - pw;
+        const ay = clamp(py + 8, 8, innerHeight - ph - 8);
+        peek.style.transform = `translate(${ax}px, ${ay}px)`;
+      }
+      // Parallaxe douce au mouvement de la souris (état éparpillé uniquement)
+      const on = mode === 'scatter' && !isMobile && fine.matches && !reduce.matches && !current;
+      const gx = on ? (mx / innerWidth - 0.5) : 0, gy = on ? (my / innerHeight - 0.5) : 0;
+      if (Math.abs(gx - parX) > 0.0005 || Math.abs(gy - parY) > 0.0005) {
+        parX += (gx - parX) * 0.06; parY += (gy - parY) * 0.06;
+        cards.forEach((c, i) => {
+          c.firstChild.style.transform = `translate(${(-parX * 26 * depth[i]).toFixed(2)}px, ${(-parY * 20 * depth[i]).toFixed(2)}px)`;
+        });
+      }
+      requestAnimationFrame(frameLoop);
+    }
+
+    /* ───────── Fiche projet ───────── */
+    function urlFor(slug) {
+      const base = location.pathname + location.search;
+      if (mode === 'work' && !isMobile) return base + (slug ? '#work/' + slug : '#work');
+      return slug ? base + '#' + slug : base;
+    }
+
+    function showImage(i, fade) {
+      const list = images(current);
+      imgIndex = (i + list.length) % list.length;
+      mImg.src = list[imgIndex].src;
+      mImg.alt = current.titre + (list.length > 1 ? ' — image ' + (imgIndex + 1) + ' sur ' + list.length : '');
+      mCount.textContent = (imgIndex + 1) + ' / ' + list.length;
+      if (fade) { mImg.classList.remove('fade'); void mImg.offsetWidth; mImg.classList.add('fade'); }
+      // précharge la suivante
+      if (list.length > 1) { const n = new Image(); n.src = list[(imgIndex + 1) % list.length].src; }
+    }
+
+    function flipFrom(el) {
+      const r = el.getBoundingClientRect(), f = frame.getBoundingClientRect();
+      return `translate(${r.left - f.left}px, ${r.top - f.top}px) scale(${r.width / f.width}, ${r.height / f.height})`;
+    }
+
+    let lastFocus = null;
+    function open(slug, { from = null, push = true } = {}) {
+      const i = projects.findIndex(p => p.slug === slug);
+      if (i < 0) return;
+      if (current) { cards.forEach(c => c.classList.remove('is-open')); }
+      current = projects[i];
+      const card = from || cards[i];
+      lastFocus = card;
+      hidePeek();
+
+      mTitle.textContent = current.titre;
+      mMeta.textContent = meta(current);
+      mText.textContent = current.accroche || '';
+      mNav.hidden = images(current).length < 2;
+      showImage(0, false);
+
+      modal.hidden = false;
+      if (push) { history.pushState({ open: slug }, '', urlFor(slug)); pushedOpen = true; }
+      track('projet', { slug });
+
+      const visible = card && card.getBoundingClientRect().bottom > 0 && card.getBoundingClientRect().top < innerHeight;
+      if (!reduce.matches && visible) {
+        modal.classList.add('entering');
+        const a = frame.animate([{ transform: flipFrom(card) }, { transform: 'none' }], { duration: 620, easing: 'cubic-bezier(0.7, 0, 0.2, 1)' });
+        card.classList.add('is-open');
+        a.onfinish = () => modal.classList.remove('entering');
       } else {
-        countEl.textContent = '';
-        measure(); visuals();
+        frame.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200 });
+      }
+      mClose.focus({ preventScroll: true });
+    }
+
+    function close({ fromPop = false } = {}) {
+      if (!current) return;
+      if (!fromPop) {
+        if (pushedOpen) { history.back(); return; }          // popstate rappellera close()
+        history.replaceState({ mode }, '', urlFor(null));
+      }
+      pushedOpen = false;
+      const i = projects.indexOf(current);
+      const card = cards[i];
+      current = null;
+      const done = () => {
+        modal.hidden = true;
+        modal.classList.remove('leaving');
+        card && card.classList.remove('is-open');
+        if (lastFocus && document.activeElement && modal.contains(document.activeElement)) lastFocus.focus({ preventScroll: true });
+      };
+      const r = card && card.getBoundingClientRect();
+      const visible = r && r.bottom > 0 && r.top < innerHeight;
+      if (!reduce.matches && visible) {
+        modal.classList.add('leaving');
+        frame.animate([{ transform: 'none' }, { transform: flipFrom(card) }], { duration: 520, easing: 'cubic-bezier(0.7, 0, 0.2, 1)' }).onfinish = done;
+      } else {
+        frame.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160 }).onfinish = done;
       }
     }
-    vb.rail.addEventListener('click', () => setView('rail', true));
-    vb.grid.addEventListener('click', () => setView('grid', true));
-    try { if (localStorage.getItem('loicbp_view') === 'grid') setView('grid'); } catch (e) {}
 
-    visuals();
+    mClose.addEventListener('click', () => close());
+    modal.addEventListener('click', e => { if (e.target === modal) close(); });   // clic en dehors du cadre
+    $('.m-prev').addEventListener('click', () => showImage(imgIndex - 1, true));
+    $('.m-next').addEventListener('click', () => showImage(imgIndex + 1, true));
+    media.addEventListener('click', e => {
+      if (!current || images(current).length < 2) return;
+      const r = media.getBoundingClientRect();
+      showImage(imgIndex + (e.clientX < r.left + r.width / 2 ? -1 : 1), true);
+    });
+    // Balayage (tactile)
+    let sx = null, sy = null;
+    media.addEventListener('pointerdown', e => { sx = e.clientX; sy = e.clientY; });
+    media.addEventListener('pointerup', e => {
+      if (sx === null || !current) return;
+      const dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
+      if (e.pointerType !== 'mouse' && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) && images(current).length > 1) {
+        showImage(imgIndex + (dx < 0 ? 1 : -1), true);
+      }
+    });
+
+    // Clavier : Échap, flèches, et Tab qui reste dans la fiche
+    document.addEventListener('keydown', e => {
+      if (!current) return;
+      if (e.key === 'Escape') { e.preventDefault(); close(); }
+      else if (e.key === 'ArrowLeft' && images(current).length > 1) showImage(imgIndex - 1, true);
+      else if (e.key === 'ArrowRight' && images(current).length > 1) showImage(imgIndex + 1, true);
+      else if (e.key === 'Tab') {
+        const f = [...modal.querySelectorAll('button')].filter(b => !b.closest('[hidden]'));
+        const first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
+
+    /* ───────── Adresse (#work, #slug, #work/slug) et bouton retour ───────── */
+    function parseHash() {
+      const h = decodeURIComponent(location.hash.slice(1));
+      if (h === 'work' || h.startsWith('work/')) return { mode: 'work', slug: h.split('/')[1] || null };
+      return { mode: 'scatter', slug: h || null };
+    }
+    addEventListener('popstate', () => {
+      const s = parseHash();
+      if (current && (!s.slug || s.slug !== current.slug)) close({ fromPop: true });
+      setMode(s.mode, { push: false });
+      if (s.slug && (!current || current.slug !== s.slug)) open(s.slug, { push: false });
+    });
+
+    /* ───────── Redimensionnement ───────── */
+    let rt;
+    addEventListener('resize', () => {
+      clearTimeout(rt);
+      rt = setTimeout(() => { isMobile = mqMobile.matches; apply(false); }, 120);
+    });
+
+    /* ───────── Démarrage ───────── */
+    (async () => {
+      try { projects = await (await fetch('assets/projets.json')).json(); }
+      catch (e) { console.error('projets.json introuvable', e); return; }
+      build();
+      const s = parseHash();
+      mode = s.mode;
+      apply(false);
+      requestAnimationFrame(() => {
+        cards.forEach((c, i) => { c.style.transitionDelay = (i * 25) + 'ms'; });
+        stage.classList.add('ready');
+        if (s.slug) open(s.slug, { push: false });
+      });
+      requestAnimationFrame(frameLoop);
+      // Re-calcul une fois la police Allo chargée (la taille des boutons change la zone réservée au logo)
+      document.fonts && document.fonts.ready.then(() => apply(false));
+    })();
   })();
   </script>
   <script src="assets/trail.js?v=3" defer></script>
