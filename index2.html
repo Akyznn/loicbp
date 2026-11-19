@@ -118,7 +118,9 @@
     .b-work[aria-pressed="true"] { background: #fff; color: var(--blue); }
 
     /* ── Plans de profondeur : un calque par plan, mis à l'échelle depuis le centre de l'écran ── */
-    .plane { position: absolute; inset: 0; transform-origin: 50% 50%; }
+    .plane { position: absolute; inset: 0; transform-origin: 50% 50%; pointer-events: none; }
+    .plane .card { pointer-events: auto; }
+    .plane.off .card { pointer-events: none; }
     .plane[data-plan="1"] { z-index: 3; }
     .plane[data-plan="2"] { z-index: 2; }
     .plane[data-plan="3"] { z-index: 1; }
@@ -140,10 +142,17 @@
     .card:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 4px; }
     .card.is-open { visibility: hidden; }
     .card.dragging, #stage.anim .card.dragging { transition: none; z-index: 30; }
+    .card, .card img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none; }
+    /* Décollement pendant le glisser-déposer */
+    .card-in { transition: opacity .4s var(--ease-out), transform .28s var(--ease-out), box-shadow .28s var(--ease-out); }
+    .card.dragging .card-in {
+      transform: scale(1.07) rotate(-2deg);
+      box-shadow: 0 2px 4px rgba(15, 15, 15, .10), 0 18px 34px -8px rgba(15, 15, 15, .28);
+    }
+    .card.dropping .card-in { transition-duration: .45s; transition-timing-function: cubic-bezier(.34, 1.56, .64, 1); }
     .card-in {
       display: block; width: 100%; height: 100%;
       padding: 3px; border-radius: 4px; background: var(--frame);
-      transition: opacity .4s var(--ease-out);
     }
     .card img {
       display: block; width: 100%; height: 100%;
@@ -365,7 +374,7 @@
         const rr = clamp(ratio, 0.56, 2.2);
         base.push(rr >= 1 ? { w: 1, h: 1 / rr } : { w: rr, h: 1 });
         const img = new Image();
-        img.src = thumb(p); img.alt = ''; img.decoding = 'async';
+        img.src = thumb(p); img.alt = ''; img.decoding = 'async'; img.draggable = false;
         if (ratio > 2.6 || ratio < 0.4) img.className = 'contain';
         const inner = document.createElement('span');
         inner.className = 'card-in';
@@ -373,6 +382,9 @@
         b.appendChild(inner);
         b.addEventListener('click', () => {
           if (suppressClick) { suppressClick = false; return; }   // fin d'un glisser-déposer : pas d'ouverture
+          if (mode === 'scatter' && !isMobile && Math.abs(plan[i] - focus) > 0.4) {   // projet flou : on rejoint son plan
+            focusT = plan[i]; hidePeek(); return;
+          }
           open(p.slug, { from: b });
         });
         b.addEventListener('mouseenter', () => showPeek(p));
@@ -420,35 +432,44 @@
       return Math.hypot(Math.max(dx, 0), Math.max(dy, 0));
     }
 
-    /* Éparpillé : placement « meilleur candidat » (Mitchell) — chaque carte prend
-       la position la plus éloignée des autres et du logo, parmi N essais. */
+    /* Éparpillé : placement « meilleur candidat » (Mitchell), tous plans confondus.
+       Chaque vignette cherche la place la plus dégagée à la fois :
+       – telle qu'on la voit à l'arrivée (plans du fond réduits vers le centre),
+       – et dans son propre plan, quand on fait la mise au point dessus.
+       Les plans sont alternés pour que chacun soit réparti sur tout l'écran. */
     function scatterLayout(m, excl) {
       const r = rng(7);
-      const pad = 28, topPad = 36;
-      const cx = m.vw / 2, cy = m.vh / 2, out = [];
-      for (let pl = 1; pl <= NPLANS; pl++) {
-        // Les plans du fond se resserrent vers le centre : leur zone réservée au logo est agrandie d'autant
-        const f = 1 / Math.sqrt(planeLook(pl - 1).s);
-        const zone = {
-          x0: cx + (excl.x0 - m.S * 0.4 - cx) * f, x1: cx + (excl.x1 + m.S * 0.4 - cx) * f,
-          y0: cy + (excl.y0 - m.S * 0.3 - cy) * f, y1: cy + (excl.y1 + m.S * 0.3 - cy) * f
-        };
-        const placed = [];
-        cards.forEach((c, i) => {
-          if (plan[i] !== pl) return;
-          const w = base[i].w * m.S, hgt = base[i].h * m.S;
-          let best = null, bestScore = -Infinity;
-          for (let t = 0; t < 110; t++) {
-            const x = pad + r() * Math.max(1, m.vw - 2 * pad - w);
-            const y = topPad + r() * Math.max(1, m.vh - topPad - pad - hgt);
-            const box = { x0: x, y0: y, x1: x + w, y1: y + hgt };
-            let s = gap(box, zone) * 1.15;
-            for (const q of placed) { s = Math.min(s, gap(box, q)); if (s < bestScore) break; }
-            if (s > bestScore) { bestScore = s; best = box; }
+      const pad = 28, topPad = 36, cx = m.vw / 2, cy = m.vh / 2;
+      const zone = { x0: excl.x0 - m.S * 0.4, y0: excl.y0 - m.S * 0.3, x1: excl.x1 + m.S * 0.4, y1: excl.y1 + m.S * 0.3 };
+      const proj = (b, s) => ({ x0: cx + (b.x0 - cx) * s, x1: cx + (b.x1 - cx) * s, y0: cy + (b.y0 - cy) * s, y1: cy + (b.y1 - cy) * s });
+      const cross = m.S * 0.12;                        // léger chevauchement toléré entre deux plans
+      const byPlane = {};
+      for (let pl = 1; pl <= NPLANS; pl++) byPlane[pl] = [];
+      cards.forEach((c, i) => byPlane[plan[i]].push(i));
+      const order = [];
+      for (let k = 0; order.length < cards.length; k++)
+        for (let pl = 1; pl <= NPLANS; pl++) if (byPlane[pl][k] !== undefined) order.push(byPlane[pl][k]);
+
+      const placed = [], out = [];
+      for (const i of order) {
+        const pl = plan[i], s0 = planeLook(pl - 1).s;
+        const w = base[i].w * m.S, hgt = base[i].h * m.S;
+        let best = null, bestScore = -Infinity;
+        for (let t = 0; t < 160; t++) {
+          const x = pad + r() * Math.max(1, m.vw - 2 * pad - w);
+          const y = topPad + r() * Math.max(1, m.vh - topPad - pad - hgt);
+          const box = { x0: x, y0: y, x1: x + w, y1: y + hgt };
+          const pb = proj(box, s0);
+          let s = Math.min(gap(box, zone), gap(pb, zone)) * 1.1;
+          for (const q of placed) {
+            if (q.pl === pl) s = Math.min(s, gap(box, q.w));
+            s = Math.min(s, gap(pb, q.p) + (q.pl === pl ? 0 : cross));
+            if (s < bestScore) break;
           }
-          placed.push(best);
-          out[i] = { x: best.x0, y: best.y0 };
-        });
+          if (s > bestScore) { bestScore = s; best = { w: box, p: pb, pl }; }
+        }
+        placed.push(best);
+        out[i] = { x: best.w.x0, y: best.w.y0 };
       }
       // Positions déplacées à la main (glisser-déposer) pendant la visite
       const saved = loadPos();
@@ -472,12 +493,12 @@
     }
 
     function apply(animate) {
+      document.documentElement.classList.toggle('lock', !(isMobile || mode === 'work'));   // avant la mesure (barre de défilement)
       const m = metrics();
       document.documentElement.style.setProperty('--S', m.S + 'px');
       cards.forEach((c, i) => { c.style.width = (base[i].w * m.S) + 'px'; c.style.height = (base[i].h * m.S) + 'px'; });
       const work = isMobile || mode === 'work';
       btnWork.setAttribute('aria-pressed', String(work));
-      document.documentElement.classList.toggle('lock', !work);
 
       const cy = work ? (isMobile ? m.L * 0.3 + 34 : clamp(m.vh * 0.12, 72, 120)) : m.vh / 2;
       const ox = m.vw / 2 - m.L / 2, oy = cy - m.LH / 2;
@@ -494,11 +515,12 @@
       cluster.style.transition = anim ? 'transform .95s var(--ease)' : 'none';
       cluster.style.transform = `translate(${ox}px, ${oy}px)`;
       world = pos;
+      Object.values(planes).forEach(pn => { pn.style.transformOrigin = `${m.vw / 2}px ${m.vh / 2}px`; });
       cards.forEach((c, i) => {
         c.style.transitionDelay = anim ? (i * 14) + 'ms' : '0ms';
         c.style.transform = `translate(${pos[i].x}px, ${pos[i].y}px)`;
       });
-      if (work) Object.values(planes).forEach(pn => { pn.style.transform = ''; pn.style.filter = ''; pn.style.opacity = ''; pn.style.pointerEvents = ''; });
+      if (work) Object.values(planes).forEach(pn => { pn.style.transform = ''; pn.style.filter = ''; pn.style.opacity = ''; pn.classList.remove('off'); });
       planeCache = {};
       clearTimeout(animT);
       if (anim) animT = setTimeout(() => stage.classList.remove('anim'), 1400);
@@ -509,7 +531,7 @@
     function setMode(next, { push = true, animate = true } = {}) {
       if (next === mode) return;
       mode = next;
-      if (mode === 'scatter' && scrollY > 0) scrollTo({ top: 0, behavior: reduce.matches ? 'auto' : 'smooth' });
+      if (mode === 'scatter' && scrollY > 0) scrollTo(0, 0);
       if (push) history.pushState({ mode }, '', urlFor(null));
       hidePeek();
       apply(animate);
@@ -565,6 +587,7 @@
     }
     function dragStart(e, i) {
       if (mode !== 'scatter' || isMobile || e.button !== 0 || current) return;
+      if (e.pointerType === 'mouse') e.preventDefault();      // sinon le navigateur « attrape » l'image
       suppressClick = false;
       drag = { i, sx: e.clientX, sy: e.clientY, x0: world[i].x, y0: world[i].y, moved: false, id: e.pointerId };
     }
@@ -592,6 +615,8 @@
       if (drag.moved) {
         const c = cards[drag.i];
         c.classList.remove('dragging');
+        c.classList.add('dropping');
+        setTimeout(() => c.classList.remove('dropping'), 460);
         savePos(projects[drag.i].slug, world[drag.i].x, world[drag.i].y);
         suppressClick = true;
         setTimeout(() => { suppressClick = false; }, 50);
@@ -636,7 +661,7 @@
           if (planeCache[pl] === key) continue;
           planeCache[pl] = key;
           pn.style.transform = tf; pn.style.filter = fl; pn.style.opacity = L.op.toFixed(3);
-          pn.style.pointerEvents = L.op < 0.35 ? 'none' : '';
+          pn.classList.toggle('off', L.op < 0.35);
         }
       }
       requestAnimationFrame(frameLoop);
