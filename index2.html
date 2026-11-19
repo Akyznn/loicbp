@@ -202,9 +202,8 @@
     /* trait plus épais : reste lisible une fois flouté */
     .pring rect { stroke-width: 2.5; stroke-dasharray: 7 7; }
     .pring .rw { stroke-dashoffset: 7; }
-    .pring .rb { animation-name: march-p; } .pring .rw { animation-name: march-pw; }
-    @keyframes march-p { to { stroke-dashoffset: -14; } }
-    @keyframes march-pw { to { stroke-dashoffset: 0; } }
+    /* immobile : des pointillés qui défilent sous le flou donnent un effet de pulsation */
+    .pring .rb, .pring .rw { animation: none; }
     .ants { opacity: 0; pointer-events: none; transition: opacity .15s ease; }
     .ants-on .ants { opacity: 1; }
     .ants * { fill: none; stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-dasharray: var(--ant) var(--ant); }
