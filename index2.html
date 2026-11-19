@@ -86,7 +86,7 @@
 
     /* ── Groupe logo + boutons ── */
     #cluster {
-      position: absolute; left: 0; top: 0; z-index: 20;
+      position: absolute; left: 0; top: 0; z-index: 90;
       width: var(--L); height: calc(var(--L) * 0.2285);
       will-change: transform;
     }
@@ -162,7 +162,7 @@
 
     /* ── Survol : étiquette (avec retard) + aperçu collé au curseur ── */
     #tag, #peek {
-      position: fixed; left: 0; top: 0; z-index: 60; pointer-events: none;
+      position: fixed; left: 0; top: 0; z-index: 96; pointer-events: none;
       opacity: 0; transition: opacity .18s;
     }
     #tag {
@@ -173,7 +173,7 @@
     }
     #peek {
       padding: 3px; border-radius: 4px; background: var(--frame);
-      z-index: 59;
+      z-index: 95;
     }
     #peek img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 2px; background: var(--placeholder); }
     body.peeking #tag, body.peeking #peek { opacity: 1; }
@@ -344,11 +344,16 @@
       };
     }
 
-    /* Plans de profondeur. La molette déplace la « mise au point » (focus) de 1 à 3 :
-       le plan net est à taille réelle ; derrière, il rapetisse et se floute ; devant, il grossit, se floute et disparaît. */
-    const NPLANS = 3;
-    function planeLook(d) {                     // d = plan − focus
-      if (d >= 0) return { s: 1 / (1 + 0.3 * d), blur: Math.min(d * 2.6, 5.5), op: 1 - d * 0.14 };
+    /* Plans de profondeur. La molette déplace la « mise au point » (focus) sans fin :
+       le plan net est à taille réelle ; derrière, il rapetisse et se floute ; devant, il grossit, se floute et disparaît…
+       puis réapparaît tout au fond : les plans défilent en boucle les uns derrière les autres. */
+    const NPLANS = 3, WRAP = 0.7;               // un plan passé à 0,7 plan devant la caméra repart au fond
+    const depthOf = pl => (((pl - focus + WRAP) % NPLANS) + NPLANS) % NPLANS - WRAP;   // ∈ [−0,7 ; 2,3[
+    function planeLook(d) {                     // d = profondeur relative au plan net
+      if (d >= 0) {
+        const back = clamp((NPLANS - WRAP - d) / 0.35, 0, 1);   // fondu d'apparition tout au fond
+        return { s: 1 / (1 + 0.3 * d), blur: Math.min(d * 2.6, 6.5), op: (1 - d * 0.14) * back };
+      }
       return { s: 1 - d * 0.65, blur: Math.min(-d * 7, 9), op: clamp(1 + d * 1.6, 0, 1) };
     }
     let focus = 1, focusT = 1;
@@ -384,8 +389,9 @@
         b.appendChild(inner);
         b.addEventListener('click', () => {
           if (suppressClick) { suppressClick = false; return; }   // fin d'un glisser-déposer : pas d'ouverture
-          if (mode === 'scatter' && !isMobile && Math.abs(plan[i] - focus) > 0.4) {   // projet flou : on rejoint son plan
-            focusT = plan[i]; hidePeek(); return;
+          const d = depthOf(plan[i]);
+          if (mode === 'scatter' && !isMobile && Math.abs(d) > 0.4) {   // projet flou : on rejoint son plan
+            focusT = Math.round(focus + d); hidePeek(); return;
           }
           open(p.slug, { from: b });
         });
@@ -522,7 +528,7 @@
         c.style.transitionDelay = anim ? (i * 14) + 'ms' : '0ms';
         c.style.transform = `translate(${pos[i].x}px, ${pos[i].y}px)`;
       });
-      if (work) Object.values(planes).forEach(pn => { pn.style.transform = ''; pn.style.filter = ''; pn.style.opacity = ''; pn.classList.remove('off'); });
+      if (work) Object.values(planes).forEach(pn => { pn.style.transform = ''; pn.style.filter = ''; pn.style.opacity = ''; pn.style.zIndex = ''; pn.classList.remove('off'); });
       planeCache = {};
       clearTimeout(animT);
       if (anim) animT = setTimeout(() => stage.classList.remove('anim'), 1400);
@@ -576,7 +582,7 @@
       if (mode !== 'scatter' || isMobile || current) return;
       e.preventDefault();
       const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
-      focusT = clamp(focusT + dy * 0.0024, 1, NPLANS);
+      focusT += dy * 0.0024;
       clearTimeout(snapT);
       snapT = setTimeout(() => { focusT = Math.round(focusT); }, 180);
     }, { passive: false });
@@ -591,6 +597,7 @@
     function dragStart(e, i) {
       if (mode !== 'scatter' || isMobile || e.button !== 0 || current) return;
       if (e.pointerType === 'mouse') e.preventDefault();      // sinon le navigateur « attrape » l'image
+      if (Math.abs(depthOf(plan[i])) > 0.4) return;            // les projets flous ne se déplacent pas      // sinon le navigateur « attrape » l'image
       suppressClick = false;
       drag = { i, sx: e.clientX, sy: e.clientY, x0: world[i].x, y0: world[i].y, moved: false, id: e.pointerId };
     }
@@ -605,7 +612,7 @@
         try { c.setPointerCapture(drag.id); } catch (err) {}
         hidePeek();
       }
-      const s = planeLook(plan[drag.i] - focus).s;          // le déplacement suit la souris, quel que soit le plan
+      const s = planeLook(depthOf(plan[drag.i])).s;          // le déplacement suit la souris, quel que soit le plan
       const w = c.offsetWidth, hh = c.offsetHeight;
       world[drag.i] = {
         x: clamp(drag.x0 + dx / s, -w * 0.4, innerWidth - w * 0.6),
@@ -638,9 +645,9 @@
     function frameLoop() {
       if (peeking) {
         // Projet hors du plan net : titre seul, avec le même flou que son plan (suit la mise au point)
-        const far = mode === 'scatter' && !isMobile && peekIdx >= 0 && Math.abs(plan[peekIdx] - focus) > 0.4;
+        const far = mode === 'scatter' && !isMobile && peekIdx >= 0 && Math.abs(depthOf(plan[peekIdx])) > 0.4;
         document.body.classList.toggle('peek-far', far);
-        const bl = far ? planeLook(plan[peekIdx] - focus).blur : 0;
+        const bl = far ? planeLook(depthOf(plan[peekIdx])).blur : 0;
         const f = bl > 0.05 ? `blur(${bl.toFixed(2)}px)` : 'none';
         if (f !== tagBlur) { tagBlur = f; tag.style.filter = f; }
         // Étiquette : au-dessus du curseur, avec un léger retard
@@ -663,13 +670,14 @@
         focus += (focusT - focus) * (reduce.matches ? 1 : 0.1);
         if (Math.abs(focusT - focus) < 0.0005) focus = focusT;
         for (let pl = 1; pl <= NPLANS; pl++) {
-          const L = planeLook(pl - focus), pn = planes[pl];
+          const d = depthOf(pl), L = planeLook(d), pn = planes[pl];
           const tf = `translate(${(-parX * 40 * L.s).toFixed(1)}px, ${(-parY * 28 * L.s).toFixed(1)}px) scale(${L.s.toFixed(4)})`;
           const fl = L.blur > 0.05 ? `blur(${L.blur.toFixed(2)}px)` : 'none';
-          const key = tf + fl + L.op.toFixed(3);
+          const z = String(Math.round(50 - d * 10));            // le plan le plus proche passe devant
+          const key = tf + fl + L.op.toFixed(3) + z;
           if (planeCache[pl] === key) continue;
           planeCache[pl] = key;
-          pn.style.transform = tf; pn.style.filter = fl; pn.style.opacity = L.op.toFixed(3);
+          pn.style.transform = tf; pn.style.filter = fl; pn.style.opacity = L.op.toFixed(3); pn.style.zIndex = z;
           pn.classList.toggle('off', L.op < 0.35);
         }
       }
@@ -800,8 +808,8 @@
     document.addEventListener('keydown', e => {
       if (!current) {
         if (mode !== 'scatter' || isMobile) return;
-        if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); focusT = Math.min(NPLANS, Math.round(focusT) + 1); }
-        if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); focusT = Math.max(1, Math.round(focusT) - 1); }
+        if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); focusT = Math.round(focusT) + 1; }
+        if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); focusT = Math.round(focusT) - 1; }
         return;
       }
       if (e.key === 'Escape') { e.preventDefault(); close(); }
