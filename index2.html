@@ -189,22 +189,24 @@
     #modal[hidden] { display: none; }
     .m-frame {
       position: relative;
-      width: min(58vw, calc((100vh - 210px) * 16 / 9 + 26px), 1100px);
-      min-width: 320px;
+      width: max-content;
       background: var(--frame-modal); border-radius: 5px;
       padding: 13px 13px 0;
       transform-origin: 0 0;
     }
+    /* La zone image prend exactement le format de la photo (taille posée en JS) et s'anime d'une photo à l'autre */
     .m-media {
-      position: relative; aspect-ratio: 16 / 9;
+      position: relative; width: 640px; height: 360px;
       background: var(--media-bg); border-radius: 3px; overflow: hidden;
       touch-action: pan-y;
+      transition: width .5s var(--ease), height .5s var(--ease);
     }
-    .m-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+    .m-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .m-media img.fade { animation: imgIn .35s var(--ease-out); }
     @keyframes imgIn { from { opacity: 0; } }
 
     .m-bar {
+      width: 0; min-width: 100%;          /* la légende suit la largeur de la photo, sans l'élargir */
       display: grid; grid-template-columns: 1fr auto; align-items: center;
       column-gap: 1rem; row-gap: 2px;
       padding: 9px 2px 11px;
@@ -246,8 +248,7 @@
       .btn:hover { --s: 1; }
       #tag, #peek { display: none; }
       #modal { padding: 12px; }
-      .m-frame { width: 100%; min-width: 0; padding: 8px 8px 0; }
-      .m-media { aspect-ratio: 4 / 5; max-height: calc(100vh - 190px); }
+      .m-frame { padding: 8px 8px 0; }
       .m-close, .m-close:hover, .m-close:focus-visible { width: 34px; height: 34px; top: -6px; right: -6px; }
       .m-close svg { opacity: 1; }
     }
@@ -357,6 +358,8 @@
       return { s: 1 - d * 0.65, blur: Math.min(-d * 7, 9), op: clamp(1 + d * 1.6, 0, 1) };
     }
     let focus = 1, focusT = 1;
+    /* Perspective atmosphérique des plans du fond (valeurs atteintes deux plans derrière) — à régler ici */
+    const ATMO = { sat: 0.7, contrast: 0.35, light: 0.12 };
 
     const thumb = p => 'assets/projets/thumbs/' + p.slug + '.webp';
     const images = p => (p.images && p.images.length ? p.images : [p.cover]).map(x => typeof x === 'string' ? { src: x } : x);
@@ -596,8 +599,8 @@
     }
     function dragStart(e, i) {
       if (mode !== 'scatter' || isMobile || e.button !== 0 || current) return;
+      if (Math.abs(depthOf(plan[i])) > 0.4) return;            // les projets flous ne se déplacent pas
       if (e.pointerType === 'mouse') e.preventDefault();      // sinon le navigateur « attrape » l'image
-      if (Math.abs(depthOf(plan[i])) > 0.4) return;            // les projets flous ne se déplacent pas      // sinon le navigateur « attrape » l'image
       suppressClick = false;
       drag = { i, sx: e.clientX, sy: e.clientY, x0: world[i].x, y0: world[i].y, moved: false, id: e.pointerId };
     }
@@ -635,7 +638,8 @@
     }
     addEventListener('pointerup', dragEnd);
     addEventListener('pointercancel', dragEnd);
-    addEventListener('mousemove', e => {
+    addEventListener('pointermove', e => {
+      if (e.pointerType !== 'mouse') return;
       mx = e.clientX; my = e.clientY;
       cursorEl.style.left = mx + 'px'; cursorEl.style.top = my + 'px';
       document.body.classList.add('has-cursor');
@@ -672,7 +676,11 @@
         for (let pl = 1; pl <= NPLANS; pl++) {
           const d = depthOf(pl), L = planeLook(d), pn = planes[pl];
           const tf = `translate(${(-parX * 40 * L.s).toFixed(1)}px, ${(-parY * 28 * L.s).toFixed(1)}px) scale(${L.s.toFixed(4)})`;
-          const fl = L.blur > 0.05 ? `blur(${L.blur.toFixed(2)}px)` : 'none';
+          // Derrière le plan net : flou + perspective atmosphérique (couleurs éteintes, contraste adouci, voile clair)
+          const a = clamp(d, 0, 2) / 2;
+          const fl = L.blur > 0.05
+            ? `blur(${L.blur.toFixed(2)}px)` + (a > 0.01 ? ` saturate(${(1 - ATMO.sat * a).toFixed(3)}) contrast(${(1 - ATMO.contrast * a).toFixed(3)}) brightness(${(1 + ATMO.light * a).toFixed(3)})` : '')
+            : 'none';
           const z = String(Math.round(50 - d * 10));            // le plan le plus proche passe devant
           const key = tf + fl + L.op.toFixed(3) + z;
           if (planeCache[pl] === key) continue;
@@ -702,9 +710,34 @@
       im.onload = () => { if (token === imgToken) mImg.src = full; };
       im.src = full;
     }
+    // Taille de la zone image : format de la photo, inscrit dans le plus grand cadre possible à l'écran
+    let curRatio = 16 / 9;
+    function sizeMedia(ratio, animate) {
+      if (!ratio || !isFinite(ratio)) return;
+      curRatio = ratio;
+      const pad = isMobile ? 16 : 26;
+      const maxW = isMobile ? innerWidth - 24 - pad : Math.min(innerWidth * 0.72, 1240) - pad;
+      const maxH = innerHeight - (isMobile ? 24 : 48) - (isMobile ? 130 : 96) - pad / 2;
+      let w = maxW, hh = w / ratio;
+      if (hh > maxH) { hh = maxH; w = hh * ratio; }
+      if (!animate) media.style.transition = 'none';
+      media.style.width = Math.round(w) + 'px';
+      media.style.height = Math.round(hh) + 'px';
+      if (!animate) { void media.offsetWidth; media.style.transition = ''; }
+    }
+    const ratioOf = (img, i) => img.w && img.h ? img.w / img.h
+      : (i === 0 && current.cover && img.src === current.cover.src ? current.cover.w / current.cover.h : null);
+
     function showImage(i, fade) {
       const list = images(current);
       imgIndex = (i + list.length) % list.length;
+      const it = list[imgIndex], known = ratioOf(it, imgIndex);
+      if (known) sizeMedia(known, fade);
+      else {   // format inconnu (pas de w/h dans projets.json) : on le lit sur l'image une fois chargée
+        const tok = imgToken + 1, probe = new Image();
+        probe.onload = () => { if (tok === imgToken) sizeMedia(probe.naturalWidth / probe.naturalHeight, true); };
+        probe.src = it.src;
+      }
       setMediaSrc(list[imgIndex].src, imgIndex === 0 && list[0].src === (current.cover && current.cover.src) ? thumb(current) : null);
       mImg.alt = current.titre + (list.length > 1 ? ' — image ' + (imgIndex + 1) + ' sur ' + list.length : '');
       mCount.textContent = (imgIndex + 1) + ' / ' + list.length;
@@ -840,7 +873,7 @@
     let rt;
     addEventListener('resize', () => {
       clearTimeout(rt);
-      rt = setTimeout(() => { isMobile = mqMobile.matches; apply(false); }, 120);
+      rt = setTimeout(() => { isMobile = mqMobile.matches; apply(false); if (current) sizeMedia(curRatio, false); }, 120);
     });
 
     /* ───────── Démarrage ───────── */
