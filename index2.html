@@ -191,10 +191,20 @@
     /* ── Sélection « Photoshop » : pointillés noir/blanc animés (fourmis) ──
        un rond suit la souris et se transforme en cadre autour de l'élément survolé ; contour exact sur le logo */
     :root { --ant: 4px; --ant-speed: 0.4s; }
-    #ring { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9998; overflow: visible; }
-    #ring rect { fill: none; stroke-width: 1; stroke-dasharray: var(--ant) var(--ant); }
-    #ring .rb { stroke: #0f0f0f; animation: march var(--ant-speed) linear infinite; }
-    #ring .rw { stroke: #fff; stroke-dashoffset: var(--ant); animation: march-w var(--ant-speed) linear infinite; }
+    #ring { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 93; overflow: visible; }   /* sous l'étiquette (96) et l'aperçu (95) */
+    body.modal-open #ring { z-index: 101; }
+    #ring rect, .pring rect { fill: none; stroke-width: 1; stroke-dasharray: var(--ant) var(--ant); }
+    #ring .rb, .pring .rb { stroke: #0f0f0f; animation: march var(--ant-speed) linear infinite; }
+    #ring .rw, .pring .rw { stroke: #fff; stroke-dashoffset: var(--ant); animation: march-w var(--ant-speed) linear infinite; }
+    /* Cadre de sélection DANS le plan d'un projet flou : flouté et réduit avec lui, sous l'étiquette du plan */
+    .pring { position: absolute; left: 0; top: 0; z-index: 40; pointer-events: none; overflow: visible; opacity: 0; transition: opacity .2s; }
+    .pring.on { opacity: 1; }
+    /* trait plus épais : reste lisible une fois flouté */
+    .pring rect { stroke-width: 2.5; stroke-dasharray: 7 7; }
+    .pring .rw { stroke-dashoffset: 7; }
+    .pring .rb { animation-name: march-p; } .pring .rw { animation-name: march-pw; }
+    @keyframes march-p { to { stroke-dashoffset: -14; } }
+    @keyframes march-pw { to { stroke-dashoffset: 0; } }
     .ants { opacity: 0; pointer-events: none; transition: opacity .15s ease; }
     .ants-on .ants { opacity: 1; }
     .ants * { fill: none; stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-dasharray: var(--ant) var(--ant); }
@@ -202,8 +212,8 @@
     .ants .aw { stroke: #fff; stroke-dashoffset: var(--ant); animation: march-w var(--ant-speed) linear infinite; }
     @keyframes march   { to { stroke-dashoffset: calc(var(--ant) * -2); } }
     @keyframes march-w { to { stroke-dashoffset: calc(var(--ant) * -1); } }
-    @media (prefers-reduced-motion: reduce) { #ring .rb, #ring .rw, .ants .ab, .ants .aw { animation: none; } }
-    @media (hover: none), (pointer: coarse) { #ring { display: none; } }
+    @media (prefers-reduced-motion: reduce) { #ring .rb, #ring .rw, .pring .rb, .pring .rw, .ants .ab, .ants .aw { animation: none; } }
+    @media (hover: none), (pointer: coarse) { #ring, .pring { display: none; } }
 
     /* ── Fiche projet (modale) ── */
     #modal {
@@ -371,7 +381,7 @@
     const reduce = matchMedia('(prefers-reduced-motion: reduce)');
 
     let projects = [], cards = [], plan = [], base = [], world = [];
-    const planes = {}, ptags = {}, planeT = {};
+    const planes = {}, ptags = {}, planeT = {}, prings = {};
     let mode = 'scatter';           // 'scatter' | 'work'
     let isMobile = mqMobile.matches;
     let current = null, imgIndex = 0, pushedOpen = false;
@@ -398,7 +408,7 @@
     function planeLook(d) {                     // d = profondeur relative au plan net
       if (d >= 0) {
         const back = clamp((NPLANS - WRAP - d) / 0.35, 0, 1);   // fondu d'apparition tout au fond
-        return { s: 1 / (1 + 0.3 * d), blur: Math.min(d * 2.6, 6.5), op: (1 - d * 0.14) * back };
+        return { s: 1 / (1 + 0.3 * d), blur: Math.min(d * 2.6, 6.5), op: back };
       }
       return { s: 1 - d * 0.65, blur: Math.min(-d * 7, 9), op: clamp(1 + d * 1.6, 0, 1) };
     }
@@ -422,6 +432,10 @@
         const pt = document.createElement('div');
         pt.className = 'ptag'; pt.setAttribute('aria-hidden', 'true');
         el.appendChild(pt); ptags[k] = pt;
+        const NS = 'http://www.w3.org/2000/svg', ps = document.createElementNS(NS, 'svg');
+        ps.setAttribute('class', 'pring'); ps.setAttribute('aria-hidden', 'true');
+        ['rb', 'rw'].forEach(c => { const rc = document.createElementNS(NS, 'rect'); rc.setAttribute('class', c); ps.appendChild(rc); });
+        el.appendChild(ps); prings[k] = ps;
         stage.appendChild(el); planes[k] = el;
       }
       projects.forEach((p, i) => {
@@ -741,12 +755,24 @@
     let fx = -100, fy = -100;
     function ringStep() {
       fx += (mx - fx) * 0.11; fy += (my - fy) * 0.11;
-      let t = antTarget;
-      // projet flou : pas de cadre (on reste sur le rond), comme pour la saisie
-      if (t && t.classList.contains('card') && mode === 'scatter' && !isMobile && Math.abs(depthOf(+t.dataset.plan)) > 0.4) t = null;
+      let t = antTarget, farCard = null;
+      // projet flou : le cadre est dessiné DANS son plan (flou + passe sous les plans proches) ; le rond s'efface
+      if (t && t.classList.contains('card') && mode === 'scatter' && !isMobile && Math.abs(depthOf(+t.dataset.plan)) > 0.4) farCard = t;
+      for (const k2 in prings) {
+        const on = farCard && +farCard.dataset.plan === +k2;
+        if (on) {
+          const i = cards.indexOf(farCard), P = 6, wv = farCard.offsetWidth + P * 2, hv = farCard.offsetHeight + P * 2;
+          const ps = prings[k2];
+          ps.setAttribute('width', wv); ps.setAttribute('height', hv);
+          ps.style.transform = `translate(${world[i].x - P}px, ${world[i].y - P}px)`;
+          ps.querySelectorAll('rect').forEach(rc => { rc.setAttribute('x', 0.5); rc.setAttribute('y', 0.5); rc.setAttribute('width', wv - 1); rc.setAttribute('height', hv - 1); });
+        }
+        prings[k2].classList.toggle('on', !!on);
+      }
       if (t && (drag && drag.moved)) t = null;
       let g, k;
-      if (t && t.dataset.ants === 'contour') { g = { x: fx, y: fy, w: 0, h: 0, r: 0, o: 0 }; k = 0.25; }
+      if (farCard) { g = { x: fx, y: fy, w: 0, h: 0, r: 0, o: 0 }; k = 0.25; }
+      else if (t && t.dataset.ants === 'contour') { g = { x: fx, y: fy, w: 0, h: 0, r: 0, o: 0 }; k = 0.25; }
       else if (t && t.isConnected && !t.closest('[hidden]')) {
         const b = t.getBoundingClientRect();
         g = { x: b.left - APAD, y: b.top - APAD, w: b.width + APAD * 2, h: b.height + APAD * 2, r: 0, o: 1 }; k = 0.28;
@@ -914,6 +940,7 @@
       showImage(0, false);
 
       modal.hidden = false;
+      document.body.classList.add('modal-open');
       requestAnimationFrame(() => modal.classList.add('shown'));
       if (push) { history.pushState({ open: slug }, '', urlFor(slug)); pushedOpen = true; }
       track('projet', { slug });
@@ -944,6 +971,7 @@
       current = null;
       const done = () => {
         const refocus = lastFocus && document.activeElement && modal.contains(document.activeElement);
+        document.body.classList.remove('modal-open');
         modal.hidden = true;            // masquée AVANT de retirer l'animation (fill: forwards) → aucune image résiduelle
         endClose();
         imgToken++; mImg.removeAttribute('src');
