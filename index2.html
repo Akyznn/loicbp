@@ -47,7 +47,6 @@
       --L: clamp(150px, 12.6vw, 240px);
     }
 
-    html { background: var(--check-a); }
     html.lock, html.lock body { overflow: hidden; }
 
     body {
@@ -177,8 +176,34 @@
     }
     #peek img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 2px; background: var(--placeholder); }
     body.peeking #tag, body.peeking #peek { opacity: 1; }
-    /* Projet flou (hors du plan net) : seul le titre apparaît, flouté comme son plan */
-    body.peeking.peek-far #peek { opacity: 0; }
+    /* Projet flou (hors du plan net) : seul le titre apparaît, DANS son plan (même flou, passe sous les plans plus proches) */
+    body.peeking.peek-far #peek, body.peeking.peek-far #tag { opacity: 0; }
+    .ptag {
+      position: absolute; left: 0; top: 0; z-index: 50; pointer-events: none;
+      opacity: 0; transition: opacity .18s;
+      font: 700 clamp(11px, 0.82vw, 14px)/1 'Allo', sans-serif;
+      font-variation-settings: 'ROND' 20;
+      color: #fff; background: var(--blue); border-radius: 3px;
+      padding: 0.52em 0.62em 0.56em; white-space: nowrap;
+    }
+    .ptag.on { opacity: 1; }
+
+    /* ── Sélection « Photoshop » : pointillés noir/blanc animés (fourmis) ──
+       un rond suit la souris et se transforme en cadre autour de l'élément survolé ; contour exact sur le logo */
+    :root { --ant: 4px; --ant-speed: 0.4s; }
+    #ring { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9998; overflow: visible; }
+    #ring rect { fill: none; stroke-width: 1; stroke-dasharray: var(--ant) var(--ant); }
+    #ring .rb { stroke: #0f0f0f; animation: march var(--ant-speed) linear infinite; }
+    #ring .rw { stroke: #fff; stroke-dashoffset: var(--ant); animation: march-w var(--ant-speed) linear infinite; }
+    .ants { opacity: 0; pointer-events: none; transition: opacity .15s ease; }
+    .ants-on .ants { opacity: 1; }
+    .ants * { fill: none; stroke-width: 1px; vector-effect: non-scaling-stroke; stroke-dasharray: var(--ant) var(--ant); }
+    .ants .ab { stroke: #0f0f0f; animation: march var(--ant-speed) linear infinite; }
+    .ants .aw { stroke: #fff; stroke-dashoffset: var(--ant); animation: march-w var(--ant-speed) linear infinite; }
+    @keyframes march   { to { stroke-dashoffset: calc(var(--ant) * -2); } }
+    @keyframes march-w { to { stroke-dashoffset: calc(var(--ant) * -1); } }
+    @media (prefers-reduced-motion: reduce) { #ring .rb, #ring .rw, .ants .ab, .ants .aw { animation: none; } }
+    @media (hover: none), (pointer: coarse) { #ring { display: none; } }
 
     /* ── Fiche projet (modale) ── */
     #modal {
@@ -279,12 +304,13 @@
 </head>
 <body>
   <img id="cursor" src="assets/curseur-main.png" alt="" width="32" height="30" aria-hidden="true" />
+  <svg id="ring" aria-hidden="true"><rect class="rb"/><rect class="rw"/></svg>
 
   <h1 class="sr-only">Loïc Bosse-Platière — designer graphique</h1>
 
   <main id="stage">
     <nav id="cluster" aria-label="Navigation principale">
-      <a class="logo" href="./index2.html" aria-label="loïc bp — accueil"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 242.731 55.463" aria-hidden="true" focusable="false">
+      <a class="logo" href="./index2.html" data-ants="contour" aria-label="loïc bp — accueil"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 242.731 55.463" aria-hidden="true" focusable="false">
   <g fill="currentColor">
     <g stroke="currentColor" stroke-miterlimit="10">
       <path d="M8.08 6.372 C6.099 6.666 3.852 7.216 2.175 8.475 C1.969 8.738 2.52 9.212 3.067 9.966 C3.749 10.875 4.332 11.522 4.69 12.087 C4.701 12.861 4.158 40.492 4.131 42.33 C3.206 42.986 0.099 42.775 0.543 44.678 C1.755 44.996 10.611 44.693 11.934 44.791 C12.27 44.816 12.202 43.626 11.901 43.524 C11.398 43.297 9.063 42.78 8.542 42.617 C7.892 41.926 8.491 24.334 8.294 13.844 C8.195 9.647 8.498 6.592 8.165 6.365 Z"/>
@@ -345,7 +371,7 @@
     const reduce = matchMedia('(prefers-reduced-motion: reduce)');
 
     let projects = [], cards = [], plan = [], base = [], world = [];
-    const planes = {};
+    const planes = {}, ptags = {}, planeT = {};
     let mode = 'scatter';           // 'scatter' | 'work'
     let isMobile = mqMobile.matches;
     let current = null, imgIndex = 0, pushedOpen = false;
@@ -393,6 +419,9 @@
       for (let k = NPLANS; k >= 1; k--) {
         const el = document.createElement('div');
         el.className = 'plane'; el.dataset.plan = k;
+        const pt = document.createElement('div');
+        pt.className = 'ptag'; pt.setAttribute('aria-hidden', 'true');
+        el.appendChild(pt); ptags[k] = pt;
         stage.appendChild(el); planes[k] = el;
       }
       projects.forEach((p, i) => {
@@ -593,11 +622,13 @@
     });
 
     /* ───────── Survol : étiquette + aperçu ───────── */
-    let tx = mx, ty = my, px = mx, py = my, peeking = false, peekIdx = -1, tagBlur = '';
+    let tx = mx, ty = my, px = mx, py = my, peeking = false, peekIdx = -1;
     function showPeek(p, i) {
       peekIdx = i;
       if (isMobile || !fine.matches || current || (drag && drag.moved)) return;
       tag.textContent = p.titre;
+      Object.values(ptags).forEach(t => t.classList.remove('on'));
+      ptags[plan[i]].textContent = p.titre;
       peekImg.src = thumb(p);
       const S15 = metrics().S * 1.5, r0 = p.cover ? p.cover.w / p.cover.h : 1.6, rr = clamp(r0, 0.5, 2.6);
       peekImg.style.width = (rr >= 1 ? S15 : S15 * rr) + 'px';
@@ -607,7 +638,7 @@
       peeking = true;
       document.body.classList.add('peeking');
     }
-    function hidePeek() { peeking = false; document.body.classList.remove('peeking'); }
+    function hidePeek() { peeking = false; document.body.classList.remove('peeking'); Object.values(ptags).forEach(t => t.classList.remove('on')); }
 
     /* ───────── Boucle d'animation : curseur, étiquette, aperçu, parallaxe ───────── */
     let parX = 0, parY = 0;
@@ -680,19 +711,78 @@
     }, { passive: true });
     document.addEventListener('mouseleave', () => document.body.classList.remove('has-cursor'));
 
+    /* ───────── Sélection « Photoshop » ───────── */
+    const ring = $('#ring'), rects = ring.querySelectorAll('rect');
+    // Contour exact du logo : on clone chaque tracé en deux calques (noir + blanc)
+    document.querySelectorAll('[data-ants="contour"] svg').forEach(svg => {
+      const NS = 'http://www.w3.org/2000/svg', g = document.createElementNS(NS, 'g');
+      g.setAttribute('class', 'ants');
+      svg.querySelectorAll('path, polygon').forEach(sh => ['ab', 'aw'].forEach(cls => {
+        const c = document.createElementNS(NS, sh.tagName);
+        ['d', 'points'].forEach(a => sh.hasAttribute(a) && c.setAttribute(a, sh.getAttribute(a)));
+        c.setAttribute('class', cls); g.appendChild(c);
+      }));
+      svg.appendChild(g);
+    });
+    let antTarget = null;
+    function setAnt(el) {
+      if (el === antTarget) return;
+      if (antTarget) antTarget.classList.remove('ants-on');
+      antTarget = el;
+      if (el && el.dataset.ants === 'contour') el.classList.add('ants-on');
+    }
+    const pickAnt = el => el && el.closest ? el.closest('[data-ants], a, button') : null;
+    document.addEventListener('mouseover', e => setAnt(pickAnt(e.target)));
+    document.addEventListener('mouseleave', () => setAnt(null));
+    document.addEventListener('focusin', e => { const t = pickAnt(e.target); if (t && t.matches(':focus-visible')) setAnt(t); });
+    document.addEventListener('focusout', () => setAnt(null));
+    const REST = 26, APAD = 6;
+    const ant = { x: -100, y: -100, w: REST, h: REST, r: REST / 2, o: 0 };
+    let fx = -100, fy = -100;
+    function ringStep() {
+      fx += (mx - fx) * 0.11; fy += (my - fy) * 0.11;
+      let t = antTarget;
+      // projet flou : pas de cadre (on reste sur le rond), comme pour la saisie
+      if (t && t.classList.contains('card') && mode === 'scatter' && !isMobile && Math.abs(depthOf(+t.dataset.plan)) > 0.4) t = null;
+      if (t && (drag && drag.moved)) t = null;
+      let g, k;
+      if (t && t.dataset.ants === 'contour') { g = { x: fx, y: fy, w: 0, h: 0, r: 0, o: 0 }; k = 0.25; }
+      else if (t && t.isConnected && !t.closest('[hidden]')) {
+        const b = t.getBoundingClientRect();
+        g = { x: b.left - APAD, y: b.top - APAD, w: b.width + APAD * 2, h: b.height + APAD * 2, r: 0, o: 1 }; k = 0.28;
+      } else { g = { x: fx - REST / 2, y: fy - REST / 2, w: REST, h: REST, r: REST / 2, o: document.body.classList.contains('has-cursor') ? 0.55 : 0 }; k = 0.22; }
+      for (const p in g) ant[p] += (g[p] - ant[p]) * k;
+      const w = Math.max(ant.w, 0), hh = Math.max(ant.h, 0), rr = Math.min(Math.max(ant.r, 0), w / 2, hh / 2);
+      rects.forEach(el => {
+        el.setAttribute('x', ant.x + 0.5); el.setAttribute('y', ant.y + 0.5);
+        el.setAttribute('width', w); el.setAttribute('height', hh); el.setAttribute('rx', rr);
+      });
+      ring.style.opacity = ant.o < 0.01 ? 0 : ant.o;
+    }
+
     function frameLoop() {
+      if (fine.matches) ringStep();
       if (peeking) {
-        // Projet hors du plan net : titre seul, avec le même flou que son plan (suit la mise au point)
+        // Projet hors du plan net : titre seul, placé DANS son plan (flou et taille du plan, sous les plans plus proches)
         const far = mode === 'scatter' && !isMobile && peekIdx >= 0 && Math.abs(depthOf(plan[peekIdx])) > 0.4;
         document.body.classList.toggle('peek-far', far);
-        const bl = far ? planeLook(depthOf(plan[peekIdx])).blur : 0;
-        const f = bl > 0.05 ? `blur(${bl.toFixed(2)}px)` : 'none';
-        if (f !== tagBlur) { tagBlur = f; tag.style.filter = f; }
         // Étiquette : au-dessus du curseur, avec un léger retard
         tx += (mx - tx) * 0.16; ty += (my - ty) * 0.16;
-        const tw = tag.offsetWidth, th = tag.offsetHeight;
-        const lx = clamp(tx - tw / 2, 6, innerWidth - tw - 6), ly = clamp(ty - th - 12, 6, innerHeight - th - 6);
-        tag.style.transform = `translate(${lx}px, ${ly}px)`;
+        if (far) {
+          const pl = plan[peekIdx], T = planeT[pl], pt = ptags[pl];
+          if (T) {
+            // coordonnées écran → coordonnées du plan (inverse de translate + scale autour du centre)
+            const ox = innerWidth / 2, oy = innerHeight / 2;
+            const lx = ox + (tx - ox - T.tx) / T.s, ly = oy + (ty - oy - T.ty) / T.s;
+            pt.style.transform = `translate(${lx - pt.offsetWidth / 2}px, ${ly - pt.offsetHeight - 12 / T.s}px)`;
+          }
+          pt.classList.add('on');
+        } else {
+          Object.values(ptags).forEach(t => t.classList.remove('on'));
+          const tw = tag.offsetWidth, th = tag.offsetHeight;
+          const lx = clamp(tx - tw / 2, 6, innerWidth - tw - 6), ly = clamp(ty - th - 12, 6, innerHeight - th - 6);
+          tag.style.transform = `translate(${lx}px, ${ly}px)`;
+        }
         // Aperçu : collé au curseur, bascule de côté pour ne jamais sortir de l'écran
         px += (mx - px) * 0.45; py += (my - py) * 0.45;
         const pw = peek.offsetWidth, ph = peek.offsetHeight;
@@ -709,6 +799,7 @@
         if (Math.abs(focusT - focus) < 0.0005) focus = focusT;
         for (let pl = 1; pl <= NPLANS; pl++) {
           const d = depthOf(pl), L = planeLook(d), pn = planes[pl];
+          planeT[pl] = { s: L.s, tx: -parX * 40 * L.s, ty: -parY * 28 * L.s };
           const tf = `translate(${(-parX * 40 * L.s).toFixed(1)}px, ${(-parY * 28 * L.s).toFixed(1)}px) scale(${L.s.toFixed(4)})`;
           // Derrière le plan net : flou + perspective atmosphérique (couleurs éteintes, contraste adouci, voile clair)
           const a = clamp(d, 0, 2) / 2;
