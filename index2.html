@@ -368,6 +368,9 @@
       return { s: 1 - d * 0.65, blur: Math.min(-d * 7, 9), op: clamp(1 + d * 1.6, 0, 1) };
     }
     let focus = 1, focusT = 1;
+    /* Nouvelle composition à chaque chargement (répartition dans les plans + placement),
+       stable ensuite pendant la visite (redimensionnement, aller-retour « work »). */
+    const SEED = (Math.random() * 2 ** 31) | 0;
     /* Perspective atmosphérique des plans du fond (valeurs atteintes deux plans derrière) — à régler ici */
     const ATMO = { sat: 0.7, contrast: 0.35, light: 0.12 };
 
@@ -377,7 +380,7 @@
 
     /* ───────── Construction ───────── */
     function build() {
-      const r = rng(11);
+      const r = rng(SEED);
       for (let k = NPLANS; k >= 1; k--) {
         const el = document.createElement('div');
         el.className = 'plane'; el.dataset.plan = k;
@@ -459,7 +462,7 @@
        – et dans son propre plan, quand on fait la mise au point dessus.
        Les plans sont alternés pour que chacun soit réparti sur tout l'écran. */
     function scatterLayout(m, excl) {
-      const r = rng(7);
+      const r = rng(SEED + 1);
       const pad = 28, topPad = 36, cx = m.vw / 2, cy = m.vh / 2;
       const zone = { x0: excl.x0 - m.S * 0.4, y0: excl.y0 - m.S * 0.3, x1: excl.x1 + m.S * 0.4, y1: excl.y1 + m.S * 0.3 };
       const proj = (b, s) => ({ x0: cx + (b.x0 - cx) * s, x1: cx + (b.x1 - cx) * s, y0: cy + (b.y0 - cy) * s, y1: cy + (b.y1 - cy) * s });
@@ -603,6 +606,7 @@
     /* ───────── Glisser-déposer des vignettes (état éparpillé) ───────── */
     let drag = null, suppressClick = false;
     const POS_KEY = 'lbp-index2-pos';
+    try { sessionStorage.removeItem(POS_KEY); } catch (e) {}   // nouvelle composition → on oublie les déplacements
     function loadPos() { try { return JSON.parse(sessionStorage.getItem(POS_KEY)) || {}; } catch (e) { return {}; } }
     function savePos(slug, x, y) {
       try { const s = loadPos(); s[slug] = [x / innerWidth, y / innerHeight]; sessionStorage.setItem(POS_KEY, JSON.stringify(s)); } catch (e) {}
