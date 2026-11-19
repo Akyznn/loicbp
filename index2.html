@@ -463,10 +463,11 @@
        Les plans sont alternés pour que chacun soit réparti sur tout l'écran. */
     function scatterLayout(m, excl) {
       const r = rng(SEED + 1);
-      const pad = 28, topPad = 36, cx = m.vw / 2, cy = m.vh / 2;
+      const pad = 20, topPad = 24, cx = m.vw / 2, cy = m.vh / 2;
       const zone = { x0: excl.x0 - m.S * 0.4, y0: excl.y0 - m.S * 0.3, x1: excl.x1 + m.S * 0.4, y1: excl.y1 + m.S * 0.3 };
       const proj = (b, s) => ({ x0: cx + (b.x0 - cx) * s, x1: cx + (b.x1 - cx) * s, y0: cy + (b.y0 - cy) * s, y1: cy + (b.y1 - cy) * s });
       const cross = m.S * 0.12;                        // léger chevauchement toléré entre deux plans
+      const EDGE = 1.9;                                // plus c'est grand, plus les vignettes s'écartent des bords
       const byPlane = {};
       for (let pl = 1; pl <= NPLANS; pl++) byPlane[pl] = [];
       cards.forEach((c, i) => byPlane[plan[i]].push(i));
@@ -485,6 +486,9 @@
           const box = { x0: x, y0: y, x1: x + w, y1: y + hgt };
           const pb = proj(box, s0);
           let s = Math.min(gap(box, zone), gap(pb, zone)) * 1.1;
+          // Les bords de l'écran comptent comme des voisins : sans ça, l'algorithme repousse les vignettes sur les côtés
+          const edge = b => Math.min(b.x0, m.vw - b.x1, b.y0, m.vh - b.y1);
+          s = Math.min(s, edge(box) * EDGE, edge(pb) * EDGE);
           for (const q of placed) {
             if (q.pl === pl) s = Math.min(s, gap(box, q.w));
             s = Math.min(s, gap(pb, q.p) + (q.pl === pl ? 0 : cross));
