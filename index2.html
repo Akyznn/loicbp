@@ -187,8 +187,18 @@
       padding: 24px;
     }
     #modal[hidden] { display: none; }
+    /* Voile derrière la fiche : léger flou + damier éclairci, en fondu */
+    #modal::before {
+      content: ''; position: absolute; inset: 0;
+      background: rgba(253, 253, 253, 0.45);
+      -webkit-backdrop-filter: blur(7px) saturate(0.7);
+      backdrop-filter: blur(7px) saturate(0.7);
+      opacity: 0; transition: opacity .45s var(--ease-out);
+    }
+    #modal.shown::before { opacity: 1; }
+    @media (prefers-reduced-transparency: reduce) { #modal::before { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(253, 253, 253, 0.8); } }
     .m-frame {
-      position: relative;
+      position: relative; z-index: 1;
       width: max-content;
       background: var(--frame-modal); border-radius: 5px;
       padding: 13px 13px 0;
@@ -716,10 +726,15 @@
       if (!ratio || !isFinite(ratio)) return;
       curRatio = ratio;
       const pad = isMobile ? 16 : 26;
-      const maxW = isMobile ? innerWidth - 24 - pad : Math.min(innerWidth * 0.72, 1240) - pad;
-      const maxH = innerHeight - (isMobile ? 24 : 48) - (isMobile ? 130 : 96) - pad / 2;
+      const maxW = isMobile ? innerWidth - 24 - pad : Math.min(innerWidth * 0.62, 1000) - pad;
+      const maxH = isMobile
+        ? innerHeight - 24 - 130 - pad / 2
+        : Math.min(innerHeight - 48 - 96 - pad / 2, innerHeight * 0.7, 760);
       let w = maxW, hh = w / ratio;
       if (hh > maxH) { hh = maxH; w = hh * ratio; }
+      // Surface plafonnée : un visuel panoramique ne s'ouvre pas plus « gros » qu'un vertical ou un carré
+      const maxArea = maxH * maxH * 1.2;
+      if (!isMobile && w * hh > maxArea) { hh = Math.sqrt(maxArea / ratio); w = hh * ratio; }
       if (!animate) media.style.transition = 'none';
       media.style.width = Math.round(w) + 'px';
       media.style.height = Math.round(hh) + 'px';
@@ -774,6 +789,7 @@
       showImage(0, false);
 
       modal.hidden = false;
+      requestAnimationFrame(() => modal.classList.add('shown'));
       if (push) { history.pushState({ open: slug }, '', urlFor(slug)); pushedOpen = true; }
       track('projet', { slug });
 
@@ -808,6 +824,7 @@
       };
       const r = card && card.getBoundingClientRect();
       const visible = r && r.bottom > 0 && r.top < innerHeight;
+      modal.classList.remove('shown');
       if (!reduce.matches && visible) {
         modal.classList.add('leaving');
         closeAnim = frame.animate([{ transform: 'none' }, { transform: flipFrom(card) }], { duration: 520, easing: 'cubic-bezier(0.7, 0, 0.2, 1)', fill: 'forwards' });
