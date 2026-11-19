@@ -456,48 +456,55 @@
       return Math.hypot(Math.max(dx, 0), Math.max(dy, 0));
     }
 
-    /* Éparpillé : placement « meilleur candidat » (Mitchell), tous plans confondus.
-       Chaque vignette cherche la place la plus dégagée à la fois :
-       – telle qu'on la voit à l'arrivée (plans du fond réduits vers le centre),
-       – et dans son propre plan, quand on fait la mise au point dessus.
-       Les plans sont alternés pour que chacun soit réparti sur tout l'écran. */
+    /* Éparpillé : chaque plan est réparti tout autour du logo.
+       – L'écran est découpé en secteurs angulaires autour du centre, autant que de projets dans le plan :
+         une vignette par secteur → chaque plan couvre gauche, droite, haut et bas, jamais d'un seul côté.
+       – Les secteurs sont décalés d'un plan à l'autre, pour que les plans s'intercalent.
+       – Dans son secteur, la vignette prend la place la plus dégagée parmi quelques essais.
+       – Une marge de sécurité tout autour de l'écran : rien ne naît collé aux bords. */
     function scatterLayout(m, excl) {
       const r = rng(SEED + 1);
-      const pad = 20, topPad = 24, cx = m.vw / 2, cy = m.vh / 2;
-      const zone = { x0: excl.x0 - m.S * 0.4, y0: excl.y0 - m.S * 0.3, x1: excl.x1 + m.S * 0.4, y1: excl.y1 + m.S * 0.3 };
+      const cx = m.vw / 2, cy = m.vh / 2;
+      const MX = Math.max(48, m.vw * 0.05), MY = Math.max(40, m.vh * 0.07);   // marges de sécurité (bords)
+      const zone = { x0: excl.x0 - m.S * 0.35, y0: excl.y0 - m.S * 0.25, x1: excl.x1 + m.S * 0.35, y1: excl.y1 + m.S * 0.25 };
       const proj = (b, s) => ({ x0: cx + (b.x0 - cx) * s, x1: cx + (b.x1 - cx) * s, y0: cy + (b.y0 - cy) * s, y1: cy + (b.y1 - cy) * s });
       const cross = m.S * 0.12;                        // léger chevauchement toléré entre deux plans
-      const EDGE = 1.9;                                // plus c'est grand, plus les vignettes s'écartent des bords
-      const byPlane = {};
-      for (let pl = 1; pl <= NPLANS; pl++) byPlane[pl] = [];
-      cards.forEach((c, i) => byPlane[plan[i]].push(i));
-      const order = [];
-      for (let k = 0; order.length < cards.length; k++)
-        for (let pl = 1; pl <= NPLANS; pl++) if (byPlane[pl][k] !== undefined) order.push(byPlane[pl][k]);
+      const TAU = Math.PI * 2;
+      const shuffle = a => { for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(r() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
 
       const placed = [], out = [];
-      for (const i of order) {
-        const pl = plan[i], s0 = planeLook(pl - 1).s;
-        const w = base[i].w * m.S, hgt = base[i].h * m.S;
-        let best = null, bestScore = -Infinity;
-        for (let t = 0; t < 160; t++) {
-          const x = pad + r() * Math.max(1, m.vw - 2 * pad - w);
-          const y = topPad + r() * Math.max(1, m.vh - topPad - pad - hgt);
-          const box = { x0: x, y0: y, x1: x + w, y1: y + hgt };
-          const pb = proj(box, s0);
-          let s = Math.min(gap(box, zone), gap(pb, zone)) * 1.1;
-          // Les bords de l'écran comptent comme des voisins : sans ça, l'algorithme repousse les vignettes sur les côtés
-          const edge = b => Math.min(b.x0, m.vw - b.x1, b.y0, m.vh - b.y1);
-          s = Math.min(s, edge(box) * EDGE, edge(pb) * EDGE);
-          for (const q of placed) {
-            if (q.pl === pl) s = Math.min(s, gap(box, q.w));
-            s = Math.min(s, gap(pb, q.p) + (q.pl === pl ? 0 : cross));
-            if (s < bestScore) break;
+      const turn0 = r() * TAU;
+      for (let pl = 1; pl <= NPLANS; pl++) {
+        const ids = shuffle(cards.map((c, i) => i).filter(i => plan[i] === pl));
+        const n = ids.length; if (!n) continue;
+        const sector = TAU / n;
+        const offset = turn0 + (pl - 1) * sector / NPLANS;     // plans intercalés
+        const s0 = planeLook(pl - 1).s;
+        ids.forEach((i, k) => {
+          const w = base[i].w * m.S, hgt = base[i].h * m.S;
+          // demi-étendue disponible pour le CENTRE de la vignette, marges comprises
+          const hx = Math.max(10, m.vw / 2 - MX - w / 2), hy = Math.max(10, m.vh / 2 - MY - hgt / 2);
+          let best = null, bestScore = -Infinity;
+          for (let t = 0; t < 70; t++) {
+            const a = offset + (k + 0.12 + r() * 0.76) * sector;           // reste dans son secteur
+            // Angle pris dans un carré normalisé puis étiré au format de l'écran : les secteurs gauche/droite
+            // ne sont pas écrasés par la largeur de l'écran
+            const ca = Math.cos(a), sa = Math.sin(a);
+            const f = (0.34 + 0.66 * Math.sqrt(r())) / Math.max(Math.abs(ca), Math.abs(sa));
+            const px = cx + ca * f * hx, py = cy + sa * f * hy;
+            const box = { x0: px - w / 2, y0: py - hgt / 2, x1: px + w / 2, y1: py + hgt / 2 };
+            const pb = proj(box, s0);
+            let s = Math.min(gap(box, zone), gap(pb, zone)) * 1.2;
+            for (const q of placed) {
+              if (q.pl === pl) s = Math.min(s, gap(box, q.w));
+              s = Math.min(s, gap(pb, q.p) + (q.pl === pl ? 0 : cross));
+              if (s < bestScore) break;
+            }
+            if (s > bestScore) { bestScore = s; best = { w: box, p: pb, pl }; }
           }
-          if (s > bestScore) { bestScore = s; best = { w: box, p: pb, pl }; }
-        }
-        placed.push(best);
-        out[i] = { x: best.w.x0, y: best.w.y0 };
+          placed.push(best);
+          out[i] = { x: best.w.x0, y: best.w.y0 };
+        });
       }
       // Positions déplacées à la main (glisser-déposer) pendant la visite
       const saved = loadPos();
