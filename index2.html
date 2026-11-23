@@ -54,14 +54,9 @@
     html.lock, html.lock body { overflow: hidden; }
 
     :root { --trame-img: url('assets/trame.svg?v=3'); --veil: rgba(253, 253, 253, 0.18); color-scheme: light; }
-    /* ── Mode sombre : suit le réglage du système ; ?theme=dark / ?theme=light pour forcer ── */
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) {
-        --check-a: #121212; --check-b: #1b1b1b; --ink: #ececec;
-        --frame: #3a3a3a; --frame-modal: #333; --placeholder: #262626; --media-bg: #222;
-        --trame-img: url('assets/trame-dark.svg?v=1'); --veil: rgba(18, 18, 18, 0.3); color-scheme: dark;
-      }
-    }
+    /* ── Mode sombre : DÉSACTIVÉ pour l'instant (logo pas prêt). Interrupteur gardé en réserve :
+       – le forcer pour tester : ajouter ?theme=dark à l'adresse
+       – le rendre automatique plus tard : envelopper le bloc ci-dessous dans @media (prefers-color-scheme: dark) ── */
     :root[data-theme="dark"] {
       --check-a: #121212; --check-b: #1b1b1b; --ink: #ececec;
       --frame: #3a3a3a; --frame-modal: #333; --placeholder: #262626; --media-bg: #222;
@@ -106,6 +101,8 @@
     #cluster {
       position: absolute; left: 0; top: 0; z-index: 90;
       width: var(--L); height: calc(var(--L) * 0.2285);
+      /* position de départ = centre de l'écran, avant même que le script ne tourne (plus de saut en haut à gauche) */
+      transform: translate(calc(50vw - var(--L) / 2), calc(50vh - var(--L) * 0.1143));
       will-change: transform;
     }
     .logo { display: block; color: var(--ink); width: 100%; }
@@ -250,6 +247,7 @@
     }
     #modal.shown::before { opacity: 1; }
     @media (prefers-reduced-transparency: reduce) { #modal::before { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(253, 253, 253, 0.8); } }
+    .m-frame:focus { outline: none; }
     .m-frame {
       position: relative; z-index: 1;
       width: max-content;
@@ -293,25 +291,6 @@
     .m-bar > :nth-child(3) { transition-delay: .1s; }
     #modal.entering .m-bar > * { opacity: 0; transform: translateY(8px); transition: none; }
     #modal.leaving .m-bar > * { opacity: 0; transition: opacity .12s; transition-delay: 0s; }
-    #modal.entering .m-close { opacity: 0; transform: scale(.4); transition: none; }
-    #modal.leaving .m-close { opacity: 0; transition: opacity .1s; }
-    .m-close { transform-origin: 100% 0; }
-
-    /* Fermer : petit carré bleu dans l'angle → au survol, il devient un bouton « × » à droite du cadre */
-    .m-close {
-      position: absolute; top: 0; right: 0;
-      width: 14px; height: 14px;
-      border: 0; border-radius: 2px; background: var(--blue); color: #fff;
-      display: grid; place-items: center;
-      transition: width .28s var(--ease-out), height .28s var(--ease-out), top .28s var(--ease-out), right .28s var(--ease-out), opacity .3s var(--ease-out), transform .45s cubic-bezier(.34, 1.56, .64, 1);
-    }
-    .m-close::before { content: ''; position: absolute; inset: -16px; }
-    /* zone de survol élargie vers l'angle du cadre : le bouton ne « fuit » pas sous la souris quand il se déplace */
-    .m-close:hover::before, .m-close:focus-visible::before { inset: -16px -16px -16px -64px; }
-    .m-close svg { width: 55%; height: 55%; opacity: 0; transition: opacity .15s; }
-    .m-close:hover, .m-close:focus-visible { width: 34px; height: 34px; top: -10px; right: -46px; }
-    .m-close:hover svg, .m-close:focus-visible svg { opacity: 1; transition-delay: .1s; }
-    .m-close:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
     /* ── Mobile / tactile : grille simple, pas de survol ── */
     @media (max-width: 720px), (hover: none) {
@@ -321,12 +300,10 @@
       #tag, #peek { display: none; }
       #modal { padding: 12px; }
       .m-frame { padding: 8px 8px 0; }
-      .m-close, .m-close:hover, .m-close:focus-visible { width: 34px; height: 34px; top: -6px; right: -6px; }
-      .m-close svg { opacity: 1; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      #stage.anim .card, .btn, .m-close { transition: none !important; }
+      #stage.anim .card, .btn { transition: none !important; }
     }
   </style>
 </head>
@@ -363,7 +340,7 @@
   <div id="peek" aria-hidden="true"><img alt="" /></div>
 
   <div id="modal" role="dialog" aria-modal="true" aria-labelledby="m-title" hidden>
-    <div class="m-frame">
+    <div class="m-frame" tabindex="-1">
       <div class="m-media"><img alt="" /></div>
       <div class="m-bar">
         <div class="m-head">
@@ -377,9 +354,6 @@
           <button class="btn m-next" type="button" aria-label="Image suivante">→</button>
         </div>
       </div>
-      <button class="m-close" type="button" aria-label="Fermer le projet">
-        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4 16 16M16 4 4 16" stroke="currentColor" stroke-width="3.2" stroke-linecap="square"/></svg>
-      </button>
     </div>
   </div>
 
@@ -391,7 +365,7 @@
     const tag = $('#tag'), peek = $('#peek'), peekImg = $('img', peek);
     const modal = $('#modal'), frame = $('.m-frame'), media = $('.m-media'), mImg = $('img', media);
     const mTitle = $('.m-title'), mMeta = $('.m-meta'), mText = $('.m-text');
-    const mNav = $('.m-nav'), mCount = $('.m-count'), mClose = $('.m-close');
+    const mNav = $('.m-nav'), mCount = $('.m-count');
     const cursorEl = $('#cursor');
 
     const mqMobile = matchMedia('(max-width: 720px), (hover: none)');
@@ -436,10 +410,7 @@
     const SEED = (Math.random() * 2 ** 31) | 0;
     /* Perspective atmosphérique des plans du fond (valeurs atteintes deux plans derrière) — à régler ici */
     const ATMO = { sat: 0.7, contrast: 0.35, light: 0.12 };
-    const isDark = () => document.documentElement.dataset.theme === 'dark'
-      || (document.documentElement.dataset.theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
-    let darkNow = isDark();
-    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { darkNow = isDark(); planeCache = {}; });
+    const darkNow = document.documentElement.dataset.theme === 'dark';   // mode sombre : seulement si forcé (?theme=dark)
 
     const thumb = p => 'assets/projets/thumbs/' + p.slug + '.webp';
     const images = p => (p.images && p.images.length ? p.images : [p.cover]).map(x => typeof x === 'string' ? { src: x } : x);
@@ -1001,7 +972,7 @@
         modal.classList.remove('entering');
         frame.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200 });
       }
-      mClose.focus({ preventScroll: true });
+      frame.focus({ preventScroll: true });
     }
 
     function close({ fromPop = false } = {}) {
@@ -1036,7 +1007,6 @@
       closeAnim.onfinish = done;
     }
 
-    mClose.addEventListener('click', () => close());
     modal.addEventListener('click', e => { if (e.target === modal) close(); });   // clic en dehors du cadre
     $('.m-prev').addEventListener('click', () => showImage(imgIndex - 1, true));
     $('.m-next').addEventListener('click', () => showImage(imgIndex + 1, true));
@@ -1069,6 +1039,7 @@
       else if (e.key === 'ArrowRight' && images(current).length > 1) showImage(imgIndex + 1, true);
       else if (e.key === 'Tab') {
         const f = [...modal.querySelectorAll('button')].filter(b => !b.closest('[hidden]'));
+        if (!f.length) { e.preventDefault(); return; }
         const first = f[0], last = f[f.length - 1];
         if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
         else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
@@ -1097,6 +1068,9 @@
 
     /* ───────── Démarrage ───────── */
     (async () => {
+      // place le logo tout de suite (avant le chargement des projets) : aucun saut au rafraîchissement
+      mode = parseHash().mode;
+      apply(false);
       try { projects = await (await fetch('assets/projets.json')).json(); }
       catch (e) { console.error('projets.json introuvable', e); return; }
       build();
