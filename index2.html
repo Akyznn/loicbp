@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-dock-nopad>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -19,6 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Piazzolla:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
   <link rel="preload" href="assets/projets.json" as="fetch" crossorigin />
+  <link rel="stylesheet" href="assets/dock.css?v=1" />
   <style>
     @font-face {
       font-family: 'Allo';
@@ -302,86 +303,7 @@
       .m-frame { padding: 8px 8px 0; }
     }
 
-    /* ── Dock (footer) : façon Magic UI — grossissement des icônes à l'approche de la souris ── */
-    :root { --dock-size: 40px; }
-    #dock {
-      position: fixed; left: 50%; bottom: 16px; z-index: 91;   /* au-dessus du logo et de son orbite */
-      transform: translateX(-50%);
-    }
-    .dock-bar {
-      display: flex; align-items: flex-end; gap: 8px;
-      height: calc(var(--dock-size) + 18px); padding: 8px;
-      border-radius: 16px;
-      background: rgba(253, 253, 253, 0.6);
-      border: 1px solid rgba(15, 15, 15, 0.08);
-      -webkit-backdrop-filter: blur(12px) saturate(1.2); backdrop-filter: blur(12px) saturate(1.2);
-      box-shadow: 0 10px 30px -14px rgba(15, 15, 15, 0.3);
-    }
-    .dock-item {
-      position: relative; flex: none;
-      width: var(--dock-size); height: var(--dock-size);
-      display: grid; place-items: center;
-      border: 0; padding: 0; border-radius: 50%;
-      background: rgba(15, 15, 15, 0.06); color: var(--ink);
-      text-decoration: none;
-    }
-    .dock-item svg { width: 46%; height: 46%; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
-    .dock-sep { flex: none; width: 1px; align-self: stretch; margin: 2px 2px; background: rgba(15, 15, 15, 0.12); }
-    /* Infobulle : étiquette bleue (même style que les titres de projets) */
-    .dock-item::after {
-      content: attr(data-label);
-      position: absolute; left: 50%; bottom: calc(100% + 10px);
-      transform: translate(-50%, 4px); opacity: 0; pointer-events: none;
-      font: 700 clamp(11px, 0.82vw, 14px)/1 'Allo', sans-serif; font-variation-settings: 'ROND' 20;
-      color: #fff; background: var(--blue); border-radius: 3px;
-      padding: 0.52em 0.62em 0.56em; white-space: nowrap;
-      transition: opacity .15s, transform .2s var(--ease-out);
-    }
-    .dock-item:hover::after, .dock-item:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
-    .dock-item[aria-expanded="true"]::after { opacity: 0; }
-    .dock-item:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
-    /* Point « application ouverte » façon macOS : sous « work » quand la grille est affichée */
-    .dock-dot { position: absolute; left: 50%; bottom: -6px; width: 4px; height: 4px; border-radius: 50%; background: var(--ink); transform: translateX(-50%); opacity: 0; transition: opacity .2s; }
-    .dock-item[aria-pressed="true"] .dock-dot { opacity: 1; }
-    .trash-full { display: none; }
-    .has-trash .trash-full { display: inline; } .has-trash .trash-empty-ico { display: none; }
-
-    /* Corbeille : pile en grille façon macOS, qui s'ouvre depuis l'icône */
-    #trash {
-      position: absolute; bottom: calc(100% + 16px); left: 0;
-      width: max-content; max-width: min(92vw, 440px);
-      padding: 14px 14px 16px; border-radius: 14px;
-      background: rgba(246, 246, 246, 0.86);
-      border: 1px solid rgba(15, 15, 15, 0.1);
-      -webkit-backdrop-filter: blur(20px) saturate(1.3); backdrop-filter: blur(20px) saturate(1.3);
-      box-shadow: 0 24px 50px -20px rgba(15, 15, 15, 0.4);
-      transform-origin: var(--ox, 50%) 100%;
-      transform: translateY(14px) scale(0.55); opacity: 0;
-      transition: transform .38s cubic-bezier(.34, 1.36, .64, 1), opacity .2s var(--ease-out);
-    }
-    #trash[hidden] { display: none; }
-    #trash.open { transform: none; opacity: 1; }
-    #trash::after {
-      content: ''; position: absolute; left: var(--ox, 50%); bottom: -7px;
-      width: 12px; height: 12px; background: rgba(246, 246, 246, 0.95);
-      border-right: 1px solid rgba(15, 15, 15, 0.1); border-bottom: 1px solid rgba(15, 15, 15, 0.1);
-      transform: translateX(-50%) rotate(45deg);
-    }
-    .trash-head { display: flex; align-items: baseline; gap: .5em; margin: 0 2px 12px; }
-    .trash-title { font: 700 14px/1 'Allo', sans-serif; font-variation-settings: 'ROND' 20; }
-    .trash-count { font-size: 11px; opacity: .6; }
-    .trash-grid { display: grid; grid-template-columns: repeat(var(--cols, 4), 78px); gap: 14px 10px; }
-    .trash-item { display: flex; flex-direction: column; align-items: center; gap: 6px; border: 0; padding: 4px 2px; background: none; border-radius: 6px; color: var(--ink); }
-    .trash-item:focus-visible { outline: 2px solid var(--blue); }
-    .trash-thumb { width: 64px; height: 64px; display: grid; place-items: center; }
-    .trash-thumb img { display: block; width: 64px; height: 64px; object-fit: contain; transition: transform .25s var(--ease-out); filter: drop-shadow(0 2px 4px rgba(15, 15, 15, .18)); }
-    .trash-item:hover .trash-thumb img { transform: scale(1.06); }
-    .trash-label { font-size: 11px; line-height: 1.2; text-align: center; max-width: 76px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .trash-empty { font-size: 12.5px; padding: 4px 2px 2px; min-width: 200px; }
-    @media (max-width: 720px), (hover: none) { :root { --dock-size: 36px; } .dock-bar { gap: 6px; } #dock { bottom: 10px; } }
-
     @media (prefers-reduced-motion: reduce) {
-      #trash { transition: opacity .2s; transform: none; }
       #stage.anim .card, .btn { transition: none !important; }
     }
   </style>
@@ -416,24 +338,6 @@
   </main>
 
 
-  <!-- Dock (footer) : raccourcis, contact, infos légales, corbeille — icônes génériques en attendant les définitives -->
-  <nav id="dock" aria-label="Raccourcis">
-    <div class="dock-bar">
-      <button class="dock-item" id="dock-work" type="button" data-label="work" aria-label="work — tous les projets" aria-pressed="false" data-umami-event="dock-work"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/></svg><i class="dock-dot"></i></button>
-      <a class="dock-item" href="toolbox.html" data-label="toolbox" aria-label="toolbox" data-umami-event="dock-toolbox"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.2 5.2L4 17v3h3l5.5-5.5a4 4 0 0 0 5.2-5.2l-2.6 2.6-2.4-.6-.6-2.4z"/></svg></a>
-      <span class="dock-sep" aria-hidden="true"></span>
-      <a class="dock-item" href="mailto:contact@loicbp.fr" data-label="contact@loicbp.fr" aria-label="Écrire à contact@loicbp.fr" data-umami-event="clic-email"><svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></svg></a>
-      <a class="dock-item" href="https://instagram.com/l0icbp" target="_blank" rel="noopener" data-label="instagram" aria-label="Instagram (nouvel onglet)" data-umami-event="clic-instagram"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="12" cy="12" r="3.6"/><circle cx="16.8" cy="7.2" r=".6" fill="currentColor"/></svg></a>
-      <a class="dock-item" href="mentions-legales.html" data-label="mentions légales" aria-label="Mentions légales" data-umami-event="dock-mentions"><svg viewBox="0 0 24 24"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M9.5 12h6M9.5 15h6M9.5 18h4"/></svg></a>
-      <span class="dock-sep" aria-hidden="true"></span>
-      <button class="dock-item" id="trash-btn" type="button" data-label="corbeille" aria-label="Corbeille" aria-expanded="false" aria-controls="trash" data-umami-event="dock-corbeille"><svg viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/><g class="trash-empty-ico"><path d="M10 10.5v6.5M14 10.5v6.5"/></g><g class="trash-full"><path d="M9 11.5l2.5-2 2 1.5 2-1.6M8.6 14.5h6.8"/></g></svg></button>
-    </div>
-    <div id="trash" role="dialog" aria-label="Corbeille" hidden>
-      <div class="trash-head"><span class="trash-title">corbeille</span><span class="trash-count"></span></div>
-      <div class="trash-grid"></div>
-      <p class="trash-empty" hidden>La corbeille est vide.</p>
-    </div>
-  </nav>
 
   <div id="tag" aria-hidden="true"></div>
   <div id="peek" aria-hidden="true"><img alt="" /></div>
@@ -471,7 +375,7 @@
     const fine = matchMedia('(hover: hover) and (pointer: fine)');
     const reduce = matchMedia('(prefers-reduced-motion: reduce)');
 
-    let allProjects = [], trashProjects = [];
+    let allProjects = [], trashProjects = [];   // trashProjects : affichés par le dock
     let projects = [], cards = [], plan = [], base = [], world = [];
     const planes = {}, ptags = {}, planeT = {}, prings = {};
     let mode = 'scatter';           // 'scatter' | 'work'
@@ -702,7 +606,7 @@
       cards.forEach((c, i) => { c.style.width = (base[i].w * m.S) + 'px'; c.style.height = (base[i].h * m.S) + 'px'; });
       const work = isMobile || mode === 'work';
       btnWork.setAttribute('aria-pressed', String(work));
-      dockWork.setAttribute('aria-pressed', String(work));
+      dockApi() && dockApi().setWorkActive(work);
 
       const box = clusterBox();
       const minCy = m.LH / 2 - box.y0 + (isMobile ? 14 : 18);       // l'orbite ne sort jamais par le haut
@@ -906,7 +810,6 @@
 
     function frameLoop(now) {
       orbitStep(now || performance.now());
-      dockStep();
       if (fine.matches) ringStep();
       if (peeking) {
         // Projet hors du plan net : titre seul, placé DANS son plan (flou et taille du plan, sous les plans plus proches)
@@ -1050,7 +953,7 @@
       const i = projects.indexOf(proj);                       // −1 pour un projet de la corbeille
       endClose();
       current = proj;
-      const card = from || cards[i] || trashBtn;
+      const card = from || cards[i] || (dockApi() && dockApi().trashButton);
       lastFocus = card;
       hidePeek();
 
@@ -1088,7 +991,7 @@
       }
       pushedOpen = false;
       const i = projects.indexOf(current);
-      const card = cards[i] || trashBtn;                      // projet de la corbeille : il y retourne
+      const card = cards[i] || (dockApi() && dockApi().trashButton);   // projet de la corbeille : il y retourne
       current = null;
       const done = () => {
         const refocus = lastFocus && document.activeElement && modal.contains(document.activeElement);
@@ -1133,7 +1036,6 @@
 
     // Clavier : Échap, flèches, et Tab qui reste dans la fiche
     document.addEventListener('keydown', e => {
-      if (!current && trashOpen && e.key === 'Escape') { e.preventDefault(); closeTrash(true); return; }
       if (!current) {
         if (mode !== 'scatter' || isMobile) return;
         if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); focusT = Math.round(focusT) + 1; }
@@ -1172,92 +1074,24 @@
       rt = setTimeout(() => { isMobile = mqMobile.matches; apply(false); if (current) sizeMedia(curRatio, false); }, 120);
     });
 
-    /* ───────── Dock ───────── */
-    const dockEl = $('#dock'), dockBar = $('.dock-bar', dockEl), dockWork = $('#dock-work');
-    const trashBtn = $('#trash-btn'), trashEl = $('#trash');
-    const dockItems = [...dockEl.querySelectorAll('.dock-item')];
-    function dockReserve() { return dockEl.getBoundingClientRect().height + 16 + 28; }
-
-    dockWork.addEventListener('click', () => {
+    /* ───────── Dock (assets/dock.js) ───────── */
+    // Le dock est partagé par toutes les pages ; ici il pilote la grille et ouvre les fiches sans recharger.
+    const dockApi = () => window.lbpDock || null;
+    function dockReserve() {
+      const d = document.getElementById('dock');
+      return (d ? d.getBoundingClientRect().height : 58) + 16 + 28;
+    }
+    addEventListener('lbp:work', e => {
+      e.preventDefault();
       if (isMobile) { scrollTo({ top: 0, behavior: 'smooth' }); return; }
-      setMode(mode === 'work' ? 'scatter' : 'work');
+      setMode('work');                                  // ouvre la page work (pas de bascule)
     });
-
-    // Grossissement façon Magic UI : 40 → 60 px dans un rayon de 140 px autour de la souris, avec un ressort
-    const DOCK = { size: 40, mag: 60, dist: 140 };
-    const dockSpring = dockItems.map(() => ({ s: 0, v: 0 }));
-    let dockMx = Infinity;
-    dockBar.addEventListener('mousemove', e => { dockMx = e.clientX; });
-    dockBar.addEventListener('mouseleave', () => { dockMx = Infinity; });
-    function dockStep() {
-      const base = parseFloat(getComputedStyle(dockEl).getPropertyValue('--dock-size')) || 40;
-      const on = fine.matches && !reduce.matches && !isMobile;
-      dockItems.forEach((it, k) => {
-        const st = dockSpring[k];
-        if (!st.s) st.s = base;
-        let target = base;
-        if (on && dockMx !== Infinity) {
-          const r = it.getBoundingClientRect(), d = Math.abs(dockMx - (r.left + r.width / 2));
-          if (d < DOCK.dist) target = base + (DOCK.mag - DOCK.size) * (1 - d / DOCK.dist);
-        }
-        // ressort (raideur 150, amortissement 12, masse 0,1), intégré en 4 sous-pas
-        for (let n = 0; n < 4; n++) {
-          const a = (-150 * (st.s - target) - 12 * st.v) / 0.1;
-          st.v += a * (1 / 240); st.s += st.v * (1 / 240);
-        }
-        if (Math.abs(st.s - target) < 0.05 && Math.abs(st.v) < 0.05) { st.s = target; st.v = 0; }
-        const px = st.s.toFixed(2) + 'px';
-        if (it.style.width !== px) { it.style.width = px; it.style.height = px; }
-      });
-      if (trashOpen) placeTrash();
-    }
-
-    // Corbeille : pile en grille
-    let trashOpen = false, trashT;
-    function placeTrash() {
-      const d = dockEl.getBoundingClientRect(), b = trashBtn.getBoundingClientRect();
-      const w = trashEl.offsetWidth, cxb = b.left + b.width / 2;
-      const left = clamp(cxb - w / 2, 8, innerWidth - w - 8);
-      trashEl.style.left = (left - d.left) + 'px';
-      trashEl.style.setProperty('--ox', (cxb - left) + 'px');
-    }
-    function fillTrash() {
-      const grid = $('.trash-grid', trashEl);
-      grid.innerHTML = '';
-      trashProjects.forEach(p => {
-        const b = document.createElement('button');
-        b.type = 'button'; b.className = 'trash-item';
-        b.innerHTML = `<span class="trash-thumb"><img alt="" draggable="false"></span><span class="trash-label"></span>`;
-        $('img', b).src = thumb(p);
-        $('.trash-label', b).textContent = p.titre;
-        b.addEventListener('click', () => { closeTrash(false); open(p.slug, { from: $('.trash-thumb img', b) }); });
-        grid.appendChild(b);
-      });
-      grid.style.setProperty('--cols', Math.max(1, Math.min(4, trashProjects.length)));
-      grid.hidden = !trashProjects.length;
-      $('.trash-empty', trashEl).hidden = !!trashProjects.length;
-      const n = trashProjects.length;
-      $('.trash-count', trashEl).textContent = n ? n + ' élément' + (n > 1 ? 's' : '') : '';
-    }
-    function openTrash() {
-      clearTimeout(trashT);
-      fillTrash();
-      trashEl.hidden = false; trashOpen = true;
-      trashBtn.setAttribute('aria-expanded', 'true');
-      placeTrash();
-      requestAnimationFrame(() => trashEl.classList.add('open'));
-      hidePeek();
-    }
-    function closeTrash(refocus) {
-      if (!trashOpen) return;
-      trashOpen = false;
-      trashEl.classList.remove('open');
-      trashBtn.setAttribute('aria-expanded', 'false');
-      trashT = setTimeout(() => { trashEl.hidden = true; }, 380);
-      if (refocus) trashBtn.focus({ preventScroll: true });
-    }
-    trashBtn.addEventListener('click', () => trashOpen ? closeTrash(false) : openTrash());
-    document.addEventListener('pointerdown', e => { if (trashOpen && !dockEl.contains(e.target)) closeTrash(false); });
+    addEventListener('lbp:open-project', e => {
+      if (!allProjects.length) return;                   // projets pas encore chargés : le lien fait le travail
+      e.preventDefault();
+      open(e.detail.slug, { from: e.detail.from });
+    });
+    addEventListener('lbp:dock-ready', () => { if (projects.length) apply(false); });
 
     /* ───────── Démarrage ───────── */
     (async () => {
@@ -1269,7 +1103,6 @@
       // "corbeille": true → le projet n'est pas sur la scène, seulement dans la corbeille du dock
       projects = allProjects.filter(p => !p.corbeille);
       trashProjects = allProjects.filter(p => p.corbeille);
-      dockEl.classList.toggle('has-trash', trashProjects.length > 0);
       build();
       const s = parseHash();
       mode = s.mode;
@@ -1285,6 +1118,7 @@
     })();
   })();
   </script>
+  <script src="assets/dock.js?v=1" defer></script>
   <script src="assets/trail.js?v=3" defer></script>
 </body>
 </html>
