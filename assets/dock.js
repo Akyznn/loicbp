@@ -178,10 +178,17 @@
               body: JSON.stringify({ name: d.name, email: d.email, message: d.message, _subject: 'Message depuis loicbp.fr', _template: 'table', _captcha: 'false', _replyto: d.email })
             });
         const j = await r.json();
-        if (!(j.success === true || j.success === 'true')) throw new Error(j.message);
+        if (!(j.success === true || j.success === 'true')) throw new Error(j.message || 'refus du service');
         form.reset(); status.textContent = 'Message envoyé, merci !';
       } catch (err) {
-        status.textContent = 'L’envoi n’a pas marché — ton application mail s’ouvre.'; mailto();
+        console.warn('[contact] envoi direct impossible :', err && err.message);
+        // FormSubmit pas encore activé : le 1er envoi déclenche l'e-mail d'activation à l'adresse du site
+        if (/activ/i.test(err && err.message || '')) {
+          status.textContent = 'Formulaire en cours d’activation — en attendant, ton application mail s’ouvre.';
+        } else {
+          status.textContent = 'L’envoi direct n’a pas marché — ton application mail s’ouvre.';
+        }
+        setTimeout(mailto, 900);
       } finally { btn.disabled = false; }
     });
     return el;
