@@ -150,3 +150,6 @@ html.has-dock:not([data-dock-nopad]) body { padding-bottom: 110px; }
 @media (prefers-reduced-motion: reduce) {
   .dock-panel { transition: opacity .2s; transform: none; }
 }
+
+/* Au-dessus d'un contenu externe (aperçu Instagram) : curseur custom, sélection et traîne masqués */
+html.cursor-off #cursor, html.cursor-off #ring { opacity: 0 !important; transition: none !important; }

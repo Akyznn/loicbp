@@ -186,6 +186,11 @@
     el.innerHTML = head('@' + CFG.instagram, '') +
       `<iframe title="Aperçu du profil Instagram @${esc(CFG.instagram)}" loading="lazy" src="https://www.instagram.com/${esc(CFG.instagram)}/embed/" referrerpolicy="strict-origin-when-cross-origin"></iframe>` +
       `<p class="dp-note">Aperçu chargé depuis Instagram.</p>`;
+    // L'iframe Instagram capte la souris : la page ne reçoit plus ses mouvements et le curseur custom se fige.
+    // Au-dessus de l'aperçu, on masque donc le curseur custom (le curseur normal d'Instagram prend le relais).
+    const fr = el.querySelector('iframe');
+    fr.addEventListener('mouseenter', () => document.documentElement.classList.add('cursor-off'));
+    fr.addEventListener('mouseleave', () => document.documentElement.classList.remove('cursor-off'));
     el.querySelector('.dp-head').insertAdjacentHTML('beforeend',
       `<a class="dp-btn" href="https://instagram.com/${esc(CFG.instagram)}" target="_blank" rel="noopener" data-umami-event="clic-instagram">ouvrir</a>`);
     return el;
@@ -238,6 +243,7 @@
     byK(k).setAttribute('aria-expanded', 'false');
     panel.classList.remove('open');
     closeT = setTimeout(() => { panel.hidden = true; }, 380);
+    document.documentElement.classList.remove('cursor-off');
     if (refocus) byK(k).focus({ preventScroll: true });
   }
 
