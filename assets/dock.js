@@ -15,7 +15,11 @@
     legalUrl: '/mentions-legales.html',
     instagram: 'l0icbp',
     email: 'contact@loicbp.fr',
-    // Formulaire de contact : clé Web3Forms (gratuit, web3forms.com). Vide → le message s'ouvre dans l'application mail.
+    // Formulaire de contact — envoi direct via FormSubmit (formsubmit.co), sans compte :
+    // le tout premier envoi déclenche un e-mail d'activation à contact@loicbp.fr ; une fois confirmé, tout arrive directement.
+    // Après activation, FormSubmit fournit un alias aléatoire : le coller dans formAlias pour ne plus exposer l'adresse.
+    formAlias: '',
+    // Alternative : clé Web3Forms (web3forms.com). Si renseignée, elle est utilisée à la place de FormSubmit.
     formKey: '',
     formEndpoint: 'https://api.web3forms.com/submit',
     toolsInDock: 4
@@ -162,15 +166,19 @@
         location.href = 'mailto:' + CFG.email + '?subject=' + encodeURIComponent('Message depuis loicbp.fr') + '&body=' + encodeURIComponent(body);
       };
       try { window.umami && umami.track('contact-envoi'); } catch (err) {}
-      if (!CFG.formKey) { status.textContent = 'Ton application mail s’ouvre…'; mailto(); return; }
       btn.disabled = true; status.textContent = 'Envoi…';
       try {
-        const r = await fetch(CFG.formEndpoint, {
-          method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ access_key: CFG.formKey, subject: 'Message depuis loicbp.fr', from_name: d.name, name: d.name, email: d.email, message: d.message })
-        });
+        const r = CFG.formKey
+          ? await fetch(CFG.formEndpoint, {
+              method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: JSON.stringify({ access_key: CFG.formKey, subject: 'Message depuis loicbp.fr', from_name: d.name, name: d.name, email: d.email, message: d.message })
+            })
+          : await fetch('https://formsubmit.co/ajax/' + (CFG.formAlias || CFG.email), {
+              method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: JSON.stringify({ name: d.name, email: d.email, message: d.message, _subject: 'Message depuis loicbp.fr', _template: 'table', _captcha: 'false', _replyto: d.email })
+            });
         const j = await r.json();
-        if (!j.success) throw new Error(j.message);
+        if (!(j.success === true || j.success === 'true')) throw new Error(j.message);
         form.reset(); status.textContent = 'Message envoyé, merci !';
       } catch (err) {
         status.textContent = 'L’envoi n’a pas marché — ton application mail s’ouvre.'; mailto();
