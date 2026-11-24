@@ -248,7 +248,6 @@
     cards.forEach((c, i) => { c.style.width = (base[i].w * m.S) + 'px'; c.style.height = (base[i].h * m.S) + 'px'; });
     const work = isMobile || mode === 'work';
     btnWork.setAttribute('aria-pressed', String(work));
-    dockApi() && dockApi().setWorkActive(work);
 
     const box = clusterBox();
     const minCy = m.LH / 2 - box.y0 + (isMobile ? 14 : 18);       // l'orbite ne sort jamais par le haut
@@ -730,8 +729,7 @@
   }
   // « work » du dock : ouvre la page work.html (lien normal). Déjà dessus : retour en haut de la grille.
   addEventListener('lbp:work', e => {
-    if (!PAGE_WORK) return;
-    e.preventDefault();
+    e.preventDefault();                          // déjà sur la page des projets : ni rechargement, ni changement de disposition
     scrollTo({ top: 0, behavior: reduce.matches ? 'auto' : 'smooth' });
   });
   addEventListener('lbp:open-project', e => {
