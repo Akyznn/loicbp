@@ -683,6 +683,7 @@
     let snapT;
     addEventListener('wheel', e => {
       if (mode !== 'scatter' || isMobile || current) return;
+      if (e.target.closest && e.target.closest('#dock')) return;   // molette dans le dock (mentions légales…) : défilement normal
       e.preventDefault();
       const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
       focusT += dy * 0.0024;
