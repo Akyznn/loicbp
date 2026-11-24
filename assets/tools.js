@@ -2,6 +2,7 @@
 // Un objet par outil · img = capture 960×600 dans assets/previews/
 // Les 4 premiers apparaissent dans le panneau « toolbox » du dock.
 window.LBP_TOOLS = [
+  { name: "Bavure — encre, diffusion, texture", file: "tools/bavure.html", img: "assets/previews/bavure.webp", desc: "ink bleed sur SVG/PNG, export PNG et SVG" },
   { name: "Atelier Raster — trames, pointillé, couches", file: "tools/raster.html", img: "assets/previews/raster.webp", desc: "stochastique, trame AM, dithering, pointillisme, séparation riso" },
   { name: "Outils GIF et Perspective", file: "tools/stickers.html", img: "assets/previews/stickers.webp", desc: "cf titre lol" },
   { name: "Motion Studio", file: "tools/motion-studio.html", img: "assets/previews/motion-studio.webp", desc: "" },
