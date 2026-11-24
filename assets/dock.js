@@ -9,7 +9,7 @@
   'use strict';
 
   const CFG = {
-    workUrl: '/work.html',                 // page « work »
+    workUrl: '/index2.html',               // « work » : la page des projets (index2)
     projectUrl: slug => '/index2.html#' + slug,
     toolboxUrl: '/toolbox.html',
     legalUrl: '/mentions-legales.html',
@@ -63,7 +63,7 @@
 
   // Page en cours : point sous l'icône
   if (/toolbox\.html$/.test(path)) byK('tools').classList.add('is-current');
-  if (/work\.html$/.test(path)) byK('work').classList.add('is-current');
+  if (/(index2|work)\.html$/.test(path)) byK('work').classList.add('is-current');
   if (/mentions-legales\.html$/.test(path)) byK('legal').classList.add('is-current');
 
   // « work » : la page d'accueil des projets affiche sa grille ; ailleurs, le lien mène à la page work
