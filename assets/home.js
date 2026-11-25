@@ -317,7 +317,7 @@
   }
   /* Projet à plusieurs images : elles défilent dans l'aperçu, coupe franche, comme un GIF.
      Les miniatures (assets/projets/<projet>/thumbs/) sont préchargées au survol ; une image pas encore prête est sautée. */
-  const PEEK_FRAME = 360;   // durée d'une image (ms)
+  const PEEK_FRAME = 240;   // durée d'une image (ms)
   const thumbOf = src => /\.svg($|\?)/i.test(src) ? src : src.replace(/\/([^/]+)\.[a-z0-9]+$/i, '/thumbs/$1.webp');
   let peekLoop = null;
   // L'aperçu prend le format de chaque photo, inscrit dans un carré de 1,5 × la taille des vignettes
