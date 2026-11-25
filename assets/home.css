@@ -250,6 +250,8 @@ body.modal-open #ring { z-index: 101; }
 .m-media { background-position: center; background-size: cover; background-repeat: no-repeat; }
 .m-media img { opacity: 0; transition: opacity .45s var(--ease-out); }
 .m-media img.loaded { opacity: 1; }
+/* Logos vectoriels : posés en entier dans la zone, avec de l'air autour */
+.m-media.is-vector img { object-fit: contain; padding: 7%; box-sizing: border-box; }
 
 .m-bar {
   width: 0; min-width: 100%;          /* la légende suit la largeur de la photo, sans l'élargir */

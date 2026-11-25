@@ -30,7 +30,74 @@
    "src": "assets/projets/technofrigo.webp",
    "w": 1500,
    "h": 843
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/technofrigo/technofrigo-01.webp",
+    "w": 2400,
+    "h": 1348
+   },
+   {
+    "src": "assets/projets/technofrigo/technofrigo-02.webp",
+    "w": 1919,
+    "h": 1078
+   },
+   {
+    "src": "assets/projets/technofrigo/technofrigo-03.webp",
+    "w": 2400,
+    "h": 1348
+   },
+   {
+    "src": "assets/projets/technofrigo/technofrigo-04.webp",
+    "w": 1919,
+    "h": 1078
+   },
+   {
+    "src": "assets/projets/technofrigo/technofrigo-05.webp",
+    "w": 1919,
+    "h": 1078
+   },
+   {
+    "src": "assets/projets/technofrigo/technofrigo-06.webp",
+    "w": 1919,
+    "h": 1078
+   },
+   {
+    "src": "assets/projets/technofrigo/technofrigo-07.webp",
+    "w": 1919,
+    "h": 1078
+   },
+   {
+    "src": "assets/projets/technofrigo/technofrigo-08.webp",
+    "w": 1919,
+    "h": 1078
+   },
+   {
+    "src": "assets/projets/technofrigo/technofrigo-09.webp",
+    "w": 1919,
+    "h": 1078
+   },
+   {
+    "src": "assets/projets/technofrigo/technofrigo-10.webp",
+    "w": 1919,
+    "h": 1078
+   },
+   {
+    "src": "assets/projets/technofrigo/technofrigo-11.svg",
+    "w": 1400,
+    "h": 400
+   },
+   {
+    "src": "assets/projets/technofrigo/technofrigo-12.svg",
+    "w": 1415,
+    "h": 1415
+   },
+   {
+    "src": "assets/projets/technofrigo/technofrigo-13.svg",
+    "w": 2994,
+    "h": 2754
+   }
+  ]
  },
  {
   "slug": "clauger-group",
@@ -58,7 +125,24 @@
    "w": 1500,
    "h": 153,
    "fit": "contain"
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/clauger-group/clauger-group-03.webp",
+    "w": 2400,
+    "h": 244
+   },
+   {
+    "src": "assets/projets/clauger-group/clauger-group-01.svg",
+    "w": 1324,
+    "h": 365
+   },
+   {
+    "src": "assets/projets/clauger-group/clauger-group-02.svg",
+    "w": 963,
+    "h": 509
+   }
+  ]
  },
  {
   "slug": "polaris",
@@ -85,7 +169,49 @@
    "src": "assets/projets/polaris.webp",
    "w": 1500,
    "h": 1500
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/polaris/polaris-03.webp",
+    "w": 2400,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/polaris/polaris-01.webp",
+    "w": 2400,
+    "h": 1298
+   },
+   {
+    "src": "assets/projets/polaris/polaris-02.webp",
+    "w": 1600,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/polaris/polaris-04.webp",
+    "w": 2400,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/polaris/polaris-05.webp",
+    "w": 2400,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/polaris/polaris-06.webp",
+    "w": 2400,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/polaris/polaris-07.webp",
+    "w": 2400,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/polaris/polaris-08.webp",
+    "w": 2400,
+    "h": 2400
+   }
+  ]
  },
  {
   "slug": "green-finance",
@@ -109,7 +235,24 @@
    "src": "assets/projets/green-finance.webp",
    "w": 1013,
    "h": 1500
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/green-finance/green-finance-02.webp",
+    "w": 1620,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/green-finance/green-finance-01.webp",
+    "w": 2400,
+    "h": 648
+   },
+   {
+    "src": "assets/projets/green-finance/green-finance-03.webp",
+    "w": 1620,
+    "h": 2400
+   }
+  ]
  },
  {
   "slug": "process-3d",
@@ -136,7 +279,29 @@
    "src": "assets/projets/process-3d.webp",
    "w": 1500,
    "h": 844
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/process-3d/3d-01.webp",
+    "w": 2400,
+    "h": 1350
+   },
+   {
+    "src": "assets/projets/process-3d/3d-02.webp",
+    "w": 2400,
+    "h": 1440
+   },
+   {
+    "src": "assets/projets/process-3d/3d-03.webp",
+    "w": 2400,
+    "h": 1350
+   },
+   {
+    "src": "assets/projets/process-3d/3d-04.webp",
+    "w": 2400,
+    "h": 1440
+   }
+  ]
  },
  {
   "slug": "cta",
@@ -162,7 +327,34 @@
    "src": "assets/projets/cta.webp",
    "w": 1500,
    "h": 844
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/cta/cta-01.webp",
+    "w": 2400,
+    "h": 1350
+   },
+   {
+    "src": "assets/projets/cta/cta-02.webp",
+    "w": 2400,
+    "h": 1350
+   },
+   {
+    "src": "assets/projets/cta/cta-03.webp",
+    "w": 2400,
+    "h": 2102
+   },
+   {
+    "src": "assets/projets/cta/cta-04.webp",
+    "w": 2400,
+    "h": 2102
+   },
+   {
+    "src": "assets/projets/cta/cta-05.webp",
+    "w": 2400,
+    "h": 2102
+   }
+  ]
  },
  {
   "slug": "voyage-a-nantes",
@@ -193,7 +385,59 @@
    "src": "assets/projets/voyage-a-nantes.webp",
    "w": 1500,
    "h": 932
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/voyage-a-nantes/van-02.webp",
+    "w": 2400,
+    "h": 1491
+   },
+   {
+    "src": "assets/projets/voyage-a-nantes/van-01.webp",
+    "w": 2400,
+    "h": 1350
+   },
+   {
+    "src": "assets/projets/voyage-a-nantes/van-03.webp",
+    "w": 2400,
+    "h": 1491
+   },
+   {
+    "src": "assets/projets/voyage-a-nantes/van-04.webp",
+    "w": 2400,
+    "h": 1620
+   },
+   {
+    "src": "assets/projets/voyage-a-nantes/van-05.webp",
+    "w": 2400,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/voyage-a-nantes/van-06.webp",
+    "w": 2400,
+    "h": 1800
+   },
+   {
+    "src": "assets/projets/voyage-a-nantes/van-07.webp",
+    "w": 1697,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/voyage-a-nantes/van-08.webp",
+    "w": 1697,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/voyage-a-nantes/van-09.webp",
+    "w": 1196,
+    "h": 818
+   },
+   {
+    "src": "assets/projets/voyage-a-nantes/van-10.webp",
+    "w": 1429,
+    "h": 518
+   }
+  ]
  },
  {
   "slug": "eiffel-phaidon",
@@ -219,7 +463,59 @@
    "src": "assets/projets/eiffel-phaidon.webp",
    "w": 1125,
    "h": 1500
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/eiffel-phaidon/eiffel-01.webp",
+    "w": 1800,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/eiffel-phaidon/eiffel-02.webp",
+    "w": 2400,
+    "h": 2105
+   },
+   {
+    "src": "assets/projets/eiffel-phaidon/eiffel-03.webp",
+    "w": 2400,
+    "h": 2168
+   },
+   {
+    "src": "assets/projets/eiffel-phaidon/eiffel-04.webp",
+    "w": 2400,
+    "h": 2105
+   },
+   {
+    "src": "assets/projets/eiffel-phaidon/eiffel-05.webp",
+    "w": 1553,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/eiffel-phaidon/eiffel-06.webp",
+    "w": 1800,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/eiffel-phaidon/eiffel-07.webp",
+    "w": 1308,
+    "h": 1800
+   },
+   {
+    "src": "assets/projets/eiffel-phaidon/eiffel-08.webp",
+    "w": 1308,
+    "h": 1800
+   },
+   {
+    "src": "assets/projets/eiffel-phaidon/eiffel-09.webp",
+    "w": 1744,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/eiffel-phaidon/eiffel-10.webp",
+    "w": 1744,
+    "h": 2400
+   }
+  ]
  },
  {
   "slug": "artefact-bnf",
@@ -252,7 +548,134 @@
    "src": "assets/projets/artefact-bnf.webp",
    "w": 1061,
    "h": 1500
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/artefact-bnf/artefact-01.webp",
+    "w": 1697,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-02.webp",
+    "w": 2400,
+    "h": 1548
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-03.webp",
+    "w": 2400,
+    "h": 1548
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-04.webp",
+    "w": 2400,
+    "h": 1800
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-05.webp",
+    "w": 1697,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-06.webp",
+    "w": 1697,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-07.webp",
+    "w": 1697,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-08.webp",
+    "w": 2400,
+    "h": 1548
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-09.webp",
+    "w": 1800,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-10.webp",
+    "w": 1800,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-11.webp",
+    "w": 1800,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-12.webp",
+    "w": 1800,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-13.webp",
+    "w": 1800,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-14.webp",
+    "w": 1600,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-15.webp",
+    "w": 2000,
+    "h": 2000
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-16.webp",
+    "w": 2400,
+    "h": 1350
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-17.webp",
+    "w": 2400,
+    "h": 1350
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-18.webp",
+    "w": 2400,
+    "h": 1350
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-19.webp",
+    "w": 2400,
+    "h": 1350
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-20.webp",
+    "w": 1697,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-21.webp",
+    "w": 2400,
+    "h": 1548
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-22.webp",
+    "w": 1080,
+    "h": 1920
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-23.webp",
+    "w": 1073,
+    "h": 1800
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-24.webp",
+    "w": 1697,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/artefact-bnf/artefact-25.webp",
+    "w": 1095,
+    "h": 496
+   }
+  ]
  },
  {
   "slug": "festival-lumiere-tim-burton",
@@ -279,7 +702,54 @@
    "src": "assets/projets/festival-lumiere-tim-burton.webp",
    "w": 1500,
    "h": 1061
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/festival-lumiere-tim-burton/festival-lumiere-01.webp",
+    "w": 2400,
+    "h": 1697
+   },
+   {
+    "src": "assets/projets/festival-lumiere-tim-burton/festival-lumiere-02.webp",
+    "w": 1697,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/festival-lumiere-tim-burton/festival-lumiere-03.webp",
+    "w": 1697,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/festival-lumiere-tim-burton/festival-lumiere-04.webp",
+    "w": 1692,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/festival-lumiere-tim-burton/festival-lumiere-05.webp",
+    "w": 1143,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/festival-lumiere-tim-burton/festival-lumiere-06.webp",
+    "w": 1600,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/festival-lumiere-tim-burton/festival-lumiere-07.webp",
+    "w": 1990,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/festival-lumiere-tim-burton/festival-lumiere-08.webp",
+    "w": 2400,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/festival-lumiere-tim-burton/festival-lumiere-09.webp",
+    "w": 2400,
+    "h": 1600
+   }
+  ]
  },
  {
   "slug": "musee-science-fiction",
@@ -309,7 +779,34 @@
    "src": "assets/projets/musee-science-fiction.webp",
    "w": 1500,
    "h": 1000
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/musee-science-fiction/musee-sf-01.webp",
+    "w": 2400,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/musee-science-fiction/musee-sf-02.webp",
+    "w": 2400,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/musee-science-fiction/musee-sf-03.webp",
+    "w": 1800,
+    "h": 1200
+   },
+   {
+    "src": "assets/projets/musee-science-fiction/musee-sf-04.webp",
+    "w": 2400,
+    "h": 1800
+   },
+   {
+    "src": "assets/projets/musee-science-fiction/musee-sf-05.webp",
+    "w": 2400,
+    "h": 1600
+   }
+  ]
  },
  {
   "slug": "le-1-cambodge",
@@ -332,7 +829,49 @@
    "src": "assets/projets/le-1-cambodge.webp",
    "w": 1038,
    "h": 1500
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/le-1-cambodge/le-1-01.webp",
+    "w": 1661,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/le-1-cambodge/le-1-02.webp",
+    "w": 2400,
+    "h": 1896
+   },
+   {
+    "src": "assets/projets/le-1-cambodge/le-1-03.webp",
+    "w": 2400,
+    "h": 1740
+   },
+   {
+    "src": "assets/projets/le-1-cambodge/le-1-04.webp",
+    "w": 2400,
+    "h": 1740
+   },
+   {
+    "src": "assets/projets/le-1-cambodge/le-1-05.webp",
+    "w": 2400,
+    "h": 2389
+   },
+   {
+    "src": "assets/projets/le-1-cambodge/le-1-06.webp",
+    "w": 2400,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/le-1-cambodge/le-1-07.webp",
+    "w": 2400,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/le-1-cambodge/le-1-08.webp",
+    "w": 2400,
+    "h": 2398
+   }
+  ]
  },
  {
   "slug": "cornand",
@@ -354,7 +893,34 @@
    "src": "assets/projets/cornand.webp",
    "w": 1500,
    "h": 1000
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/cornand/cornand-02.webp",
+    "w": 2400,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/cornand/cornand-01.webp",
+    "w": 1669,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/cornand/cornand-03.webp",
+    "w": 2400,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/cornand/cornand-04.webp",
+    "w": 2400,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/cornand/cornand-05.webp",
+    "w": 2400,
+    "h": 1600
+   }
+  ]
  },
  {
   "slug": "deserts",
@@ -378,7 +944,44 @@
    "src": "assets/projets/deserts.webp",
    "w": 1059,
    "h": 1500
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/deserts/deserts-01.webp",
+    "w": 1695,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/deserts/deserts-02.webp",
+    "w": 1695,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/deserts/deserts-03.webp",
+    "w": 2400,
+    "h": 1800
+   },
+   {
+    "src": "assets/projets/deserts/deserts-04.webp",
+    "w": 2400,
+    "h": 1029
+   },
+   {
+    "src": "assets/projets/deserts/deserts-05.webp",
+    "w": 2400,
+    "h": 1029
+   },
+   {
+    "src": "assets/projets/deserts/deserts-06.webp",
+    "w": 2400,
+    "h": 1029
+   },
+   {
+    "src": "assets/projets/deserts/deserts-07.webp",
+    "w": 2400,
+    "h": 1029
+   }
+  ]
  },
  {
   "slug": "anamosa-silence",
@@ -400,7 +1003,24 @@
    "src": "assets/projets/anamosa-silence.webp",
    "w": 1500,
    "h": 1125
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/anamosa-silence/silence-01.webp",
+    "w": 2400,
+    "h": 1800
+   },
+   {
+    "src": "assets/projets/anamosa-silence/silence-02.webp",
+    "w": 1800,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/anamosa-silence/silence-03.webp",
+    "w": 1800,
+    "h": 2400
+   }
+  ]
  },
  {
   "slug": "upcycling-festival",
@@ -424,7 +1044,34 @@
    "src": "assets/projets/upcycling-festival.webp",
    "w": 1500,
    "h": 1187
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/upcycling-festival/upcycling-01.webp",
+    "w": 2400,
+    "h": 1899
+   },
+   {
+    "src": "assets/projets/upcycling-festival/upcycling-02.webp",
+    "w": 2400,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/upcycling-festival/upcycling-03.webp",
+    "w": 2400,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/upcycling-festival/upcycling-04.webp",
+    "w": 2400,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/upcycling-festival/upcycling-05.webp",
+    "w": 2400,
+    "h": 2017
+   }
+  ]
  },
  {
   "slug": "packshot-nepal",
@@ -446,7 +1093,14 @@
    "src": "assets/projets/packshot-nepal.webp",
    "w": 1500,
    "h": 1000
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/packshot-nepal/packshot-nepal-01.webp",
+    "w": 2400,
+    "h": 1600
+   }
+  ]
  },
  {
   "slug": "book-2023",
@@ -468,7 +1122,49 @@
    "src": "assets/projets/book-2023.webp",
    "w": 1125,
    "h": 1500
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/book-2023/book-2023-01.webp",
+    "w": 1800,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/book-2023/book-2023-02.webp",
+    "w": 2400,
+    "h": 1893
+   },
+   {
+    "src": "assets/projets/book-2023/book-2023-03.webp",
+    "w": 2400,
+    "h": 1800
+   },
+   {
+    "src": "assets/projets/book-2023/book-2023-04.webp",
+    "w": 2400,
+    "h": 1799
+   },
+   {
+    "src": "assets/projets/book-2023/book-2023-05.webp",
+    "w": 1800,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/book-2023/book-2023-06.webp",
+    "w": 1800,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/book-2023/book-2023-07.webp",
+    "w": 1800,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/book-2023/book-2023-08.webp",
+    "w": 1800,
+    "h": 2400
+   }
+  ]
  },
  {
   "slug": "la-grande-famille",
@@ -493,7 +1189,34 @@
    "src": "assets/projets/la-grande-famille.webp",
    "w": 1500,
    "h": 1067
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/la-grande-famille/la-grande-famille-01.webp",
+    "w": 2400,
+    "h": 1707
+   },
+   {
+    "src": "assets/projets/la-grande-famille/la-grande-famille-02.webp",
+    "w": 2400,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/la-grande-famille/la-grande-famille-03.webp",
+    "w": 2400,
+    "h": 2078
+   },
+   {
+    "src": "assets/projets/la-grande-famille/la-grande-famille-04.webp",
+    "w": 2084,
+    "h": 2084
+   },
+   {
+    "src": "assets/projets/la-grande-famille/la-grande-famille-05.webp",
+    "w": 1400,
+    "h": 1040
+   }
+  ]
  },
  {
   "slug": "obi",
@@ -517,7 +1240,24 @@
    "src": "assets/projets/obi.webp",
    "w": 1500,
    "h": 1500
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/obi/obi-02.webp",
+    "w": 1800,
+    "h": 1800
+   },
+   {
+    "src": "assets/projets/obi/obi-01.webp",
+    "w": 1800,
+    "h": 1800
+   },
+   {
+    "src": "assets/projets/obi/obi-03.webp",
+    "w": 1568,
+    "h": 1345
+   }
+  ]
  },
  {
   "slug": "mtgmb",
@@ -541,7 +1281,24 @@
    "src": "assets/projets/mtgmb.webp",
    "w": 1080,
    "h": 1080
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/mtgmb/mtgmb-02.webp",
+    "w": 1080,
+    "h": 1080
+   },
+   {
+    "src": "assets/projets/mtgmb/mtgmb-01.webp",
+    "w": 1080,
+    "h": 1080
+   },
+   {
+    "src": "assets/projets/mtgmb/mtgmb-03.webp",
+    "w": 1080,
+    "h": 1920
+   }
+  ]
  },
  {
   "slug": "lucette-specimen",
@@ -564,7 +1321,34 @@
    "src": "assets/projets/lucette-specimen.webp",
    "w": 1500,
    "h": 1254
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/lucette-specimen/lucette-01.webp",
+    "w": 2400,
+    "h": 2006
+   },
+   {
+    "src": "assets/projets/lucette-specimen/lucette-02.webp",
+    "w": 1800,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/lucette-specimen/lucette-03.webp",
+    "w": 1800,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/lucette-specimen/lucette-04.webp",
+    "w": 2400,
+    "h": 1800
+   },
+   {
+    "src": "assets/projets/lucette-specimen/lucette-05.webp",
+    "w": 2400,
+    "h": 1156
+   }
+  ]
  },
  {
   "slug": "typographie-lumiere",
@@ -589,7 +1373,29 @@
    "src": "assets/projets/typographie-lumiere.webp",
    "w": 1500,
    "h": 1000
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/typographie-lumiere/typographie-lumiere-02.webp",
+    "w": 2400,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/typographie-lumiere/typographie-lumiere-01.webp",
+    "w": 1600,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/typographie-lumiere/typographie-lumiere-03.webp",
+    "w": 2400,
+    "h": 1600
+   },
+   {
+    "src": "assets/projets/typographie-lumiere/typographie-lumiere-04.webp",
+    "w": 1600,
+    "h": 2400
+   }
+  ]
  },
  {
   "slug": "fablab",
@@ -612,7 +1418,29 @@
    "src": "assets/projets/fablab.webp",
    "w": 1061,
    "h": 1500
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/fablab/fablab-01.webp",
+    "w": 1697,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/fablab/fablab-02.webp",
+    "w": 1697,
+    "h": 2400
+   },
+   {
+    "src": "assets/projets/fablab/fablab-03.webp",
+    "w": 1273,
+    "h": 1800
+   },
+   {
+    "src": "assets/projets/fablab/fablab-04.webp",
+    "w": 1697,
+    "h": 2400
+   }
+  ]
  },
  {
   "slug": "fenetre-sur-rue",
@@ -638,6 +1466,13 @@
    "src": "assets/projets/fenetre-sur-rue.webp",
    "w": 1500,
    "h": 1303
-  }
+  },
+  "images": [
+   {
+    "src": "assets/projets/fenetre-sur-rue/fenetre-sur-rue-01.webp",
+    "w": 2400,
+    "h": 2084
+   }
+  ]
  }
 ]

@@ -525,7 +525,10 @@
     const token = ++imgToken;
     // fond immédiat : la vignette, ou à défaut l'image affichée juste avant (fondu d'une photo à l'autre)
     const prev = mImg.classList.contains('loaded') && mImg.src ? mImg.src : null;
-    media.style.backgroundImage = low ? `url("${low}")` : (prev ? `url("${prev}")` : 'none');
+    // un logo vectoriel (fond transparent) ne doit pas laisser voir la photo précédente derrière lui
+    const vector = /\.svg($|\?)/i.test(full);
+    media.classList.toggle('is-vector', vector);
+    media.style.backgroundImage = vector ? 'none' : low ? `url("${low}")` : (prev ? `url("${prev}")` : 'none');
     mImg.classList.remove('loaded');
     mImg.onload = () => { if (token === imgToken) mImg.classList.add('loaded'); };
     mImg.src = full;
@@ -564,7 +567,7 @@
       probe.onload = () => { if (tok === imgToken) sizeMedia(probe.naturalWidth / probe.naturalHeight, true); };
       probe.src = it.src;
     }
-    setMediaSrc(list[imgIndex].src, imgIndex === 0 && list[0].src === (current.cover && current.cover.src) ? thumb(current) : null);
+    setMediaSrc(list[imgIndex].src, imgIndex === 0 ? thumb(current) : null);   // la 1re image de la galerie = celle de la vignette
     mImg.alt = current.titre + (list.length > 1 ? ' — image ' + (imgIndex + 1) + ' sur ' + list.length : '');
     mCount.textContent = (imgIndex + 1) + ' / ' + list.length;
     // précharge la suivante
