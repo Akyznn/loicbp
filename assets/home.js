@@ -309,10 +309,7 @@
     Object.values(ptags).forEach(t => t.classList.remove('on'));
     ptags[plan[i]].textContent = p.titre;
     peekImg.src = thumb(p);
-    const S15 = metrics().S * 1.5, r0 = p.cover ? p.cover.w / p.cover.h : 1.6, rr = clamp(r0, 0.5, 2.6);
-    peekImg.style.width = (rr >= 1 ? S15 : S15 * rr) + 'px';
-    peekImg.style.height = (rr >= 1 ? S15 / rr : S15) + 'px';
-    peekImg.style.objectFit = r0 > 2.6 ? 'contain' : 'cover';
+    sizePeek(p.cover ? p.cover.w / p.cover.h : 1.6);
     startPeekLoop(p);
     if (!peeking) { tx = px = mx; ty = py = my; }
     peeking = true;
@@ -320,9 +317,16 @@
   }
   /* Projet à plusieurs images : elles défilent dans l'aperçu, coupe franche, comme un GIF.
      Les miniatures (assets/projets/<projet>/thumbs/) sont préchargées au survol ; une image pas encore prête est sautée. */
-  const PEEK_FRAME = 650;   // durée d'une image (ms)
+  const PEEK_FRAME = 360;   // durée d'une image (ms)
   const thumbOf = src => /\.svg($|\?)/i.test(src) ? src : src.replace(/\/([^/]+)\.[a-z0-9]+$/i, '/thumbs/$1.webp');
   let peekLoop = null;
+  // L'aperçu prend le format de chaque photo, inscrit dans un carré de 1,5 × la taille des vignettes
+  function sizePeek(r0) {
+    const S15 = metrics().S * 1.5, rr = clamp(r0 || 1.6, 0.5, 2.6);
+    peekImg.style.width = (rr >= 1 ? S15 : S15 * rr) + 'px';
+    peekImg.style.height = (rr >= 1 ? S15 / rr : S15) + 'px';
+    peekImg.style.objectFit = r0 > 2.6 || r0 < 0.5 ? 'contain' : 'cover';
+  }
   function startPeekLoop(p) {
     clearInterval(peekLoop); peekLoop = null;
     const list = images(p);
@@ -330,7 +334,8 @@
     const frames = list.map((it, k) => {
       const src = k === 0 ? thumb(p) : thumbOf(it.src);
       const im = new Image(); im.src = src;
-      return { src, im, vector: /\.svg($|\?)/i.test(src) };
+      const ratio = it.w && it.h ? it.w / it.h : (k === 0 && p.cover ? p.cover.w / p.cover.h : 0);
+      return { src, im, ratio, vector: /\.svg($|\?)/i.test(src) };
     });
     let k = 0;
     peekLoop = setInterval(() => {
@@ -339,7 +344,8 @@
         if (f.im.complete && f.im.naturalWidth) {
           k = (k + n) % frames.length;
           peekImg.src = f.src;
-          peekImg.style.objectFit = f.vector ? 'contain' : 'cover';
+          sizePeek(f.ratio || f.im.naturalWidth / f.im.naturalHeight);
+          if (f.vector) peekImg.style.objectFit = 'contain';
           peekImg.style.background = f.vector ? '#fff' : '';
           return;
         }
