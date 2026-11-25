@@ -5,7 +5,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const stage = $('#stage'), cluster = $('#cluster'), btnWork = $('#btn-work');
   const tag = $('#tag'), peek = $('#peek'), peekImg = $('img', peek);
-  const modal = $('#modal'), frame = $('.m-frame'), media = $('.m-media'), mImg = $('img', media);
+  const modal = $('#modal'), frame = $('.m-frame'), media = $('.m-media');
   const mTitle = $('.m-title'), mMeta = $('.m-meta'), mText = $('.m-text');
   const mNav = $('.m-nav'), mCount = $('.m-count');
   const cursorEl = $('#cursor');
@@ -313,11 +313,40 @@
     peekImg.style.width = (rr >= 1 ? S15 : S15 * rr) + 'px';
     peekImg.style.height = (rr >= 1 ? S15 / rr : S15) + 'px';
     peekImg.style.objectFit = r0 > 2.6 ? 'contain' : 'cover';
+    startPeekLoop(p);
     if (!peeking) { tx = px = mx; ty = py = my; }
     peeking = true;
     document.body.classList.add('peeking');
   }
-  function hidePeek() { peeking = false; document.body.classList.remove('peeking'); Object.values(ptags).forEach(t => t.classList.remove('on')); }
+  /* Projet à plusieurs images : elles défilent dans l'aperçu, coupe franche, comme un GIF.
+     Les miniatures (assets/projets/<projet>/thumbs/) sont préchargées au survol ; une image pas encore prête est sautée. */
+  const PEEK_FRAME = 650;   // durée d'une image (ms)
+  const thumbOf = src => /\.svg($|\?)/i.test(src) ? src : src.replace(/\/([^/]+)\.[a-z0-9]+$/i, '/thumbs/$1.webp');
+  let peekLoop = null;
+  function startPeekLoop(p) {
+    clearInterval(peekLoop); peekLoop = null;
+    const list = images(p);
+    if (list.length < 2 || reduce.matches) return;
+    const frames = list.map((it, k) => {
+      const src = k === 0 ? thumb(p) : thumbOf(it.src);
+      const im = new Image(); im.src = src;
+      return { src, im, vector: /\.svg($|\?)/i.test(src) };
+    });
+    let k = 0;
+    peekLoop = setInterval(() => {
+      for (let n = 1; n <= frames.length; n++) {
+        const f = frames[(k + n) % frames.length];
+        if (f.im.complete && f.im.naturalWidth) {
+          k = (k + n) % frames.length;
+          peekImg.src = f.src;
+          peekImg.style.objectFit = f.vector ? 'contain' : 'cover';
+          peekImg.style.background = f.vector ? '#fff' : '';
+          return;
+        }
+      }
+    }, PEEK_FRAME);
+  }
+  function hidePeek() { clearInterval(peekLoop); peekLoop = null; peekImg.style.background = ''; peeking = false; document.body.classList.remove('peeking'); Object.values(ptags).forEach(t => t.classList.remove('on')); }
 
   /* ───────── Boucle d'animation : curseur, étiquette, aperçu, parallaxe ───────── */
   let parX = 0, parY = 0;
@@ -520,19 +549,34 @@
 
   // Affiche d'abord la vignette (déjà en cache), puis la grande image une fois chargée :
   // jamais l'image du projet précédent pendant l'ouverture
+  /* Chaque photo est un calque à part : la nouvelle arrive en fondu PENDANT que l'ancienne s'efface,
+     puis l'ancienne est retirée. Plus jamais deux photos superposées, même en défilant vite
+     ou avec un logo à fond transparent. */
   let imgToken = 0;
-  function setMediaSrc(full, low) {
+  function clearMedia() {
+    imgToken++;
+    media.querySelectorAll('img').forEach(n => n.remove());
+    media.style.backgroundImage = 'none';
+  }
+  function setMediaSrc(full, low, alt) {
     const token = ++imgToken;
-    // fond immédiat : la vignette, ou à défaut l'image affichée juste avant (fondu d'une photo à l'autre)
-    const prev = mImg.classList.contains('loaded') && mImg.src ? mImg.src : null;
-    // un logo vectoriel (fond transparent) ne doit pas laisser voir la photo précédente derrière lui
     const vector = /\.svg($|\?)/i.test(full);
-    media.classList.toggle('is-vector', vector);
-    media.style.backgroundImage = vector ? 'none' : low ? `url("${low}")` : (prev ? `url("${prev}")` : 'none');
-    mImg.classList.remove('loaded');
-    mImg.onload = () => { if (token === imgToken) mImg.classList.add('loaded'); };
-    mImg.src = full;
-    if (mImg.complete && mImg.naturalWidth) requestAnimationFrame(() => { if (token === imgToken) mImg.classList.add('loaded'); });
+    // 1re ouverture : la vignette (en cache) sert de fond immédiat, sauf pour un logo vectoriel
+    media.style.backgroundImage = low && !vector ? `url("${low}")` : 'none';
+    const olds = [...media.querySelectorAll('img')];
+    const layer = new Image();
+    layer.alt = alt || ''; layer.decoding = 'async'; layer.draggable = false;
+    if (vector) layer.className = 'is-vector';
+    media.appendChild(layer);
+    const show = () => {
+      if (token !== imgToken) { layer.remove(); return; }     // une autre photo a été demandée entre-temps
+      layer.classList.add('loaded');
+      olds.forEach(o => { o.classList.add('out'); setTimeout(() => o.remove(), 460); });
+      setTimeout(() => { if (token === imgToken) media.style.backgroundImage = 'none'; }, 460);
+    };
+    layer.onload = show; layer.onerror = show;
+    layer.src = full;
+    if (layer.complete && layer.naturalWidth) requestAnimationFrame(show);
   }
   // Taille de la zone image : format de la photo, inscrit dans le plus grand cadre possible à l'écran
   let curRatio = 16 / 9;
@@ -567,8 +611,8 @@
       probe.onload = () => { if (tok === imgToken) sizeMedia(probe.naturalWidth / probe.naturalHeight, true); };
       probe.src = it.src;
     }
-    setMediaSrc(list[imgIndex].src, imgIndex === 0 ? thumb(current) : null);   // la 1re image de la galerie = celle de la vignette
-    mImg.alt = current.titre + (list.length > 1 ? ' — image ' + (imgIndex + 1) + ' sur ' + list.length : '');
+    const altTxt = current.titre + (list.length > 1 ? ' — image ' + (imgIndex + 1) + ' sur ' + list.length : '');
+    setMediaSrc(list[imgIndex].src, fade ? null : thumb(current), altTxt);   // vignette en fond seulement à l'ouverture
     mCount.textContent = (imgIndex + 1) + ' / ' + list.length;
     // précharge la suivante
     if (list.length > 1) { const n = new Image(); n.src = list[(imgIndex + 1) % list.length].src; }
@@ -609,6 +653,7 @@
     mMeta.textContent = meta(current);
     mText.textContent = current.accroche || '';
     mNav.hidden = images(current).length < 2;
+    clearMedia();
     showImage(0, false);
 
     modal.hidden = false;
@@ -646,7 +691,7 @@
       document.body.classList.remove('modal-open');
       modal.hidden = true;            // masquée AVANT de retirer l'animation (fill: forwards) → aucune image résiduelle
       endClose();
-      imgToken++; mImg.removeAttribute('src');
+      clearMedia();
       if (refocus) lastFocus.focus({ preventScroll: true });
     };
     const r = card && card.getBoundingClientRect();
