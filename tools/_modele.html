@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<!-- ✎ titre d'onglet : « lbp — nom de l'outil », en minuscules -->
+<title>lbp — modèle</title>
+<script src="../analytics.js"></script>
+<script src="../gate.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Piazzolla:ital@0;1&display=swap" rel="stylesheet">
+<!-- Architecture et DA communes (titre, scène, panneau, dock, curseurs…) -->
+<link rel="stylesheet" href="/assets/lbp-shell.css">
+<style>
+/* Styles propres à l'outil uniquement. Tout le reste vient de lbp-shell.css. */
+</style>
+</head>
+<body>
+
+<!--
+  MODÈLE D'OUTIL — architecture de Bavure
+  ───────────────────────────────────────
+  1. Copier ce fichier dans tools/ sous le nom de l'outil (minuscules, sans accent).
+  2. Remplacer les « ✎ » : titre, sous-titre, groupes du panneau, actions du dock.
+  3. Écrire le rendu dans render() : il dessine dans le canvas #out.
+  4. Ajouter l'outil dans assets/tools.js + une capture 960×600 dans assets/previews/.
+  L'exemple ci-dessous (seuil + bichromie) est là pour montrer le câblage : à remplacer.
+-->
+
+<header class="top">
+  <h1 data-ants>modèle</h1>               <!-- ✎ nom de l'outil, en minuscules -->
+  <p>image, seuil, bichromie</p>         <!-- ✎ trois mots qui disent ce qu'il fait -->
+</header>
+<a class="back" href="../toolbox.html" data-umami-event="retour-toolbox">← toolbox</a>
+
+<main class="stage" id="view">
+  <div class="sheet">
+    <div class="frame" id="frame" hidden><canvas id="out"></canvas></div>
+    <div class="empty" id="empty">
+      <svg aria-hidden="true"><rect class="rb" x=".5" y=".5" width="99%" height="99%"/><rect class="rw" x=".5" y=".5" width="99%" height="99%"/></svg>
+      <b>Déposez une image</b>                                   <!-- ✎ -->
+      <p>un PNG, un JPEG ou un SVG… ou collez-la avec ⌘V</p>       <!-- ✎ -->
+      <div class="row">
+        <button class="btn" id="btnPick2">Choisir un fichier</button>
+        <button class="btn ghost" id="btnDemo">Essayer la démo</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<aside class="panel" aria-label="Réglages">
+  <section class="grp">
+    <h2>Source</h2>
+    <div class="thumb">
+      <div class="box"><img id="thumb" alt="" hidden><span id="thumbEmpty" style="opacity:.35">+</span></div>
+      <div class="meta" id="srcMeta">Aucune image</div>
+    </div>
+  </section>
+
+  <!-- ✎ un groupe par famille de réglages ; le dé bleu randomise le groupe -->
+  <section class="grp">
+    <h2>Réglages
+      <button class="dice" id="diceA" title="Randomiser ce groupe" aria-label="Randomiser ce groupe">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1" fill="#fff"/><circle cx="15" cy="15" r="1" fill="#fff"/><circle cx="12" cy="12" r="1" fill="#fff"/></svg>
+      </button>
+    </h2>
+    <div class="ctl"><label for="thr">Seuil</label><span class="val" id="thrV"></span>
+      <input type="range" id="thr" min="0" max="1" step="0.01" value="0.5"></div>
+    <div class="ctl"><label for="soft">Douceur</label><span class="val" id="softV"></span>
+      <input type="range" id="soft" min="0" max="0.3" step="0.005" value="0.04"></div>
+    <div class="ctl wide"><label for="mode">Ce qui fait l'encre</label>
+      <select id="mode">
+        <option value="dark">Zones sombres</option>
+        <option value="light">Zones claires</option>
+      </select></div>
+  </section>
+
+  <section class="grp">
+    <h2>Couleurs</h2>
+    <div class="seg" id="cmodeSeg">
+      <button data-v="duo" aria-pressed="true">Bichromie</button>
+      <button data-v="src" aria-pressed="false">Couleurs d'origine</button>
+    </div>
+    <div class="swatches">
+      <label class="sw"><input type="color" id="ink" value="#0f0f0f"> Encre</label>
+      <label class="sw"><input type="color" id="paper" value="#f4f1ea"> Papier</label>
+    </div>
+    <div class="ctl inline"><input type="checkbox" id="transp"><label for="transp">Fond transparent</label></div>
+  </section>
+
+  <section class="grp">
+    <h2>Aperçu &amp; export</h2>
+    <div class="ctl wide"><label for="expRes">Taille de l'export (côté long)</label>
+      <select id="expRes"><option value="1000">1000 px</option><option value="2000" selected>2000 px</option><option value="4000">4000 px</option></select></div>
+    <p class="hint">Les aides et précisions vont ici, en italique.</p>
+  </section>
+  <div class="stats"><span>Aperçu <span id="stSize">—</span></span><span>Calcul <span id="stTime">—</span></span><span id="stWarn"></span></div>
+</aside>
+
+<!-- Dock : actions principales. Icônes rondes neutres, export en bleu (.key). -->
+<nav class="dock" aria-label="Actions">
+  <button class="di" id="btnPick" data-label="Importer">
+    <svg viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14"/></svg></button>
+  <button class="di" id="btnRandAll" data-label="Tout randomiser">
+    <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r=".9" fill="#0f0f0f"/><circle cx="15" cy="15" r=".9" fill="#0f0f0f"/><circle cx="15" cy="9" r=".9" fill="#0f0f0f"/><circle cx="9" cy="15" r=".9" fill="#0f0f0f"/><circle cx="12" cy="12" r=".9" fill="#0f0f0f"/></svg></button>
+  <button class="di" id="btnOrig" data-label="Maintenir : original">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="#0f0f0f"/></svg></button>
+  <span class="sep"></span>
+  <button class="di key" id="btnPng" data-label="Exporter en PNG">PNG</button>
+</nav>
+<input type="file" id="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" hidden>
+
+<script src="/assets/lbp-shell.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const S = { img: null, name: "", cmode: "duo" };
+const slug = "modele";                       // ✎ préfixe des fichiers exportés
+
+/* ================= réglages ================= */
+// ✎ id, format d'affichage de la valeur, plage utilisée par le dé
+const SLIDERS = {
+  thr:  { fmt: v => v.toFixed(2), rnd: [.3, .7] },
+  soft: { fmt: v => v.toFixed(3), rnd: [0, .12] },
+};
+const showVal = id => { $(id + "V").textContent = SLIDERS[id].fmt(+$(id).value); };
+function randomize(ids){
+  ids.forEach(id => {
+    const el = $(id), [a, b] = SLIDERS[id].rnd, step = +el.step;
+    el.value = Math.round((a + Math.random() * (b - a)) / step) * step; showVal(id);
+  });
+  schedule();
+}
+
+/* ================= rendu ================= */
+// ✎ le cœur de l'outil : dessine l'image transformée dans un canvas de taille W×H
+function render(canvas, W, H, transparent){
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(S.img, 0, 0, W, H);
+  const img = ctx.getImageData(0, 0, W, H), d = img.data;
+  const thr = +$("thr").value, soft = Math.max(.002, +$("soft").value), light = $("mode").value === "light";
+  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const ink = hex($("ink").value), pap = hex($("paper").value);
+  for (let i = 0; i < d.length; i += 4){
+    const a = d[i+3] / 255;
+    let L = (0.2126*d[i] + 0.7152*d[i+1] + 0.0722*d[i+2]) / 255 * a + (1 - a);
+    if (!light) L = 1 - L;
+    let t = (L - (1 - thr) + soft) / (2 * soft); t = t < 0 ? 0 : t > 1 ? 1 : t; t = t*t*(3 - 2*t);
+    const c = S.cmode === "src" ? [d[i], d[i+1], d[i+2]] : ink;
+    if (transparent){ d[i] = c[0]; d[i+1] = c[1]; d[i+2] = c[2]; d[i+3] = t * 255; }
+    else for (let k = 0; k < 3; k++) d[i+k] = pap[k] * (1 - t) + c[k] * t, d[i+3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+function sizeFor(L){
+  const iw = S.img.naturalWidth || S.img.width, ih = S.img.naturalHeight || S.img.height;
+  return iw >= ih ? [L, Math.max(1, Math.round(L * ih / iw))] : [Math.max(1, Math.round(L * iw / ih)), L];
+}
+let raf = 0;
+function schedule(){ cancelAnimationFrame(raf); raf = requestAnimationFrame(update); }
+function update(){
+  Object.keys(SLIDERS).forEach(showVal);
+  if (!S.img) return;
+  const t0 = performance.now(), [W, H] = sizeFor(900);
+  render($("out"), W, H, $("transp").checked);
+  $("stSize").textContent = `${W} × ${H} px`;
+  $("stTime").textContent = `${Math.round(performance.now() - t0)} ms`;
+}
+
+/* ================= chargement ================= */
+function setImage(img, name){
+  S.img = img; S.name = name || "image";
+  $("thumb").src = img.src; $("thumb").hidden = false; $("thumbEmpty").hidden = true;
+  $("srcMeta").textContent = `${S.name} · ${img.naturalWidth}×${img.naturalHeight} px`;
+  $("empty").hidden = true; $("frame").hidden = false;
+  schedule();
+}
+function loadFile(f){
+  const img = new Image();
+  img.onload = () => setImage(img, f.name);
+  img.onerror = () => LBP.toast("Impossible de lire ce fichier");
+  img.src = URL.createObjectURL(f);
+}
+function demo(){                             // ✎ une démo qui montre l'outil en un clic
+  const c = document.createElement("canvas"); c.width = 1200; c.height = 800;
+  const x = c.getContext("2d"), g = x.createRadialGradient(480, 360, 40, 600, 400, 640);
+  g.addColorStop(0, "#fff"); g.addColorStop(1, "#111"); x.fillStyle = g; x.fillRect(0, 0, 1200, 800);
+  const img = new Image(); img.onload = () => setImage(img, "demo.png"); img.src = c.toDataURL();
+}
+
+/* ================= export ================= */
+const baseName = () => (S.name || slug).replace(/\.[^.]+$/, "").replace(/[^\w\-]+/g, "_").slice(0, 40) || slug;
+$("btnPng").onclick = () => {
+  if (!S.img){ LBP.toast("Importez d'abord une image"); return; }
+  LBP.busy(true, "Calcul de l'export…");
+  setTimeout(() => {
+    const c = document.createElement("canvas"), [W, H] = sizeFor(+$("expRes").value);
+    render(c, W, H, $("transp").checked);
+    c.toBlob(b => { LBP.busy(false); LBP.download(b, `${baseName()}-${slug}-${W}x${H}.png`); }, "image/png");
+  }, 40);
+};
+
+/* ================= liaisons ================= */
+Object.keys(SLIDERS).forEach(id => $(id).addEventListener("input", schedule));
+["mode", "ink", "paper", "transp"].forEach(id => $(id).addEventListener("input", schedule));
+LBP.seg($("cmodeSeg"), v => { S.cmode = v; schedule(); });
+$("diceA").onclick = () => randomize(["thr", "soft"]);
+$("btnRandAll").onclick = () => randomize(Object.keys(SLIDERS));
+const pick = () => $("file").click();
+$("btnPick").onclick = $("btnPick2").onclick = pick;
+$("btnDemo").onclick = demo;
+$("file").onchange = e => { if (e.target.files[0]) loadFile(e.target.files[0]); e.target.value = ""; };
+LBP.onFile(loadFile);
+// Maintenir le bouton : affiche l'image d'origine
+const orig = $("btnOrig");
+orig.addEventListener("pointerdown", e => {
+  e.preventDefault(); if (!S.img) return;
+  const c = $("out"), ctx = c.getContext("2d"); ctx.clearRect(0, 0, c.width, c.height); ctx.drawImage(S.img, 0, 0, c.width, c.height);
+});
+["pointerup", "pointerleave", "pointercancel"].forEach(ev => orig.addEventListener(ev, schedule));
+update();
+})();
+</script>
+</body>
+</html>
