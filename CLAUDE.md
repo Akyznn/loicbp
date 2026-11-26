@@ -34,6 +34,8 @@ dock d'actions en bas, curseur main + anneau pointillé.
    dans Illustrator), `LBP.pasteFromClipboard(cb)` (bouton « coller » du dock),
    `LBP.copy({type: blob|promise}, msg)` (bouton « copier » du dock : résultat prêt à coller dans Illustrator),
    `LBP.seg(el, cb)`.
+   GIF animés : `<script src="/assets/lbp-gif.js">` → `LBP_GIF.decode(buffer)` (images recomposées + durées)
+   et `LBP_GIF.encode(imageDatas, {delays, transparent})` → Blob (voir le mode gif de Bavure).
 5. Toujours prévoir : une **démo** en un clic, l'**import par glisser-déposer et collage**,
    un **export** (PNG en priorité, SVG si vectoriel) et un bouton **copier** le résultat, des réglages par défaut qui donnent
    déjà un beau résultat, un affichage correct sur mobile (le shell gère la mise en page).

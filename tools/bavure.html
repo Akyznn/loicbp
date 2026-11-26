@@ -29,7 +29,7 @@
     <div class="frame" id="frame" hidden><canvas id="out"></canvas></div>
     <div class="empty" id="empty">
       <svg aria-hidden="true"><rect class="rb" x=".5" y=".5" width="99%" height="99%"/><rect class="rw" x=".5" y=".5" width="99%" height="99%"/></svg>
-      <b>Déposez un SVG ou un PNG</b>
+      <b>Déposez un SVG, un PNG ou un GIF</b>
       <p>un logo, un pictogramme, un mot… ou copiez-le dans Illustrator et collez ici (⌘V)</p>
       <div class="row">
         <button class="btn" id="btnPick2">Choisir un fichier</button>
@@ -85,6 +85,20 @@
     <div class="ctl inline"><input type="checkbox" id="transp"><label for="transp">Fond transparent</label></div>
   </section>
 
+  <section class="grp" id="gifGrp" hidden>
+    <h2>GIF animé</h2>
+    <div class="ctl"><label for="gframe">Image de réglage</label><span class="val" id="gframeV">1 / 1</span>
+      <input type="range" id="gframe" min="1" max="1" step="1" value="1"></div>
+    <div class="ctl wide"><label>Texture d'une image à l'autre</label></div>
+    <div class="seg" id="gTexSeg">
+      <button data-v="fixed" aria-pressed="true">fixe</button>
+      <button data-v="live" aria-pressed="false">vivante</button>
+    </div>
+    <div class="ctl wide"><label for="gifRes">Taille du gif (côté long)</label>
+      <select id="gifRes"><option value="400">400 px</option><option value="600" selected>600 px</option><option value="800">800 px</option><option value="1000">1000 px</option></select></div>
+    <p class="hint">Réglez sur l'image de votre choix : l'effet s'applique ensuite à toutes. « Vivante » fait bouger le grain et les bords à chaque image, comme un film image par image. Avec fond transparent, les bords du gif sont nets (pas de demi-transparence en gif).</p>
+  </section>
+
   <section class="grp">
     <h2>Aperçu &amp; export</h2>
     <div class="ctl wide"><label for="prev">Qualité de l'aperçu</label>
@@ -114,10 +128,11 @@
   <span class="sep"></span>
   <button class="di" id="btnCopy" data-label="Copier le résultat" data-umami-event="bavure-copier">
     <svg viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2"/><path d="M15.5 8.5V6A2 2 0 0 0 13.5 4H6A2 2 0 0 0 4 6v7.5a2 2 0 0 0 2 2h2.5"/></svg></button>
+  <button class="di key" id="btnGif" data-label="Exporter en GIF" data-umami-event="bavure-gif" hidden>GIF</button>
   <button class="di key" id="btnPng" data-label="Exporter en PNG" data-umami-event="bavure-png">PNG</button>
   <button class="di" id="btnSvg" data-label="Exporter en SVG" data-umami-event="bavure-svg">SVG</button>
 </nav>
-<input type="file" id="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" hidden>
+<input type="file" id="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,.svg,.gif" hidden>
 
 <script>
 (() => {
@@ -523,8 +538,9 @@ function update(){
   $("inkSw").style.opacity = S.cmode === "src" ? .35 : 1;
   if (!S.img) return;
   const [W, H] = sizeFor(+$("prev").value);
-  const sk = `${S.imgId}|${W}x${H}`;
+  const sk = `${W}x${H}`;
   if (S.cacheSize !== sk || S.cache.size > 70){ S.cache.clear(); S.cacheSize = sk; }
+  if (S.cacheImg !== S.imgId){ for (const k of [...S.cache.keys()]) if (k.startsWith("src|")) S.cache.delete(k); S.cacheImg = S.imgId; }
   const t0 = performance.now();
   const res = compute(W, H, params(), S.cache);
   const out = $("out"); out.width = W; out.height = H;
@@ -559,15 +575,29 @@ $("preset").onchange = e => {
 };
 
 /* ================= chargement ================= */
-function setImage(img, name, thumbSrc){
+function setImage(img, name, thumbSrc, keepGif){
   S.img = img; S.imgId++; S.name = name || "image";
+  if (!keepGif) setGifMode(null);
   $("thumb").src = thumbSrc || img.src; $("thumb").hidden = false; $("thumbEmpty").hidden = true;
-  $("srcMeta").textContent = `${S.name} · ${img.naturalWidth}×${img.naturalHeight} px`;
+  $("srcMeta").textContent = `${S.name} · ${img.naturalWidth || img.width}×${img.naturalHeight || img.height} px` + (S.gif ? ` · ${S.gif.count} images` : "");
   $("empty").hidden = true; $("frame").hidden = false;
   schedule();
 }
 async function loadFile(f){
   if (!f) return;
+  if (f.type === "image/gif" || /\.gif$/i.test(f.name)){
+    try {
+      busy(true, "Lecture du gif…");
+      const G = await LBP_GIF.decode(await f.arrayBuffer(), { maxSide:1400, maxFrames:300 });
+      busy(false);
+      if (G.count > 1){
+        setGifMode(G);
+        setImage(G.frames[0].bmp, f.name, URL.createObjectURL(f), true);
+        toast(`${G.count} images${G.truncated ? " (limité aux 300 premières)" : ""} : choisissez l'image de réglage`);
+        return;
+      }
+    } catch (e) { busy(false); toast("Gif illisible"); return; }
+  }
   const isSvg = f.type === "image/svg+xml" || /\.svg$/i.test(f.name);
   if (!isSvg && !f.type.startsWith("image/")){ toast("Format non reconnu"); return; }
   let url;
@@ -611,10 +641,64 @@ async function demo(){
 }
 
 /* ================= exports ================= */
-function busy(on){
+function busy(on, label){
   let b = document.querySelector(".busy");
-  if (on && !b){ b = document.createElement("div"); b.className = "busy"; b.textContent = "Calcul de l'export…"; document.body.appendChild(b); }
+  if (on && !b){ b = document.createElement("div"); b.className = "busy"; document.body.appendChild(b); }
+  if (on) b.textContent = label || "Calcul de l'export…";
   if (!on && b) b.remove();
+}
+
+/* ================= gif animé ================= */
+S.gifTex = "fixed";
+function setGifMode(G){
+  S.gif = G;
+  $("gifGrp").hidden = !G; $("btnGif").hidden = !G;
+  $("btnPng").classList.toggle("key", !G);
+  $("btnPng").dataset.label = G ? "Exporter l'image en PNG" : "Exporter en PNG";
+  if (G){ $("gframe").max = G.count; $("gframe").value = 1; $("gframeV").textContent = `1 / ${G.count}`; }
+}
+function pickFrame(){
+  if (!S.gif) return;
+  const i = +$("gframe").value - 1;
+  $("gframeV").textContent = `${i+1} / ${S.gif.count}`;
+  S.img = S.gif.frames[i].bmp; S.imgId++;
+  schedule();
+}
+const tick = () => new Promise(r => setTimeout(r, 0));
+async function exportGif(){
+  const G = S.gif; if (!G) return;
+  const keep = { img:S.img, id:S.imgId, cache:S.cache };
+  const P0 = params(), tr = $("transp").checked, L = +$("gifRes").value, live = S.gifTex === "live";
+  const cache = new Map(), frames = [];
+  busy(true, `Calcul du gif · 0 / ${G.count}`);
+  await tick();
+  try {
+    for (let i = 0; i < G.count; i++){
+      S.img = G.frames[i].bmp; S.imgId = -1 - i;
+      const [W, H] = sizeFor(L);
+      const P = Object.assign({}, P0);
+      if (live) P.seed = P0.seed + (i+1)*7919;
+      for (const k of [...cache.keys()]) if (k.startsWith("src|") || (live && !k.startsWith("paper|"))) cache.delete(k);
+      const res = compute(W, H, P, cache);
+      const c = document.createElement("canvas"); c.width = W; c.height = H;
+      const ctx = c.getContext("2d", { willReadFrequently:true });
+      S.cache = cache; paint(res, ctx, tr);
+      frames.push(ctx.getImageData(0, 0, W, H));
+      busy(true, `Calcul du gif · ${i+1} / ${G.count}`);
+      await tick();
+    }
+    const blob = await LBP_GIF.encode(frames, {
+      delays: G.frames.map(f => f.delay), transparent: tr,
+      onProgress: (k, n) => busy(true, `Encodage · ${k} / ${n}`)
+    });
+    download(blob, `${baseName()}-bavure.gif`);
+    toast(`Gif : ${G.count} images, ${(blob.size/1048576).toFixed(1)} Mo`);
+  } catch (e) {
+    toast("Mémoire insuffisante : baissez la taille du gif");
+  } finally {
+    S.img = keep.img; S.imgId = keep.id; S.cache = keep.cache;
+    busy(false);
+  }
 }
 function exportCompute(){
   const [W, H] = sizeFor(+$("expRes").value);
@@ -788,7 +872,10 @@ $("file").onchange = e => { loadFile(e.target.files[0]); e.target.value = ""; };
 
 // glisser-déposer + collage (⌘V, y compris le SVG copié dans Illustrator) : lbp-shell.js
 S.copyMode = "png";
+$("gframe").addEventListener("input", pickFrame);
+$("btnGif").onclick = exportGif;
 document.addEventListener("DOMContentLoaded", () => {
+  LBP.seg($("gTexSeg"), v => { S.gifTex = v; });
   LBP.seg($("copySeg"), v => { S.copyMode = v; });
   LBP.onFile(loadFile, { label:"Déposez le fichier" });
   $("btnPaste").onclick = () => LBP.pasteFromClipboard(loadFile);
@@ -797,5 +884,6 @@ fmtThr(); fmtMar(); update();
 })();
 </script>
 <script src="/assets/lbp-shell.js"></script>
+<script src="/assets/lbp-gif.js"></script>
 </body>
 </html>
