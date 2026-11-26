@@ -91,6 +91,11 @@
       <select id="prev"><option value="600">Rapide · 600 px</option><option value="900" selected>Normale · 900 px</option><option value="1300">Fine · 1300 px</option></select></div>
     <div class="ctl wide"><label for="expRes">Taille de l'export (côté long)</label>
       <select id="expRes"><option value="1000">1000 px</option><option value="2000" selected>2000 px</option><option value="3000">3000 px</option><option value="4000">4000 px</option></select></div>
+    <div class="ctl wide"><label>Le bouton copier copie</label></div>
+    <div class="seg" id="copySeg">
+      <button data-v="png" aria-pressed="true">l'image (png)</button>
+      <button data-v="svg" aria-pressed="false">le vecteur (svg)</button>
+    </div>
     <p class="hint">Depuis Illustrator : sélectionnez, ⌘C, puis ⌘V ici. Vectorisez le texte avant (⌘⇧O) pour garder la bonne typo.</p>
     <p class="hint">Distances calibrées pour une image de 1000 px : le rendu est identique à toutes les tailles. Le SVG garde la silhouette, en une couleur.</p>
   </section>
@@ -107,6 +112,8 @@
   <button class="di" id="btnOrig" data-label="Maintenir : original">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="#0f0f0f"/></svg></button>
   <span class="sep"></span>
+  <button class="di" id="btnCopy" data-label="Copier le résultat" data-umami-event="bavure-copier">
+    <svg viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2"/><path d="M15.5 8.5V6A2 2 0 0 0 13.5 4H6A2 2 0 0 0 4 6v7.5a2 2 0 0 0 2 2h2.5"/></svg></button>
   <button class="di key" id="btnPng" data-label="Exporter en PNG" data-umami-event="bavure-png">PNG</button>
   <button class="di" id="btnSvg" data-label="Exporter en SVG" data-umami-event="bavure-svg">SVG</button>
 </nav>
@@ -614,19 +621,24 @@ function exportCompute(){
   const cache = new Map();
   return compute(W, H, params(), cache);
 }
+function makePng(){            // → Promise<Blob>
+  return new Promise((ok, ko) => {
+    busy(true);
+    setTimeout(() => {
+      try {
+        const res = exportCompute();
+        const c = document.createElement("canvas"); c.width = res.W; c.height = res.H;
+        const keep = S.cache; S.cache = null;           // texture papier recalculée à la bonne taille
+        paint(res, c.getContext("2d"), $("transp").checked);
+        S.cache = keep;
+        c.toBlob(b => { busy(false); b ? ok(Object.assign(b, { W:res.W, H:res.H })) : ko(); }, "image/png");
+      } catch (e) { busy(false); toast("Mémoire insuffisante : baissez la résolution"); ko(e); }
+    }, 40);
+  });
+}
 $("btnPng").onclick = () => {
   if (!S.img){ toast("Importez d'abord une image"); return; }
-  busy(true);
-  setTimeout(() => {
-    try {
-      const res = exportCompute();
-      const c = document.createElement("canvas"); c.width = res.W; c.height = res.H;
-      const keep = S.cache; S.cache = null;           // texture papier recalculée à la bonne taille
-      paint(res, c.getContext("2d"), $("transp").checked);
-      S.cache = keep;
-      c.toBlob(b => { busy(false); download(b, `${baseName()}-bavure-${res.W}x${res.H}.png`); }, "image/png");
-    } catch (e) { busy(false); toast("Mémoire insuffisante : baissez la résolution"); }
-  }, 40);
+  makePng().then(b => download(b, `${baseName()}-bavure-${b.W}x${b.H}.png`), () => {});
 };
 
 /* vectorisation : marching squares + simplification */
@@ -694,29 +706,49 @@ function rdp(pts, tol){
   }
   return pts.filter((_, i) => keep[i]);
 }
+function makeSvg(){            // → Promise<{svg, count}>
+  return new Promise((ok, ko) => {
+    busy(true);
+    setTimeout(() => {
+      try {
+        const res = exportCompute();
+        const loops = trace(res.d, res.W, res.H, .32);
+        let path = "", count = 0;
+        for (const lp of loops){
+          let area = 0;
+          for (let i = 0, j = lp.length-1; i < lp.length; j = i++) area += (lp[j][0]+lp[i][0])*(lp[j][1]-lp[i][1]);
+          if (Math.abs(area)/2 < 1.5) continue;
+          const s = rdp(lp, .35);
+          path += "M" + s.map(p => `${(p[0]+.5).toFixed(1)} ${(p[1]+.5).toFixed(1)}`).join("L") + "Z";
+          count++;
+        }
+        const bg = $("transp").checked ? "" : `<rect width="${res.W}" height="${res.H}" fill="${$("paper").value}"/>`;
+        const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${res.W}" height="${res.H}" viewBox="0 0 ${res.W} ${res.H}">${bg}<path fill="${$("ink").value}" fill-rule="evenodd" d="${path}"/></svg>`;
+        busy(false); ok({ svg, count });
+      } catch (e) { busy(false); toast("Trop lourd : baissez la résolution ou le grain"); ko(e); }
+    }, 40);
+  });
+}
 $("btnSvg").onclick = () => {
   if (!S.img){ toast("Importez d'abord une image"); return; }
-  busy(true);
-  setTimeout(() => {
-    try {
-      const res = exportCompute();
-      const loops = trace(res.d, res.W, res.H, .32);
-      let path = "", count = 0;
-      for (const lp of loops){
-        let area = 0;
-        for (let i = 0, j = lp.length-1; i < lp.length; j = i++) area += (lp[j][0]+lp[i][0])*(lp[j][1]-lp[i][1]);
-        if (Math.abs(area)/2 < 1.5) continue;
-        const s = rdp(lp, .35);
-        path += "M" + s.map(p => `${(p[0]+.5).toFixed(1)} ${(p[1]+.5).toFixed(1)}`).join("L") + "Z";
-        count++;
-      }
-      const bg = $("transp").checked ? "" : `<rect width="${res.W}" height="${res.H}" fill="${$("paper").value}"/>`;
-      const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${res.W}" height="${res.H}" viewBox="0 0 ${res.W} ${res.H}">${bg}<path fill="${$("ink").value}" fill-rule="evenodd" d="${path}"/></svg>`;
-      busy(false);
-      download(new Blob([svg], {type:"image/svg+xml"}), `${baseName()}-bavure.svg`);
-      toast(`SVG : ${count.toLocaleString("fr-FR")} formes`);
-    } catch (e) { busy(false); toast("Trop lourd : baissez la résolution ou le grain"); }
-  }, 40);
+  makeSvg().then(({svg, count}) => {
+    download(new Blob([svg], {type:"image/svg+xml"}), `${baseName()}-bavure.svg`);
+    toast(`SVG : ${count.toLocaleString("fr-FR")} formes`);
+  }, () => {});
+};
+
+/* copier le résultat : ⌘V directement dans Illustrator */
+$("btnCopy").onclick = () => {
+  if (!S.img){ toast("Importez d'abord une image"); return; }
+  if (S.copyMode === "svg"){
+    const p = makeSvg();
+    LBP.copy({
+      "text/plain":    p.then(r => new Blob([r.svg], {type:"text/plain"})),
+      "image/svg+xml": p.then(r => new Blob([r.svg], {type:"image/svg+xml"})),
+    }, "Vecteur copié : ⌘V dans Illustrator");
+  } else {
+    LBP.copy({ "image/png": makePng() }, "Image copiée : ⌘V dans Illustrator");
+  }
 };
 
 /* ================= original (maintenir) ================= */
@@ -755,7 +787,9 @@ $("btnDemo").onclick = demo;
 $("file").onchange = e => { loadFile(e.target.files[0]); e.target.value = ""; };
 
 // glisser-déposer + collage (⌘V, y compris le SVG copié dans Illustrator) : lbp-shell.js
+S.copyMode = "png";
 document.addEventListener("DOMContentLoaded", () => {
+  LBP.seg($("copySeg"), v => { S.copyMode = v; });
   LBP.onFile(loadFile, { label:"Déposez le fichier" });
   $("btnPaste").onclick = () => LBP.pasteFromClipboard(loadFile);
 });

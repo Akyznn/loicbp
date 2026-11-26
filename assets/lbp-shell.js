@@ -4,7 +4,7 @@
      <script src="/assets/lbp-shell.js"></script>
    Fournit :
    - le curseur main + l'anneau pointillé qui épouse liens et boutons
-   - window.LBP : toast(), download(), busy(), onFile(), seg(), pasteFromClipboard(), svgFromText()
+   - window.LBP : toast(), download(), busy(), onFile(), seg(), pasteFromClipboard(), svgFromText(), copy()
    ===================================================================== */
 (function () {
   "use strict";
@@ -107,6 +107,26 @@
       else if (e.clipboardData && e.clipboardData.types && e.clipboardData.types.length) LBP.toast(PASTE_HELP);
     });
     LBP._onFileCb = cb; LBP._onFileAccept = accept;
+  };
+
+  /* ── Copier le résultat dans le presse-papiers (pour ⌘V dans Illustrator, Figma…) ──
+     items : { "image/png": Blob|Promise<Blob>, "text/plain": … }. À appeler DIRECTEMENT dans le clic
+     (Safari exige le geste) : passer des Promise si le calcul prend du temps. */
+  LBP.copy = async function (items, okMsg) {
+    if (!navigator.clipboard || !navigator.clipboard.write || !window.ClipboardItem) {
+      LBP.toast("Copie non disponible ici : utilisez l'export"); return false;
+    }
+    var keys = Object.keys(items).filter(function (k) { return !ClipboardItem.supports || ClipboardItem.supports(k); });
+    var pick = function (ks) { var o = {}; ks.forEach(function (k) { o[k] = items[k]; }); return o; };
+    try {
+      await navigator.clipboard.write([new ClipboardItem(pick(keys))]);
+      LBP.toast(okMsg || "Copié"); return true;
+    } catch (e) {
+      if (keys.length > 1 && items["text/plain"]) {           // certains navigateurs refusent l'un des formats
+        try { await navigator.clipboard.write([new ClipboardItem(pick(["text/plain"]))]); LBP.toast(okMsg || "Copié"); return true; } catch (e2) {}
+      }
+      LBP.toast("Copie refusée par le navigateur : utilisez l'export"); return false;
+    }
   };
 
   /* ── Presse-papiers : copier-coller depuis Illustrator, Figma, Inkscape… ──
