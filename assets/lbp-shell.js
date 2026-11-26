@@ -4,7 +4,7 @@
      <script src="/assets/lbp-shell.js"></script>
    Fournit :
    - le curseur main + l'anneau pointillé qui épouse liens et boutons
-   - window.LBP : toast(), download(), busy(), onFile(), seg()
+   - window.LBP : toast(), download(), busy(), onFile(), seg(), pasteFromClipboard(), svgFromText()
    ===================================================================== */
 (function () {
   "use strict";
@@ -100,12 +100,69 @@
       if (f && accept(f)) cb(f); else if (f) LBP.toast("Format non reconnu");
     });
     window.addEventListener("paste", function (e) {
-      var t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
-      var items = (e.clipboardData && e.clipboardData.items) || [];
-      for (var i = 0; i < items.length; i++) {
-        if (items[i].kind === "file") { var f = items[i].getAsFile(); if (f && accept(f)) { e.preventDefault(); cb(f); return; } }
-      }
+      var t = e.target;
+      if (t && (t.tagName === "TEXTAREA" || t.isContentEditable || (t.tagName === "INPUT" && /^(text|number|search|email|url|password)$/.test(t.type)))) return;
+      var f = LBP.fileFromClipboardData(e.clipboardData, accept);
+      if (f) { e.preventDefault(); cb(f); }
+      else if (e.clipboardData && e.clipboardData.types && e.clipboardData.types.length) LBP.toast(PASTE_HELP);
     });
+    LBP._onFileCb = cb; LBP._onFileAccept = accept;
+  };
+
+  /* ── Presse-papiers : copier-coller depuis Illustrator, Figma, Inkscape… ──
+     Illustrator place le code SVG en texte (Préférences › Gestion du presse-papiers › SVG).
+     On préfère toujours le SVG (vectoriel) à une image bitmap quand les deux sont là. */
+  var PASTE_HELP = "Rien d'exploitable : dans Illustrator, activez Préférences › Presse-papiers › SVG";
+  LBP.svgFromText = function (txt, name) {
+    if (!txt) return null;
+    var m = /<svg[\s\S]*<\/svg>/i.exec(txt);
+    if (!m) return null;
+    var head = /<\?xml[^>]*>/i.exec(txt);
+    var code = m[0];
+    if (!/xmlns=/.test(code.slice(0, code.indexOf(">")))) code = code.replace(/<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+    return new File([(head ? head[0] + "\n" : "") + code], name || "presse-papiers.svg", { type: "image/svg+xml" });
+  };
+  LBP.fileFromClipboardData = function (cd, accept) {
+    if (!cd) return null;
+    accept = accept || LBP._onFileAccept || function () { return true; };
+    var items = cd.items || [], i, f;
+    for (i = 0; i < items.length; i++) if (items[i].kind === "file" && items[i].type === "image/svg+xml") { f = items[i].getAsFile(); if (f && accept(f)) return f; }
+    var svg = LBP.svgFromText(cd.getData("image/svg+xml")) || LBP.svgFromText(cd.getData("text/plain")) || LBP.svgFromText(cd.getData("text/html"));
+    if (svg && accept(svg)) return svg;
+    for (i = 0; i < items.length; i++) if (items[i].kind === "file") { f = items[i].getAsFile(); if (f && accept(f)) return f; }
+    return null;
+  };
+  // Bouton « Coller » (sans clavier, ou sur mobile) : lit le presse-papiers puis appelle cb(file)
+  LBP.pasteFromClipboard = async function (cb) {
+    cb = cb || LBP._onFileCb;
+    var accept = LBP._onFileAccept || function () { return true; };
+    if (!navigator.clipboard) { LBP.toast("Collez avec ⌘V / Ctrl+V"); return; }
+    try {
+      if (navigator.clipboard.read) {
+        var items = await navigator.clipboard.read(), imgs = [];
+        for (var i = 0; i < items.length; i++) {
+          var it = items[i];
+          for (var k = 0; k < it.types.length; k++) {
+            var ty = it.types[k];
+            if (ty === "image/svg+xml" || ty === "text/plain" || ty === "text/html") {
+              var f = LBP.svgFromText(await (await it.getType(ty)).text());
+              if (f && accept(f)) { cb(f); return; }
+            } else if (/^image\//.test(ty)) imgs.push([it, ty]);
+          }
+        }
+        if (imgs.length) {
+          var b = await imgs[0][0].getType(imgs[0][1]);
+          var fi = new File([b], "presse-papiers." + (imgs[0][1].split("/")[1] || "png"), { type: imgs[0][1] });
+          if (accept(fi)) { cb(fi); return; }
+        }
+      } else {
+        var f2 = LBP.svgFromText(await navigator.clipboard.readText());
+        if (f2 && accept(f2)) { cb(f2); return; }
+      }
+      LBP.toast(PASTE_HELP);
+    } catch (err) {
+      LBP.toast("Accès refusé : collez avec ⌘V / Ctrl+V");
+    }
   };
 
   // Boutons segmentés <div class="seg"><button data-v="a" aria-pressed="true">…</button>…</div> : cb(valeur)

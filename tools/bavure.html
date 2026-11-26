@@ -30,7 +30,7 @@
     <div class="empty" id="empty">
       <svg aria-hidden="true"><rect class="rb" x=".5" y=".5" width="99%" height="99%"/><rect class="rw" x=".5" y=".5" width="99%" height="99%"/></svg>
       <b>Déposez un SVG ou un PNG</b>
-      <p>un logo, un pictogramme, un mot… ou collez-le avec ⌘V</p>
+      <p>un logo, un pictogramme, un mot… ou copiez-le dans Illustrator et collez ici (⌘V)</p>
       <div class="row">
         <button class="btn" id="btnPick2">Choisir un fichier</button>
         <button class="btn ghost" id="btnDemo">Essayer la démo</button>
@@ -91,6 +91,7 @@
       <select id="prev"><option value="600">Rapide · 600 px</option><option value="900" selected>Normale · 900 px</option><option value="1300">Fine · 1300 px</option></select></div>
     <div class="ctl wide"><label for="expRes">Taille de l'export (côté long)</label>
       <select id="expRes"><option value="1000">1000 px</option><option value="2000" selected>2000 px</option><option value="3000">3000 px</option><option value="4000">4000 px</option></select></div>
+    <p class="hint">Depuis Illustrator : sélectionnez, ⌘C, puis ⌘V ici. Vectorisez le texte avant (⌘⇧O) pour garder la bonne typo.</p>
     <p class="hint">Distances calibrées pour une image de 1000 px : le rendu est identique à toutes les tailles. Le SVG garde la silhouette, en une couleur.</p>
   </section>
   <div class="stats"><span>Aperçu <span id="stSize">—</span></span><span>Calcul <span id="stTime">—</span></span><span id="stWarn"></span></div>
@@ -99,6 +100,8 @@
 <nav class="dock" aria-label="Actions">
   <button class="di" id="btnPick" data-label="Importer" data-umami-event="bavure-import">
     <svg viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14"/></svg></button>
+  <button class="di" id="btnPaste" data-label="Coller (⌘V)" data-umami-event="bavure-coller">
+    <svg viewBox="0 0 24 24"><rect x="5.5" y="5" width="13" height="16" rx="2"/><path d="M9 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1M9 11h6M9 15h4"/></svg></button>
   <button class="di" id="btnRandAll" data-label="Tout randomiser" data-umami-event="bavure-random">
     <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r=".9" fill="#0f0f0f"/><circle cx="15" cy="15" r=".9" fill="#0f0f0f"/><circle cx="15" cy="9" r=".9" fill="#0f0f0f"/><circle cx="9" cy="15" r=".9" fill="#0f0f0f"/><circle cx="12" cy="12" r=".9" fill="#0f0f0f"/></svg></button>
   <button class="di" id="btnOrig" data-label="Maintenir : original">
@@ -751,15 +754,10 @@ $("btnPick").onclick = $("btnPick2").onclick = pick;
 $("btnDemo").onclick = demo;
 $("file").onchange = e => { loadFile(e.target.files[0]); e.target.value = ""; };
 
-let overlay = null, depth = 0;
-window.addEventListener("dragenter", e => { e.preventDefault(); depth++;
-  if (!overlay){ overlay = document.createElement("div"); overlay.className = "drop"; overlay.textContent = "Déposez le fichier"; document.body.appendChild(overlay); } });
-window.addEventListener("dragover", e => e.preventDefault());
-window.addEventListener("dragleave", () => { if (--depth <= 0 && overlay){ overlay.remove(); overlay = null; depth = 0; } });
-window.addEventListener("drop", e => { e.preventDefault(); depth = 0; if (overlay){ overlay.remove(); overlay = null; } loadFile(e.dataTransfer.files[0]); });
-window.addEventListener("paste", e => {
-  const it = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/"));
-  if (it) loadFile(it.getAsFile());
+// glisser-déposer + collage (⌘V, y compris le SVG copié dans Illustrator) : lbp-shell.js
+document.addEventListener("DOMContentLoaded", () => {
+  LBP.onFile(loadFile, { label:"Déposez le fichier" });
+  $("btnPaste").onclick = () => LBP.pasteFromClipboard(loadFile);
 });
 fmtThr(); fmtMar(); update();
 })();

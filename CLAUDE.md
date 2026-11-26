@@ -30,7 +30,8 @@ dock d'actions en bas, curseur main + anneau pointillé.
    - boutons `.btn` (bleu plein) et `.btn.ghost` (bleu filaire) ;
    - dock `nav.dock` → `.di` (icône ronde, info-bulle via `data-label`), `.di.key` pour l'export, `.sep`.
 4. Comportements communs via `window.LBP` (lbp-shell.js) : `LBP.toast(msg)`, `LBP.download(blob, nom)`,
-   `LBP.busy(true|false, texte)`, `LBP.onFile(cb)` (glisser-déposer + ⌘V), `LBP.seg(el, cb)`.
+   `LBP.busy(true|false, texte)`, `LBP.onFile(cb)` (glisser-déposer + ⌘V, y compris le SVG copié
+   dans Illustrator), `LBP.pasteFromClipboard(cb)` (bouton « coller » du dock), `LBP.seg(el, cb)`.
 5. Toujours prévoir : une **démo** en un clic, l'**import par glisser-déposer et collage**,
    un **export** (PNG en priorité, SVG si vectoriel), des réglages par défaut qui donnent
    déjà un beau résultat, un affichage correct sur mobile (le shell gère la mise en page).
