@@ -30,7 +30,9 @@
 
   function track(name, data) { try { if (window.lbpTrack) window.lbpTrack(name, data); } catch (e) {} }
 
-  document.documentElement.style.visibility = 'hidden';
+  // opacity (et pas visibility) : visibility se transmet aux éléments, et les outils qui lisent
+  // la visibilité de leurs formes au démarrage (Tracé, Motion Studio) les croiraient masquées.
+  document.documentElement.style.opacity = '0';
 
   var font = document.createElement('link');
   font.rel = 'stylesheet';
@@ -161,7 +163,7 @@
     gate.id = 'lbp-gate';
     gate.innerHTML = html();
     document.body.appendChild(gate);
-    document.documentElement.style.visibility = 'visible';
+    document.documentElement.style.opacity = '';
     var $ = function (s) { return gate.querySelector(s); };
 
     // ── Curseur main + anneau pointillé qui se pose sur l'élément survolé
