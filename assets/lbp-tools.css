@@ -60,6 +60,13 @@
 .lbp-back.lbp-float{position:fixed;top:12px;left:12px;z-index:2147483646;background:var(--lbp-glass);
   -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 0 0 1px rgba(15,15,15,.08)}
 
+/* ── barres du haut au premier plan : le flou (backdrop-filter) crée un empilement
+      qui sinon fait passer leurs menus déroulants sous la scène et les panneaux ── */
+:root[data-lbp="perspemock"] #top,:root[data-lbp^="motion"] .top,:root[data-lbp="feuillete"] .top,
+:root[data-lbp="stickers"] .top,:root[data-lbp="raster"] header,:root[data-lbp="pixascii"] header,
+:root:is([data-lbp="relief1"],[data-lbp="embossage"],[data-lbp="imposition"]) .topbar{position:relative;z-index:40}
+:root[data-lbp="typo"] .top{z-index:40}
+
 /* ── curseur main + anneau pointillé (repris de Bavure) ───────────── */
 @media (hover:hover) and (pointer:fine){
   html.lbp-cc,html.lbp-cc body,html.lbp-cc button,html.lbp-cc a,html.lbp-cc label,html.lbp-cc select,
@@ -72,6 +79,10 @@
 html.lbp-on #lbp-cursor{opacity:1}
 html.lbp-native #lbp-cursor{opacity:0}
 #lbp-ring{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2147483646;overflow:visible}
+/* en « popover » pour rester au-dessus des fenêtres modales (<dialog>) */
+#lbp-cursor[popover],#lbp-ring[popover]{margin:0;padding:0;border:0;background:none;color:inherit}
+#lbp-cursor[popover]{inset:auto;top:0;left:0;overflow:visible}
+#lbp-ring[popover]{inset:0;width:100%;height:100%;max-width:none;max-height:none}
 html:not(.lbp-cc) #lbp-ring{display:none}
 #lbp-ring rect{fill:none;stroke-width:1;stroke-dasharray:var(--lbp-ant) var(--lbp-ant)}
 #lbp-ring .rb{stroke:#0f0f0f;animation:lbp-march var(--lbp-ant-speed) linear infinite}

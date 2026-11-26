@@ -41,7 +41,7 @@
     '<link rel="preconnect" href="https://fonts.googleapis.com">' +
     '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
     '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Piazzolla:ital@0;1&display=swap">' +
-    '<link rel="stylesheet" href="/assets/lbp-tools.css?v=2">'
+    '<link rel="stylesheet" href="/assets/lbp-tools.css?v=3">'
   );
   if (!document.querySelector('link[rel~=icon]')) {
     document.write('<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/favicon.svg" type="image/svg+xml">');
@@ -116,6 +116,29 @@
     var rb = document.createElementNS(NS, 'rect'), rw = document.createElementNS(NS, 'rect');
     rb.setAttribute('class', 'rb'); rw.setAttribute('class', 'rw'); ring.appendChild(rb); ring.appendChild(rw);
     document.body.appendChild(ring); document.body.appendChild(cur);
+
+    // Les fenêtres modales (<dialog>) passent dans la « couche du dessus » du navigateur,
+    // au-dessus de tout z-index : curseur et anneau y vont aussi (popover), et y reviennent
+    // à chaque ouverture de fenêtre pour rester devant.
+    var canPop = typeof cur.showPopover === 'function';
+    function front() {
+      if (!canPop) return;
+      [ring, cur].forEach(function (el) {
+        try { if (el.matches(':popover-open')) el.hidePopover(); el.showPopover(); } catch (e) {}
+      });
+    }
+    if (canPop) {
+      ring.setAttribute('popover', 'manual'); cur.setAttribute('popover', 'manual');
+      front();
+      new MutationObserver(function (list) {
+        for (var i = 0; i < list.length; i++) if (list[i].target.tagName === 'DIALOG') { setTimeout(front, 0); return; }
+      }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['open'] });
+    } else {
+      // navigateur sans popover : curseur natif dans les fenêtres modales
+      document.addEventListener('mouseover', function (e) {
+        if (e.target.closest && e.target.closest('dialog[open]')) root.classList.add('lbp-native');
+      });
+    }
 
     // Sur les zones de travail (canvas, champs texte), l'outil garde son propre curseur
     var NATIVE = 'canvas, textarea, input[type=text], input[type=number], input[type=email], input:not([type]), [contenteditable], .curve, .bez, #lbp-gate';
