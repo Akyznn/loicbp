@@ -791,7 +791,7 @@
     e.preventDefault();
     open(e.detail.slug, { from: e.detail.from });
   });
-  addEventListener('lbp:dock-ready', () => { if (projects.length) apply(false); });
+  addEventListener('lbp:dock-ready', () => { if (projects.length && stage.classList.contains('ready')) apply(false); });
 
   /* ───────── Démarrage ───────── */
   (async () => {
@@ -804,6 +804,13 @@
     projects = allProjects.filter(p => !p.corbeille);
     trashProjects = allProjects.filter(p => p.corbeille);
     build();
+    // On attend la police Allo (taille des boutons de l'orbite) et le dock (place réservée en bas) AVANT
+    // de placer les vignettes : sinon une 1re composition apparaît, collée au logo, puis tout saute.
+    const wait = (p, ms) => Promise.race([p, new Promise(r => setTimeout(r, ms))]);
+    await Promise.all([
+      wait(document.fonts ? document.fonts.load("700 14px 'Allo'").then(() => document.fonts.ready) : Promise.resolve(), 1500),
+      wait(new Promise(r => document.getElementById('dock') ? r() : addEventListener('lbp:dock-ready', r, { once: true })), 1200)
+    ]);
     const s = parseHash();
     mode = s.mode;
     apply(false);
@@ -813,7 +820,5 @@
       if (s.slug) open(s.slug, { push: false });
     });
     requestAnimationFrame(frameLoop);
-    // Re-calcul une fois la police Allo chargée (la taille des boutons change la zone réservée au logo)
-    document.fonts && document.fonts.ready.then(() => apply(false));
   })();
 })();
