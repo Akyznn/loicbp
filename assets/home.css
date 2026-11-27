@@ -291,3 +291,14 @@ body.modal-open #ring { z-index: 101; }
 @media (prefers-reduced-motion: reduce) {
   #stage.anim .card, .btn { transition: none !important; }
 }
+
+/* ── Brume au centre : le damier s'enfonce dans un voile clair et flou autour du logo (état éparpillé) ── */
+#fog {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: rgba(253, 253, 253, 0.9);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  -webkit-mask-image: radial-gradient(ellipse 44% 48% at 50% 50%, #000 0%, rgba(0, 0, 0, .75) 30%, rgba(0, 0, 0, .3) 65%, transparent 100%);
+          mask-image: radial-gradient(ellipse 44% 48% at 50% 50%, #000 0%, rgba(0, 0, 0, .75) 30%, rgba(0, 0, 0, .3) 65%, transparent 100%);
+  opacity: 0; transition: opacity .9s var(--ease-out);
+}
+html.lock #fog { opacity: 1; }
